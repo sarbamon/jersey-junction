@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Filter, SlidersHorizontal, ChevronRight, TrendingUp } from 'lucide-react';
@@ -35,6 +35,16 @@ export default function ShopPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedLeague, setSelectedLeague] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get('category');
+      if (catParam) {
+        setActiveCategory(catParam);
+      }
+    }
+  }, []);
 
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);

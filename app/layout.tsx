@@ -25,6 +25,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preload" as="image" href="/hero/colin-meg-R8ayF9Qwu5Y-unsplash.webp" />
+        <link rel="preload" as="image" href="/hero/cristian-tarzi-uBgmduO_ZBg-unsplash.webp" />
+        <link rel="preload" as="image" href="/hero/simon-reza-Yfv7JszxYyw-unsplash.webp" />
+        <link rel="preload" as="image" href="/hero/bibesh-manandhar-e-OfH1yh_hs-unsplash.webp" />
+        <link rel="preload" as="image" href="/hero/michael-kyule-Lhd0RRDTTOo-unsplash.webp" />
+        <link rel="preload" as="image" href="/hero/vladislav-glukhotko-HPDtJ0V_cNI-unsplash.webp" />
+      </head>
       <body className="min-h-full flex flex-col bg-black text-white selection:bg-[#f4c84a] selection:text-black">
         <StoreProvider>
           {children}

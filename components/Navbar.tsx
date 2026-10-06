@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   ShoppingBag, 
   Search, 
@@ -89,12 +90,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Left Nav Menu Links (Desktop) */}
         <nav className="hidden items-center gap-8 lg:flex">
-          <button
-            onClick={() => onSelectCategory('all')}
+          <Link
+            href="/"
             className="font-serif text-[14px] font-bold tracking-[0.08em] hover:opacity-70 uppercase transition-opacity"
           >
             HOME
-          </button>
+          </Link>
 
           {/* SHOP Dropdown */}
           <div className="relative" onMouseLeave={() => setIsShopDropdownOpen(false)}>
@@ -163,8 +164,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Center Brand Logo */}
-        <div 
-          onClick={() => onSelectCategory('all')}
+        <Link 
+          href="/"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center pointer-events-auto max-w-[50%] sm:max-w-none"
         >
           <div className="header-logo-crest border px-2 sm:px-4 py-1 rounded-md flex items-center justify-center gap-1 group hover:scale-105 transition-transform">
@@ -172,7 +173,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="logo-jersey">JERSEY</span> <span className="logo-junction font-extrabold">JUNCTION</span>
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Right Header Icons */}
         <div className="ml-auto flex items-center gap-0.5 sm:gap-3 shrink-0">
@@ -293,12 +294,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-black border-t border-[#242424] p-4 space-y-4 font-sans text-xs">
           <div className="font-bold">
-            <button
-              onClick={() => { onSelectCategory('all'); setIsMobileMenuOpen(false); }}
-              className="w-full p-3 bg-[#111] hover:bg-[#222] rounded text-center text-white font-bold"
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block w-full p-3 bg-[#111] hover:bg-[#222] rounded text-center text-white font-bold"
             >
               HOME
-            </button>
+            </Link>
           </div>
 
           <div className="flex justify-between items-center bg-[#111] p-3 rounded border border-[#222]">

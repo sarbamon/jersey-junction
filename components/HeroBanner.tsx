@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { JerseyViewerSVG } from './JerseyViewerSVG';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { Currency, JerseyProduct } from '../types';
 
 interface HeroBannerProps {
@@ -24,160 +24,139 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   const slides = [
     {
+      id: 'hero-1',
+      badge: '2024/25 OFFICIAL KITS',
       title: 'WEAR THE GAME.',
       highlight: 'FEEL THE PASSION.',
-      subtitle: 'Premium football jerseys crafted for true fans.',
-      badge: '2024/25 NEW ARRIVALS',
-      image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
-      primaryColor: '#db0007',
-      secondaryColor: '#ffffff',
-      accentColor: '#061922',
-      textColor: '#ffffff',
-      sponsorText: 'Emirates',
-      name: 'SAKA',
-      number: '7',
-      productId: 'set-arsenal-se'
+      subtitle: 'Premium authentic football jerseys & player edition kits crafted for true fans.',
+      image: '/hero/colin-meg-R8ayF9Qwu5Y-unsplash.webp',
     },
     {
-      title: 'REAL MADRID 24/25',
-      highlight: 'BELLINGHAM #5 PLAYER EDITION',
-      subtitle: 'Heat-applied 3D crests, houndstooth texture, & laser perforated ventilation.',
-      badge: 'MATCH ISSUE SPECIFICATION',
-      image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.17 PM.jpeg',
-      primaryColor: '#ffffff',
-      secondaryColor: '#09152b',
-      accentColor: '#f4c84a',
-      textColor: '#09152b',
-      sponsorText: 'Emirates',
-      name: 'BELLINGHAM',
-      number: '5',
-      productId: 'rm-player-2425'
+      id: 'hero-2',
+      badge: 'MATCHDAY EDITION',
+      title: 'AUTHENTIC PERFORMANCE.',
+      highlight: 'UNMATCHED COMFORT.',
+      subtitle: 'Lightweight, heat-applied crests and breathability for maximum pitch performance.',
+      image: '/hero/cristian-tarzi-uBgmduO_ZBg-unsplash.webp',
     },
     {
-      title: 'MESSI #10 PINK PASSION',
-      subtitle: 'Official Inter Miami CF 2024 Home Kit with free official MLS printing.',
-      highlight: 'MOST WANTED WORLDWIDE',
-      badge: 'OFFICIAL MLS PRINT',
-      image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.39 PM.jpeg',
-      primaryColor: '#f7b5cd',
-      secondaryColor: '#101820',
-      accentColor: '#f7b5cd',
-      textColor: '#101820',
-      sponsorText: 'Royal Caribbean',
-      name: 'MESSI',
-      number: '10',
-      productId: 'inter-miami-messi-pink'
+      id: 'hero-3',
+      badge: 'WORLDWIDE FAVORITES',
+      title: 'LEGENDARY COLORS.',
+      highlight: 'ICONIC STYLES.',
+      subtitle: 'Stand out with official club & national team jerseys.',
+      image: '/hero/simon-reza-Yfv7JszxYyw-unsplash.webp',
+    },
+    {
+      id: 'hero-4',
+      badge: 'VINTAGE CLASSICS',
+      title: 'RETRO LEGENDS.',
+      highlight: 'TIMELESS DESIGNS.',
+      subtitle: 'Relive classic World Cup and Champions League victories with vintage kits.',
+      image: '/hero/bibesh-manandhar-e-OfH1yh_hs-unsplash.webp',
+    },
+    {
+      id: 'hero-5',
+      badge: 'STREET & STADIUM',
+      title: 'EVERYDAY ATHLETIC.',
+      highlight: 'PREMIUM QUALITY.',
+      subtitle: 'Crafted with high-grade performance fabrics for matchdays and streetwear.',
+      image: '/hero/michael-kyule-Lhd0RRDTTOo-unsplash.webp',
+    },
+    {
+      id: 'hero-6',
+      badge: 'PRO COLLECTION',
+      title: 'CHAMPIONS CHOICE.',
+      highlight: 'JERSEY JUNCTION.',
+      subtitle: 'Your #1 destination for official high-quality sportswear and custom kits.',
+      image: '/hero/vladislav-glukhotko-HPDtJ0V_cNI-unsplash.webp',
     }
   ];
 
   useEffect(() => {
+    // Preload all hero slide images into browser cache
+    slides.forEach((slide) => {
+      const img = new Image();
+      img.src = slide.image;
+    });
+
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
+    }, 5000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
   const current = slides[activeSlide];
 
   return (
-    <section className="group relative w-full overflow-hidden bg-black dark:bg-black light:bg-slate-950 text-white border-b border-[#242424] dark:border-[#242424] light:border-slate-800 transition-colors">
-      {/* Background radial glow */}
-      <div className="absolute top-0 right-0 w-72 sm:w-[500px] h-72 sm:h-[500px] bg-[#f4c84a]/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <section className="relative w-full overflow-hidden bg-black text-white h-[460px] sm:h-[560px] lg:h-[620px] flex items-center justify-center border-b border-[#242424]">
+      
+      {/* Full-Size Background Images Stack with Opacity Transition */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        {slides.map((slide, idx) => (
+          <img
+            key={slide.id}
+            src={slide.image}
+            alt={slide.title}
+            loading="eager"
+            // @ts-ignore
+            fetchPriority={idx === 0 ? 'high' : 'auto'}
+            className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ease-in-out ${
+              activeSlide === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          />
+        ))}
+        {/* Dark Vignette Overlay for High Contrast Text */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/40 z-20"></div>
+        <div className="absolute inset-0 bg-black/20 z-20"></div>
+      </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-10 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          
-          {/* Left Text */}
-          <div className="lg:col-span-7 space-y-3 sm:space-y-5 text-left">
-            <span className="inline-block rounded-full bg-[#f4c84a]/10 px-3 py-1 text-[10px] sm:text-xs font-black tracking-[0.2em] text-[#f4c84a] border border-[#f4c84a]/30">
-              {current.badge}
+      {/* Background Radial Glow Accent */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[650px] h-[350px] sm:h-[650px] bg-[#f4c84a]/15 rounded-full blur-[140px] pointer-events-none z-20"></div>
+
+      {/* Text Content Layered Above Full-Size Image */}
+      <div className="relative z-30 mx-auto max-w-4xl px-4 py-8 text-center flex flex-col items-center justify-center space-y-6 w-full">
+
+        {/* Centered Headline Title with Fixed Height Container to prevent layout shift */}
+        <div className="min-h-[120px] sm:min-h-[160px] lg:min-h-[180px] flex flex-col items-center justify-center w-full px-2">
+          <h1 className="font-serif text-2xl sm:text-5xl lg:text-6xl font-black text-white leading-tight uppercase tracking-tight drop-shadow-[0_10px_20px_rgba(0,0,0,0.9)] max-w-3xl">
+            {current.title} <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f4c84a] via-[#ffd96a] to-[#f4c84a]">
+              {current.highlight}
             </span>
-
-            <h1 className="font-serif text-2xl sm:text-4xl lg:text-6xl font-black text-white leading-tight uppercase tracking-tight">
-              {current.title}<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f4c84a] to-[#ffd96a]">
-                {current.highlight}
-              </span>
-            </h1>
-
-            <p className="max-w-xl text-xs sm:text-base leading-relaxed text-gray-300 font-sans">
-              {current.subtitle}
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex items-center gap-2.5 pt-1 sm:pt-2">
-              <button
-                onClick={() => {
-                  const p = featuredProducts.find((item) => item.id === current.productId);
-                  if (p) onSelectProduct(p);
-                  else onSelectCategory('all');
-                }}
-                className="group flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#f4c84a] to-[#d4af37] px-6 py-3 sm:px-8 sm:py-4 text-xs sm:text-sm font-black tracking-wider text-black transition-all hover:shadow-[0_0_25px_rgba(244,200,74,0.4)]"
-              >
-                <span>SHOP NOW</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
-          </div>
-
-          {/* Right Live Product Image Preview */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center mt-1 lg:mt-0">
-            <div 
-              onClick={() => {
-                const p = featuredProducts.find((item) => item.id === current.productId);
-                if (p) onSelectProduct(p);
-              }}
-              className="w-full max-w-[280px] sm:max-w-sm bg-[#080808] dark:bg-[#080808] light:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-[#242424] dark:border-[#242424] light:border-slate-800 shadow-2xl relative cursor-pointer group hover:border-[#f4c84a]/60 transition-all overflow-hidden"
-            >
-              <div className="py-2 flex justify-center items-center min-h-[200px] sm:min-h-[250px]">
-                <img
-                  src={current.image}
-                  alt={current.title}
-                  className="w-full h-48 sm:h-60 object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500 rounded-lg"
-                />
-              </div>
-
-              <div className="text-center pt-2">
-                <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-widest group-hover:text-[#f4c84a] transition-colors">
-                  TAP TO VIEW PRODUCT DETAILS
-                </span>
-              </div>
-            </div>
-          </div>
-
+          </h1>
         </div>
 
-        {/* Carousel Indicators & Controls */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#222] dark:border-[#222] light:border-slate-800 mt-4 sm:mt-6">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveSlide(idx)}
-                className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
-                  activeSlide === idx ? 'w-6 sm:w-8 bg-[#f4c84a]' : 'w-1.5 sm:w-2 bg-gray-700 hover:bg-gray-500'
-                }`}
-              />
-            ))}
-          </div>
+        {/* CENTERED SHOP NOW BUTTON */}
+        <div className="pt-1">
+          <Link
+            href="/shop"
+            className="group flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#f4c84a] to-[#d4af37] px-8 py-3.5 sm:px-10 sm:py-4.5 text-sm sm:text-lg font-black tracking-widest text-black transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(244,200,74,0.7)] cursor-pointer shadow-2xl"
+          >
+            <span>SHOP NOW</span>
+            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 text-black" />
+          </Link>
+        </div>
 
-          <div className="flex items-center gap-1.5 text-white">
+        {/* Slide Indicator Dots */}
+        <div className="flex items-center justify-center gap-2.5 pt-4">
+          {slides.map((_, idx) => (
             <button
-              onClick={() => setActiveSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))}
-              className="p-1.5 sm:p-2 rounded-full bg-[#111] dark:bg-[#111] light:bg-slate-900 border border-[#333] hover:bg-[#222]"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#f4c84a]" />
-            </button>
-            <button
-              onClick={() => setActiveSlide((prev) => (prev + 1) % slides.length)}
-              className="p-1.5 sm:p-2 rounded-full bg-[#111] dark:bg-[#111] light:bg-slate-900 border border-[#333] hover:bg-[#222]"
-            >
-              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#f4c84a]" />
-            </button>
-          </div>
+              key={idx}
+              onClick={() => setActiveSlide(idx)}
+              className={`h-2.5 sm:h-3 rounded-full transition-all duration-300 cursor-pointer ${
+                activeSlide === idx ? 'w-8 sm:w-10 bg-[#f4c84a] shadow-[0_0_12px_rgba(244,200,74,0.8)]' : 'w-2.5 sm:w-3 bg-white/40 hover:bg-white/80'
+              }`}
+              aria-label={`Slide ${idx + 1}`}
+            />
+          ))}
         </div>
 
       </div>
     </section>
   );
 };
+
+
+
+

@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { CATEGORIES } from '../data/jerseys';
 
 interface CategoryGridProps {
-  onSelectCategory: (catId: string) => void;
+  onSelectCategory?: (catId: string) => void;
 }
 
 export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) => {
@@ -17,14 +18,11 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {CATEGORIES.map((cat) => (
-          <div
+          <Link
             key={cat.id}
+            href={`/shop?category=${cat.id}`}
             onClick={() => {
-              onSelectCategory(cat.id);
-              setTimeout(() => {
-                const shopElem = document.getElementById('shop');
-                if (shopElem) shopElem.scrollIntoView({ behavior: 'smooth' });
-              }, 50);
+              if (onSelectCategory) onSelectCategory(cat.id);
             }}
             className="group relative flex aspect-[16/10] sm:aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-xl bg-[#09090b] border border-[#242424] dark:border-[#242424] light:border-slate-300 p-3 sm:p-4 text-white shadow-md cursor-pointer hover:border-[#f4c84a] transition-all hover:scale-[1.02]"
           >
@@ -37,15 +35,12 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
             {/* Dark contrast gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30 z-[5]"></div>
 
-            <div className="relative z-10 text-center space-y-0.5 sm:space-y-1 px-1">
+            <div className="relative z-10 text-center px-1">
               <h3 className="text-xs sm:text-sm lg:text-base font-black tracking-wider drop-shadow-md text-white font-serif uppercase leading-tight" style={{ color: '#ffffff' }}>
                 {cat.name}
               </h3>
-              <span className="text-[9px] sm:text-[10px] font-extrabold text-[#f4c84a] uppercase tracking-widest block font-mono">
-                {cat.tag}
-              </span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
