@@ -1,0 +1,200 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { JerseyProduct, CartItem, Currency, VersionType, PatchOption } from '../types';
+import { CURRENCIES, PRODUCTS } from '../data/jerseys';
+
+export type Theme = 'dark' | 'light';
+
+interface StoreContextType {
+  cartItems: CartItem[];
+  wishlist: JerseyProduct[];
+  activeCurrency: Currency;
+  isCartOpen: boolean;
+  theme: Theme;
+  toggleTheme: () => void;
+  discountPercentage: number;
+  setDiscountPercentage: (discount: number) => void;
+  setActiveCurrency: (currency: Currency) => void;
+  setIsCartOpen: (open: boolean) => void;
+  addToCart: (
+    product: JerseyProduct,
+    size: string,
+    version: VersionType,
+    customName: string,
+    customNumber: string,
+    patches: PatchOption[]
+  ) => void;
+  updateQuantity: (cartItemId: string, delta: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  clearCart: () => void;
+  toggleWishlist: (product: JerseyProduct) => void;
+  applyCoupon: (code: string) => boolean;
+}
+
+const StoreContext = createContext<StoreContextType | undefined>(undefined);
+
+export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeCurrency, setActiveCurrency] = useState<Currency>(CURRENCIES[0]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [wishlist, setWishlist] = useState<JerseyProduct[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
+  const [theme, setTheme] = useState<Theme>('dark');
+
+  // Load theme and data from localStorage
+  useEffect(() => {
+    try {
+      const savedTheme = (localStorage.getItem('jj_theme') as Theme) || 'dark';
+      setTheme(savedTheme);
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(savedTheme);
+      document.body.classList.remove('light', 'dark');
+      document.body.classList.add(savedTheme);
+
+      const savedCart = localStorage.getItem('jj_cart');
+      const savedWishlist = localStorage.getItem('jj_wishlist');
+      if (savedCart) setCartItems(JSON.parse(savedCart));
+      if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+    } catch (e) {
+      console.log('Context init error', e);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(nextTheme);
+    document.body.classList.remove('light', 'dark');
+    document.body.classList.add(nextTheme);
+    try {
+      localStorage.setItem('jj_theme', nextTheme);
+    } catch (e) {}
+  };
+
+  // Save cart & wishlist changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('jj_cart', JSON.stringify(cartItems));
+      localStorage.setItem('jj_wishlist', JSON.stringify(wishlist));
+    } catch (e) {}
+  }, [cartItems, wishlist]);
+
+  const addToCart = (
+    product: JerseyProduct,
+    size: string,
+    version: VersionType,
+    customName: string,
+    customNumber: string,
+    patches: PatchOption[]
+  ) => {
+    const patchesPrice = patches.reduce((sum, p) => sum + p.price, 0);
+    const versionExtra = version.includes('Player') ? 150 : 0;
+    const printExtra = customName ? 100 : 0;
+
+    const unitPrice = product.price + patchesPrice + versionExtra + printExtra;
+    const cartItemId = `${product.id}-${size}-${version}-${customName}-${customNumber}-${patches.map((p) => p.id).join('-')}`;
+
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.id === cartItemId);
+      if (existing) {
+        return prev.map((item) =>
+          item.id === cartItemId
+            ? { ...item, quantity: item.quantity + 1, totalPrice: (item.quantity + 1) * unitPrice }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: cartItemId,
+          product,
+          size,
+          version,
+          customName,
+          customNumber,
+          selectedPatches: patches,
+          quantity: 1,
+          unitPrice,
+          totalPrice: unitPrice
+        }
+      ];
+    });
+
+    setIsCartOpen(true);
+  };
+
+  const updateQuantity = (cartItemId: string, delta: number) => {
+    setCartItems((prev) =>
+      prev
+        .map((item) => {
+          if (item.id === cartItemId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0
+              ? { ...item, quantity: newQty, totalPrice: newQty * item.unitPrice }
+              : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[]
+    );
+  };
+
+  const removeFromCart = (cartItemId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== cartItemId));
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  const toggleWishlist = (product: JerseyProduct) => {
+    setWishlist((prev) =>
+      prev.some((p) => p.id === product.id)
+        ? prev.filter((p) => p.id !== product.id)
+        : [...prev, product]
+    );
+  };
+
+  const applyCoupon = (code: string) => {
+    if (code.toUpperCase() === 'SPOT10' || code.toUpperCase() === 'JUNCTION10') {
+      setDiscountPercentage(10);
+      return true;
+    }
+    return false;
+  };
+
+  return (
+    <StoreContext.Provider
+      value={{
+        cartItems,
+        wishlist,
+        activeCurrency,
+        isCartOpen,
+        theme,
+        toggleTheme,
+        discountPercentage,
+        setDiscountPercentage,
+        setActiveCurrency,
+        setIsCartOpen,
+        addToCart,
+        updateQuantity,
+        removeFromCart,
+        clearCart,
+        toggleWishlist,
+        applyCoupon
+      }}
+    >
+      {children}
+    </StoreContext.Provider>
+  );
+};
+
+export const useStore = () => {
+  const context = useContext(StoreContext);
+  if (!context) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
+  return context;
+};

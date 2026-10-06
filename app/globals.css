@@ -1,26 +1,334 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card-bg: #0c0c0c;
+  --card-sub: #111111;
+  --border-color: #242424;
+  --accent: #f4c84a;
+  --accent-hover: #ffd96a;
+  --accent-text: #000000;
+  --muted-text: #9ca3af;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-sub: #f1f5f9;
+  --border-color: #e2e8f0;
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-text: #ffffff;
+  --muted-text: #475569;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html.dark {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card-bg: #0c0c0c;
+  --card-sub: #111111;
+  --border-color: #242424;
+  --accent: #f4c84a;
+  --accent-hover: #ffd96a;
+  --accent-text: #000000;
+  --muted-text: #9ca3af;
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Dynamic Light Mode Theme Overrides */
+html.light body,
+html.light .min-h-screen,
+html.light main,
+html.light section,
+html.light footer,
+html.light header {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light header {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Dedicated Brand Logo Crest Overrides (Independent of Theme) */
+.header-logo-crest {
+  background-color: #05070a !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+.header-logo-crest .logo-jersey {
+  color: #f59e0b !important;
+}
+.header-logo-crest .logo-junction {
+  color: #ffffff !important;
+}
+
+.footer-logo-crest {
+  background-color: #05070a !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+.footer-logo-crest .logo-js,
+.footer-logo-crest .logo-spot {
+  color: #d4af37 !important;
+}
+
+/* Card & Section Container Overrides */
+html.light .bg-\[\#080808\],
+html.light .bg-\[\#0a0a0a\],
+html.light .bg-\[\#0c0c0c\],
+html.light .bg-\[\#050505\],
+html.light .bg-\[\#111111\],
+html.light .bg-\[\#111\],
+html.light .bg-\[\#141414\],
+html.light .bg-\[\#1a1a1a\],
+html.light .bg-\[\#0f0f0f\],
+html.light .bg-black,
+html.light .bg-zinc-900,
+html.light .bg-zinc-950 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Image wrappers & inner tile containers */
+html.light .bg-\[\#050505\],
+html.light .bg-black\/50,
+html.light .bg-black\/70,
+html.light .bg-black\/80,
+html.light .bg-zinc-950\/70,
+html.light .bg-zinc-950\/90 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Badges & Tag Backgrounds */
+html.light .bg-\[\#f4c84a\]\/10,
+html.light .bg-amber-400\/10 {
+  background-color: rgba(217, 119, 6, 0.12) !important;
+}
+
+/* Borders in Light Mode */
+html.light .border-\[\#f4c84a\],
+html.light .border-\[\#d4af37\] {
+  border-color: #d97706 !important;
+}
+
+html.light .border-\[\#242424\],
+html.light .border-\[\#1a1a1a\],
+html.light .border-\[\#181818\],
+html.light .border-\[\#222\],
+html.light .border-\[\#282828\],
+html.light .border-\[\#333\],
+html.light .border-zinc-800,
+html.light .border-zinc-900 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Base Text Colors */
+html.light .text-white,
+html.light .text-zinc-100,
+html.light .text-zinc-200,
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #0f172a !important;
+}
+
+html.light .text-gray-400,
+html.light .text-gray-300,
+html.light .text-gray-500,
+html.light .text-zinc-400,
+html.light .text-zinc-500,
+html.light .text-\[\#a1a1a1\],
+html.light .text-\[\#888888\] {
+  color: #475569 !important;
+}
+
+/* High Contrast Amber/Gold Accent Text & Stars */
+html.light .text-\[\#f4c84a\],
+html.light .text-\[\#d4af37\],
+html.light .text-\[\#c5a059\],
+html.light .text-amber-400,
+html.light .text-yellow-500,
+html.light .text-yellow-400 {
+  color: #b45309 !important;
+}
+
+html.light svg.fill-\[\#f4c84a\],
+html.light svg.fill-amber-400 {
+  fill: #d97706 !important;
+  color: #d97706 !important;
+}
+
+/* Navigation & Links hover */
+html.light nav button,
+html.light nav a {
+  color: #0f172a !important;
+}
+html.light nav button:hover,
+html.light nav a:hover {
+  color: #b45309 !important;
+}
+
+/* Breadcrumbs bar */
+html.light div.bg-\[\#0a0a0a\],
+html.light .bg-\[\#0a0a0a\] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+html.light .bg-\[\#0a0a0a\] a {
+  color: #475569 !important;
+}
+html.light .bg-\[\#0a0a0a\] a:hover {
+  color: #b45309 !important;
+}
+html.light .bg-\[\#0a0a0a\] span.text-\[\#f4c84a\] {
+  color: #b45309 !important;
+}
+
+/* Buttons & CTAs in Light Mode */
+html.light button.bg-\[\#111\],
+html.light button.bg-\[\#1a1a1a\],
+html.light button.bg-black,
+html.light button.bg-zinc-800,
+html.light button.bg-zinc-900,
+html.light .bg-\[\#1a1a1a\],
+html.light .bg-\[\#111\] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light button.bg-\[\#111\]:hover,
+html.light button.bg-\[\#1a1a1a\]:hover,
+html.light button.bg-black:hover,
+html.light .hover\:bg-\[\#1a1a1a\]:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Primary CTA Gold Buttons in Light Mode */
+html.light button.bg-\[\#f4c84a\],
+html.light a.bg-\[\#f4c84a\],
+html.light .bg-\[\#f4c84a\],
+html.light button.bg-amber-500,
+html.light .bg-gradient-to-r.from-\[\#f4c84a\],
+html.light .bg-gradient-to-r.from-amber-500 {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  color: #ffffff !important;
+  border-color: #b45309 !important;
+  box-shadow: 0 4px 14px 0 rgba(217, 119, 6, 0.35) !important;
+}
+
+html.light button.bg-\[\#f4c84a\] *,
+html.light a.bg-\[\#f4c84a\] *,
+html.light .bg-\[\#f4c84a\] *,
+html.light .bg-gradient-to-r.from-\[\#f4c84a\] * {
+  color: #ffffff !important;
+}
+
+/* Size Pill Selected State in Light Mode */
+html.light button.bg-\[\#f4c84a\].text-black,
+html.light .bg-\[\#f4c84a\].text-black {
+  background-color: #d97706 !important;
+  color: #ffffff !important;
+  border-color: #b45309 !important;
+}
+
+/* Input Fields in Light Mode */
+html.light input[type="text"],
+html.light input[type="email"],
+html.light input[type="search"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Stock & Success Badges */
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-500\/20 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+/* Footer in Light Mode */
+html.light footer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light footer .border-\[\#c5a059\],
+html.light footer div.bg-black {
+  background-color: #0f172a !important;
+  border-color: #d97706 !important;
+}
+
+html.light footer .border-\[\#c5a059\] span,
+html.light footer div.bg-black span {
+  color: #ffffff !important;
+}
+
+html.light footer .border-\[\#c5a059\] span.text-\[\#d4af37\],
+html.light footer div.bg-black span.text-\[\#d4af37\] {
+  color: #f59e0b !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Keyframe Animations for Smooth Drawer & Overlay */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
