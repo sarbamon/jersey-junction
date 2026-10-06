@@ -28,7 +28,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       badge: '2024/25 OFFICIAL KITS',
       title: 'WEAR THE GAME.',
       highlight: 'FEEL THE PASSION.',
-      subtitle: 'Premium authentic football jerseys & player edition kits crafted for true fans.',
+      subtitle: 'Authentic match-specification football jerseys & player edition kits crafted for true fans.',
       image: '/hero/colin-meg-R8ayF9Qwu5Y-unsplash.webp',
     },
     {
@@ -59,7 +59,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       id: 'hero-5',
       badge: 'STREET & STADIUM',
       title: 'EVERYDAY ATHLETIC.',
-      highlight: 'PREMIUM QUALITY.',
+      highlight: 'AUTHENTIC QUALITY.',
       subtitle: 'Crafted with high-grade performance fabrics for matchdays and streetwear.',
       image: '/hero/michael-kyule-Lhd0RRDTTOo-unsplash.webp',
     },

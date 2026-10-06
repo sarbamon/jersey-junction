@@ -77,7 +77,7 @@ export const Footer: React.FC<FooterProps> = ({
 
             {/* Description Text */}
             <p className="text-slate-600 dark:text-[#a1a1a1] text-xs sm:text-sm leading-relaxed max-w-sm font-normal">
-              We bring you premium-quality imported football jerseys with authentic designs and perfect fit. Experience the game like never before.
+              We bring you authentic imported football jerseys with original designs and perfect fit. Experience the game like never before.
             </p>
 
             {/* Instagram Social Icon Button */}

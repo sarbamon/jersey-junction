@@ -117,7 +117,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10"></div>
             <img
               src="https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp"
-              alt="Premium Football Jerseys"
+              alt="Authentic Football Jerseys"
               className="object-cover w-full h-full opacity-60 group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute bottom-6 left-6 z-20 space-y-1">
@@ -132,18 +132,18 @@ export default function Home() {
 
           <div className="text-center lg:text-left flex flex-col items-center lg:items-start space-y-4">
             <span className="mb-2 inline-block rounded-full bg-[#f4c84a]/10 px-4 py-1.5 text-xs font-bold tracking-[0.2em] text-[#f4c84a] border border-[#f4c84a]/20">
-              PREMIUM COLLECTION
+              AUTHENTIC COLLECTION
             </span>
 
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              WEAR THE GAME.<br />
+            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight uppercase">
+              REPRESENT YOUR CLUB.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f4c84a] to-[#d4af37]">
-                FEEL THE PASSION.
+                WEAR YOUR COLORS.
               </span>
             </h2>
 
             <p className="max-w-md text-base leading-relaxed text-gray-400">
-              Experience the ultimate in fan apparel. Our premium football jerseys are crafted for true fans, featuring perfect fits, authentic details, and all-day comfort that stands the test of time.
+              From electric matchdays at the stadium to weekend watch parties, wear your club&apos;s official crest with pride. Discover authentic player-version and fan-version kits for top European football clubs.
             </p>
 
             <button

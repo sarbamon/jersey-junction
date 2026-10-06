@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jersey Junction | Premium Quality Football Jerseys & Custom Kits",
-  description: "Your premium destination for official football jerseys, NBA swingman kits, retro classics, and custom name printing.",
+  title: "Jersey Junction | Authentic Quality Football Jerseys & Custom Kits",
+  description: "Your official destination for authentic football jerseys, NBA swingman kits, retro classics, and custom name printing.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
