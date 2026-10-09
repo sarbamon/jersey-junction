@@ -1,4 +1,13 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getNormalizedApiUrl = (): string => {
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
+  if (cleanUrl.endsWith('/api')) {
+    return cleanUrl;
+  }
+  return `${cleanUrl}/api`;
+};
+
+const API_BASE_URL = getNormalizedApiUrl();
 
 export interface ApiResponse<T = any> {
   success: boolean;
