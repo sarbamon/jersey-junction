@@ -1,0 +1,147 @@
+import { apiClient } from '../apiClient';
+import { AdminCategory } from '../types/admin';
+import { INITIAL_CATEGORIES } from '../mock/categories';
+
+const CATEGORIES_KEY = 'jj_admin_categories';
+
+function getLocalCategories(): AdminCategory[] {
+  if (typeof window === 'undefined') return INITIAL_CATEGORIES;
+  const stored = localStorage.getItem(CATEGORIES_KEY);
+  if (!stored) {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(INITIAL_CATEGORIES));
+    return INITIAL_CATEGORIES;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return INITIAL_CATEGORIES;
+  }
+}
+
+function saveLocalCategories(cats: AdminCategory[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
+  }
+}
+
+export const categoryService = {
+  // Synchronous local fallback getter
+  getCategoriesSync: (): AdminCategory[] => {
+    return getLocalCategories();
+  },
+
+  // Async get all categories for admin
+  getCategories: async (): Promise<AdminCategory[]> => {
+    try {
+      const res = await apiClient.get('/categories/admin/all');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: AdminCategory[] = res.data.map((c: any) => ({
+          id: c._id || c.id || c.slug,
+          name: c.name,
+          slug: c.slug,
+          tag: c.tag || 'Sport Collection',
+          productsCount: c.productsCount || 0,
+          status: c.status || 'Active',
+          image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+        }));
+        saveLocalCategories(mapped);
+        return mapped;
+      }
+    } catch (err) {
+      console.warn('Failed to load categories from backend, using local storage:', err);
+    }
+    return getLocalCategories();
+  },
+
+  // Async get ACTIVE categories for public store
+  getActiveCategories: async (): Promise<AdminCategory[]> => {
+    try {
+      const res = await apiClient.get('/categories');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: AdminCategory[] = res.data.map((c: any) => ({
+          id: c.slug || c._id || c.id,
+          name: c.name,
+          slug: c.slug,
+          tag: c.tag || 'Sport Collection',
+          productsCount: c.productsCount || 0,
+          status: c.status || 'Active',
+          image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+        }));
+        return mapped;
+      }
+    } catch (err) {
+      console.warn('Failed to load active categories from backend, using local storage:', err);
+    }
+    return getLocalCategories().filter(c => c.status === 'Active');
+  },
+
+  addCategory: async (data: Omit<AdminCategory, 'id' | 'productsCount'>): Promise<AdminCategory> => {
+    const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const local = getLocalCategories();
+    const newLocal: AdminCategory = {
+      ...data,
+      id: `cat-${Date.now()}`,
+      slug,
+      productsCount: 0
+    };
+    saveLocalCategories([...local, newLocal]);
+
+    try {
+      const res = await apiClient.post('/categories', { ...data, slug });
+      if (res.success && res.data) {
+        const created: AdminCategory = {
+          id: res.data._id || res.data.id || res.data.slug,
+          name: res.data.name,
+          slug: res.data.slug,
+          tag: res.data.tag || 'Sport Collection',
+          productsCount: 0,
+          status: res.data.status || 'Active',
+          image: res.data.image,
+        };
+        return created;
+      }
+    } catch (err) {
+      console.error('Failed to post category to backend:', err);
+    }
+    return newLocal;
+  },
+
+  updateCategory: async (id: string, updates: Partial<AdminCategory>): Promise<AdminCategory> => {
+    const local = getLocalCategories();
+    const index = local.findIndex(c => c.id === id || c.slug === id);
+    if (index !== -1) {
+      local[index] = { ...local[index], ...updates };
+      saveLocalCategories(local);
+    }
+
+    try {
+      const res = await apiClient.put(`/categories/${id}`, updates);
+      if (res.success && res.data) {
+        return {
+          id: res.data._id || res.data.id || res.data.slug,
+          name: res.data.name,
+          slug: res.data.slug,
+          tag: res.data.tag,
+          productsCount: res.data.productsCount || 0,
+          status: res.data.status,
+          image: res.data.image,
+        };
+      }
+    } catch (err) {
+      console.error('Failed to update category on backend:', err);
+    }
+    return local[index] || (updates as AdminCategory);
+  },
+
+  deleteCategory: async (id: string): Promise<void> => {
+    const local = getLocalCategories();
+    const filtered = local.filter(c => c.id !== id && c.slug !== id);
+    saveLocalCategories(filtered);
+
+    try {
+      await apiClient.delete(`/categories/${id}`);
+    } catch (err) {
+      console.error('Failed to delete category on backend:', err);
+    }
+  }
+};

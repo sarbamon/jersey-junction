@@ -101,18 +101,18 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             loading="eager"
             // @ts-ignore
             fetchPriority={idx === 0 ? 'high' : 'auto'}
-            className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ease-in-out ${
+            className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ease-in-out brightness-110 ${
               activeSlide === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           />
         ))}
-        {/* Dark Vignette Overlay for High Contrast Text */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/40 z-20"></div>
-        <div className="absolute inset-0 bg-black/20 z-20"></div>
+        {/* Light Overlay for Vivid Hero Imagery */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent z-20"></div>
+        <div className="absolute inset-0 bg-black/10 z-20"></div>
       </div>
 
       {/* Background Radial Glow Accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[650px] h-[350px] sm:h-[650px] bg-[#f4c84a]/15 rounded-full blur-[140px] pointer-events-none z-20"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[700px] h-[350px] sm:h-[700px] bg-[#f4c84a]/25 rounded-full blur-[120px] pointer-events-none z-20"></div>
 
       {/* Text Content Layered Above Full-Size Image */}
       <div className="relative z-30 mx-auto max-w-4xl px-4 py-8 text-center flex flex-col items-center justify-center space-y-6 w-full">

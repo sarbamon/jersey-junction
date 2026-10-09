@@ -1,18 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Filter, 
-  Sparkles, 
   ArrowRight, 
   SlidersHorizontal,
-  TrendingUp,
-  Award
+  RefreshCw
 } from 'lucide-react';
-import { JerseyProduct, VersionType, PatchOption } from '../types';
-import { PRODUCTS, CURRENCIES, CATEGORIES } from '../data/jerseys';
+import { JerseyProduct } from '../types';
+import { productService } from '../lib/services/productService';
 import { Navbar } from '../components/Navbar';
 import { HeroBanner } from '../components/HeroBanner';
 import { CategoryGrid } from '../components/CategoryGrid';
@@ -20,11 +16,12 @@ import { JerseyCard } from '../components/JerseyCard';
 import { CustomJerseyStudio } from '../components/CustomJerseyStudio';
 import { CartDrawer } from '../components/CartDrawer';
 import { CheckoutModal } from '../components/CheckoutModal';
-import { TrackOrderModal } from '../components/TrackOrderModal';
 import { SizeGuideModal } from '../components/SizeGuideModal';
-import { ReviewsSection } from '../components/ReviewsSection';
+import { AuthModal } from '../components/AuthModal';
 import { Footer } from '../components/Footer';
 import { useStore } from '../context/StoreContext';
+import { settingsService } from '../lib/services/settingsService';
+import { StoreSettings } from '../lib/types/admin';
 
 export default function Home() {
   const router = useRouter();
@@ -43,17 +40,41 @@ export default function Home() {
     toggleWishlist
   } = useStore();
 
+  const [products, setProducts] = useState<JerseyProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [selectedLeague, setSelectedLeague] = useState<string>('all');
+  const [selectedLeague] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
 
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    productService.getActiveProducts()
+      .then((prods) => {
+        if (isMounted) {
+          setProducts(prods);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Error loading products:', err);
+        if (isMounted) setIsLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    setStoreSettings(settingsService.getSettings());
+  }, []);
+
   // Filter products
-  let filteredProducts = PRODUCTS.filter((p) => {
+  let filteredProducts = products.filter((p) => {
     if (activeCategory !== 'all') {
       if (activeCategory === 'player-version' && !p.name.includes('PLAYER VERSION')) return false;
       if (activeCategory === 'retro' && p.sport !== 'retro') return false;
@@ -85,11 +106,10 @@ export default function Home() {
         activeCurrency={activeCurrency}
         onSelectCurrency={setActiveCurrency}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectCategory={(cat) => setActiveCategory(cat)}
-        products={PRODUCTS}
+        products={products}
         onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
       />
 
@@ -99,7 +119,7 @@ export default function Home() {
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
         onSelectCategory={(cat) => setActiveCategory(cat)}
         onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
-        featuredProducts={PRODUCTS}
+        featuredProducts={products}
       />
 
       {/* Category Grid Section */}
@@ -116,29 +136,29 @@ export default function Home() {
           <div className="hidden lg:block group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#242424] bg-[#0c0c0c] shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10"></div>
             <img
-              src="https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp"
+              src={storeSettings?.midBannerImage || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp'}
               alt="Authentic Football Jerseys"
-              className="object-cover w-full h-full opacity-60 group-hover:scale-105 transition-transform duration-700"
+              className="object-cover w-full h-full opacity-70 group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute bottom-6 left-6 z-20 space-y-1">
               <span className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest font-mono">
                 AUTHENTIC MASTER QUALITY KITS
               </span>
               <h3 className="text-2xl font-black font-serif text-white uppercase">
-                PERFECT FIT & MATCH QUALITY
+                PERFECT FIT &amp; MATCH QUALITY
               </h3>
             </div>
           </div>
 
           <div className="text-center lg:text-left flex flex-col items-center lg:items-start space-y-4">
             <span className="mb-2 inline-block rounded-full bg-[#f4c84a]/10 px-4 py-1.5 text-xs font-bold tracking-[0.2em] text-[#f4c84a] border border-[#f4c84a]/20">
-              AUTHENTIC COLLECTION
+              {storeSettings?.midBannerTag || 'AUTHENTIC COLLECTION'}
             </span>
 
             <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight uppercase">
-              REPRESENT YOUR CLUB.<br />
+              {storeSettings?.midBannerTitle || 'REPRESENT YOUR CLUB.'}<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f4c84a] to-[#d4af37]">
-                WEAR YOUR COLORS.
+                {storeSettings?.midBannerSubtitle || 'WEAR YOUR COLORS.'}
               </span>
             </h2>
 
@@ -164,7 +184,7 @@ export default function Home() {
           
           <div className="mb-10 flex flex-col sm:flex-row items-start sm:items-end justify-between border-b border-[#242424] pb-6 gap-4">
             <div>
-              <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-[#f4c84a]">JERSEY JUNCTION</p>
+              <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-[#f4c84a]">JERSEY JUNCTION (MONGODB CONNECTED)</p>
               <h2 className="font-serif text-3xl font-bold text-white sm:text-4xl uppercase">
                 {activeCategory === 'all' ? 'Featured Jerseys' : `${activeCategory.replace('-', ' ').toUpperCase()}`}
               </h2>
@@ -187,30 +207,37 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-            {filteredProducts.map((product) => (
-              <JerseyCard
-                key={product.id}
-                product={product}
-                activeCurrency={activeCurrency}
-                onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
-                onQuickCustomize={(p) => router.push(`/shop/${p.slug}`)}
-                isWishlisted={wishlist.some((item) => item.id === product.id)}
-                onToggleWishlist={toggleWishlist}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="py-20 text-center text-zinc-400 font-mono text-xs flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
+              <span>Fetching live products from backend database...</span>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="py-16 text-center text-zinc-500 font-mono text-xs">
+              No products found in backend database matching this category.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
+              {filteredProducts.map((product) => (
+                <JerseyCard
+                  key={product.id}
+                  product={product}
+                  activeCurrency={activeCurrency}
+                  onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
+                  onQuickCustomize={(p) => router.push(`/shop/${p.slug}`)}
+                  isWishlisted={wishlist.some((item) => item.id === product.id)}
+                  onToggleWishlist={toggleWishlist}
+                />
+              ))}
+            </div>
+          )}
 
         </div>
       </section>
 
-      {/* Customer Reviews Section */}
-      <ReviewsSection />
-
       {/* Footer */}
       <Footer
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectSport={(sport) => setActiveCategory(sport)}
       />
@@ -230,28 +257,17 @@ export default function Home() {
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeFromCart}
         activeCurrency={activeCurrency}
-        onOpenCheckout={() => setIsCheckoutOpen(true)}
+        onOpenCheckout={() => router.push('/checkout')}
         discountPercentage={discountPercentage}
         onApplyCoupon={applyCoupon}
-      />
-
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        items={cartItems}
-        activeCurrency={activeCurrency}
-        onOrderSuccess={() => {}}
-      />
-
-      <TrackOrderModal
-        isOpen={isTrackOrderOpen}
-        onClose={() => setIsTrackOrderOpen(false)}
       />
 
       <SizeGuideModal
         isOpen={isSizeGuideOpen}
         onClose={() => setIsSizeGuideOpen(false)}
       />
+
+      <AuthModal />
 
     </div>
   );

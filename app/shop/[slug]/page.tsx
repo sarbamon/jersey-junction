@@ -1,31 +1,25 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Star, 
   Check, 
-  ShieldCheck, 
-  Truck, 
-  RotateCw, 
   Ruler, 
   ShoppingBag, 
-  Sparkles, 
   Heart,
-  ArrowLeft,
   ChevronRight,
-  MessageSquare,
-  ThumbsUp
+  RefreshCw
 } from 'lucide-react';
 import { JerseyViewerSVG } from '../../../components/JerseyViewerSVG';
 import { JerseyProduct, VersionType, PatchOption } from '../../../types';
-import { PRODUCTS, AVAILABLE_PATCHES, REVIEWS } from '../../../data/jerseys';
+import { REVIEWS } from '../../../data/jerseys';
+import { productService } from '../../../lib/services/productService';
 import { Navbar } from '../../../components/Navbar';
 import { Footer } from '../../../components/Footer';
 import { CartDrawer } from '../../../components/CartDrawer';
 import { SizeGuideModal } from '../../../components/SizeGuideModal';
-import { TrackOrderModal } from '../../../components/TrackOrderModal';
 import { CustomJerseyStudio } from '../../../components/CustomJerseyStudio';
 import { CheckoutModal } from '../../../components/CheckoutModal';
 import { useStore } from '../../../context/StoreContext';
@@ -53,21 +47,57 @@ export default function ProductDetailPage({ params }: PageProps) {
     setActiveCurrency
   } = useStore();
 
-  const product = PRODUCTS.find((p) => p.slug === slug) || PRODUCTS.find((p) => p.id === slug) || PRODUCTS[0];
+  const [product, setProduct] = useState<JerseyProduct | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [selectedSize, setSelectedSize] = useState('L');
-  const [selectedVersion, setSelectedVersion] = useState<VersionType>('Player Edition (Slim Fit)');
-  const [printOption, setPrintOption] = useState<'blank' | 'preset' | 'custom'>('preset');
-  const [customName, setCustomName] = useState(product?.defaultName || '');
-  const [customNumber, setCustomNumber] = useState(product?.defaultNumber || '');
-  const [selectedPatches, setSelectedPatches] = useState<PatchOption[]>([]);
-  const [view, setView] = useState<'back' | 'front'>('back');
+  const [selectedVersion, setSelectedVersion] = useState<VersionType>('Fan Version (Standard Fit)');
+  const [printOption] = useState<'blank' | 'preset' | 'custom'>('preset');
+  const [selectedPatches] = useState<PatchOption[]>([]);
+  const [view] = useState<'back' | 'front'>('back');
   const [activeTab, setActiveTab] = useState<'details' | 'reviews'>('details');
 
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    productService.getProductBySlug(slug)
+      .then((found) => {
+        if (isMounted) {
+          setProduct(found);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load product by slug:', err);
+        if (isMounted) setIsLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, [slug]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center font-mono text-xs gap-2">
+        <RefreshCw className="w-4 h-4 text-[#f4c84a] animate-spin" />
+        <span>Loading product specs from MongoDB...</span>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-8 space-y-4 font-sans">
+        <h2 className="text-xl font-bold font-serif text-[#f4c84a]">PRODUCT NOT FOUND</h2>
+        <p className="text-xs text-gray-400">No matching jersey was found for slug &quot;{slug}&quot;.</p>
+        <Link href="/shop" className="px-5 py-2.5 bg-[#f4c84a] text-black font-extrabold text-xs rounded-xl">
+          ← Return to Shop Catalog
+        </Link>
+      </div>
+    );
+  }
 
   const versionExtra = selectedVersion.includes('Player') ? 150 : 0;
   const patchesExtra = selectedPatches.reduce((acc, p) => acc + p.price, 0);
@@ -76,14 +106,6 @@ export default function ProductDetailPage({ params }: PageProps) {
   const finalUnitPrice = product.price + versionExtra + patchesExtra + printExtra;
   const finalUnitPriceConverted = Math.round(finalUnitPrice * activeCurrency.rate);
   const isWishlisted = wishlist.some((item) => item.id === product.id);
-
-  const handleTogglePatch = (patch: PatchOption) => {
-    if (selectedPatches.some((p) => p.id === patch.id)) {
-      setSelectedPatches(selectedPatches.filter((p) => p.id !== patch.id));
-    } else {
-      setSelectedPatches([...selectedPatches, patch]);
-    }
-  };
 
   const handleAddToCart = () => {
     addToCart(
@@ -107,11 +129,10 @@ export default function ProductDetailPage({ params }: PageProps) {
         activeCurrency={activeCurrency}
         onSelectCurrency={setActiveCurrency}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectCategory={() => router.push('/shop')}
-        products={PRODUCTS}
+        products={[product]}
         onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
       />
 
@@ -205,8 +226,42 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </span>
               )}
               <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                IN STOCK & READY TO SHIP
+                MONGODB CONNECTED &amp; IN STOCK
               </span>
+            </div>
+
+            {/* Edition Selector */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                Select Edition
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedVersion('Fan Version (Standard Fit)')}
+                  className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all text-left flex justify-between items-center cursor-pointer ${
+                    selectedVersion === 'Fan Version (Standard Fit)'
+                      ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-md font-extrabold'
+                      : 'bg-[#111] text-gray-300 border-[#333] hover:bg-[#1a1a1a]'
+                  }`}
+                >
+                  <span>Fan Version</span>
+                  <span className="font-mono text-[10px] opacity-80">Standard Fit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedVersion('Player Edition (Slim Fit)')}
+                  className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all text-left flex justify-between items-center cursor-pointer ${
+                    selectedVersion === 'Player Edition (Slim Fit)'
+                      ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-md font-extrabold'
+                      : 'bg-[#111] text-gray-300 border-[#333] hover:bg-[#1a1a1a]'
+                  }`}
+                >
+                  <span>Player Edition</span>
+                  <span className="font-mono text-[10px] opacity-80">+₹150</span>
+                </button>
+              </div>
             </div>
 
             {/* Size Selector */}
@@ -220,12 +275,12 @@ export default function ProductDetailPage({ params }: PageProps) {
                   className="flex items-center gap-1 text-xs text-[#f4c84a] hover:underline font-semibold"
                 >
                   <Ruler className="w-3.5 h-3.5" />
-                  <span>Size Guide & Chart</span>
+                  <span>Size Guide &amp; Chart</span>
                 </button>
               </div>
 
               <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
-                {product.availableSizes.map((size) => (
+                {(product.availableSizes || ['S', 'M', 'L', 'XL', '2XL']).map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
@@ -247,7 +302,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all mt-6"
             >
               <ShoppingBag className="w-5 h-5 text-black" />
-              <span>ADD TO BAG ({activeCurrency.symbol}{Math.round(product.price * activeCurrency.rate)})</span>
+              <span>ADD TO BAG ({activeCurrency.symbol}{finalUnitPriceConverted})</span>
             </button>
 
           </div>
@@ -265,7 +320,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   : 'border-transparent text-gray-400 hover:text-white'
               }`}
             >
-              Kit Features & Fabric Details
+              Kit Features &amp; Fabric Details
             </button>
             <button
               onClick={() => setActiveTab('reviews')}
@@ -281,7 +336,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {activeTab === 'details' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-300">
-              {product.details.map((item, idx) => (
+              {(product.details || ['Official match quality fabric', 'Moisture-wicking tech', 'Embroidered club crest']).map((item, idx) => (
                 <div key={idx} className="flex items-center gap-3 p-3 bg-[#111] rounded-xl border border-[#222]">
                   <Check className="w-4 h-4 text-[#f4c84a] shrink-0" />
                   <span>{item}</span>
@@ -312,7 +367,6 @@ export default function ProductDetailPage({ params }: PageProps) {
       {/* Footer */}
       <Footer
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectSport={() => router.push('/shop')}
       />
@@ -325,22 +379,9 @@ export default function ProductDetailPage({ params }: PageProps) {
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeFromCart}
         activeCurrency={activeCurrency}
-        onOpenCheckout={() => setIsCheckoutOpen(true)}
+        onOpenCheckout={() => router.push('/checkout')}
         discountPercentage={discountPercentage}
         onApplyCoupon={applyCoupon}
-      />
-
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        items={cartItems}
-        activeCurrency={activeCurrency}
-        onOrderSuccess={() => {}}
-      />
-
-      <TrackOrderModal
-        isOpen={isTrackOrderOpen}
-        onClose={() => setIsTrackOrderOpen(false)}
       />
 
       <SizeGuideModal

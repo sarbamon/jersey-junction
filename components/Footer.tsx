@@ -14,44 +14,38 @@ const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 );
 
 
+import { categoryService } from '../lib/services/categoryService';
+import { AdminCategory } from '../lib/types/admin';
+
 interface FooterProps {
   onOpenCustomLab?: () => void;
-  onOpenTrackOrder?: () => void;
   onOpenSizeGuide?: () => void;
   onSelectSport?: (sport: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenCustomLab,
-  onOpenTrackOrder,
   onOpenSizeGuide,
   onSelectSport
 }) => {
   const router = useRouter();
   const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | null>(null);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    categoryService.getActiveCategories().then((cats) => {
+      if (isMounted) setCategories(cats);
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   const handleCategoryClick = (categorySlug: string) => {
     if (onSelectSport) {
       onSelectSport(categorySlug);
     }
-    router.push('/shop');
+    router.push(`/shop?category=${categorySlug}`);
   };
-
-  const shopLinks = [
-    { label: 'PLAYER VERSION', slug: 'player-version' },
-    { label: 'FAN VERSION', slug: 'fan-version' },
-    { label: 'SET', slug: 'set' },
-    { label: 'RETRO', slug: 'retro' },
-    { label: 'CLEARANCE', slug: 'clearance' },
-    { label: 'FORMULA 1', slug: 'formula-1' },
-    { label: 'CRICKET', slug: 'cricket' },
-    { label: 'NBA', slug: 'nba' },
-    { label: 'JACKETS', slug: 'jackets' },
-    { label: 'POLO', slug: 'polo' },
-    { label: 'FULL SLEEVE FAN', slug: 'full-sleeve-fan' },
-    { label: 'FULL SLEEVE PLAYER', slug: 'full-sleeve-player' },
-    { label: 'FULL SLEEVE SET', slug: 'full-sleeve-set' },
-  ];
 
   return (
     <footer className="bg-black text-white border-t border-[#1a1a1a] pt-16 pb-12 font-sans relative z-10">
@@ -67,10 +61,10 @@ export const Footer: React.FC<FooterProps> = ({
             <Link href="/" className="inline-block group">
               <div className="footer-logo-crest border px-5 py-3 sm:px-6 sm:py-3.5 inline-flex flex-col items-center justify-center rounded-sm transition-transform duration-300 group-hover:scale-105">
                 <span className="logo-js font-serif text-2xl sm:text-3xl font-black tracking-[0.15em] leading-none">
-                  JS
+                  JJ
                 </span>
                 <span className="logo-spot font-serif text-[9px] sm:text-[10px] font-bold tracking-[0.25em] uppercase mt-1">
-                  JERSEY SPOT
+                  JERSEY JUNCTION
                 </span>
               </div>
             </Link>
@@ -141,16 +135,19 @@ export const Footer: React.FC<FooterProps> = ({
               </h3>
               
               <ul className="grid grid-cols-2 sm:grid-cols-1 gap-2.5 text-xs sm:text-sm">
-                {shopLinks.map((item) => (
-                  <li key={item.slug}>
-                    <button
-                      onClick={() => handleCategoryClick(item.slug)}
-                      className="text-slate-600 dark:text-[#a1a1a1] hover:text-[#d4af37] transition-colors duration-200 text-left block uppercase font-medium tracking-wide"
-                    >
-                      {item.label}
-                    </button>
-                  </li>
-                ))}
+                {categories.map((cat) => {
+                  const catKey = cat.slug || cat.id;
+                  return (
+                    <li key={cat.id || cat.slug}>
+                      <button
+                        onClick={() => handleCategoryClick(catKey)}
+                        className="text-slate-600 dark:text-[#a1a1a1] hover:text-[#d4af37] transition-colors duration-200 text-left block uppercase font-medium tracking-wide"
+                      >
+                        {cat.name}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 
@@ -161,9 +158,9 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Bar matching exact layout */}
         <div className="border-t border-slate-200 dark:border-[#181818] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           
-          {/* Copyright & Powered By */}
-          <div className="text-slate-500 dark:text-[#888888] text-[11px] sm:text-xs text-center sm:text-left font-normal">
-            © {new Date().getFullYear()} – Copyright, All Rights reserved. Powered by Akieme Tech
+          {/* Copyright */}
+          <div className="text-slate-500 dark:text-[#888888] text-[11px] sm:text-xs text-center sm:text-left font-normal flex flex-wrap items-center gap-2">
+            <span>© {new Date().getFullYear()} Jersey Junction. All Rights Reserved.</span>
           </div>
 
           {/* Razorpay Payment Secured Note */}
@@ -203,7 +200,7 @@ export const Footer: React.FC<FooterProps> = ({
                   <span>Terms & Conditions</span>
                 </div>
                 <div className="space-y-3 text-gray-400 leading-relaxed">
-                  <p>Welcome to Jersey Spot. By using our website and placing an order, you agree to the following terms and conditions:</p>
+                  <p>Welcome to Jersey Junction. By using our website and placing an order, you agree to the following terms and conditions:</p>
                   <h4 className="font-bold text-white">1. Orders & Customization</h4>
                   <p>Custom printed jerseys are tailored specifically to user specifications. Please double check sizing, names, and numbers before finalizing your order.</p>
                   <h4 className="font-bold text-white">2. Shipping & Delivery</h4>

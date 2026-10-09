@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Sparkles } from 'lucide-react';
+import { Heart, Sparkles, ShoppingBag } from 'lucide-react';
 import { JerseyProduct, Currency } from '../types';
 import { JerseyViewerSVG } from './JerseyViewerSVG';
+import { useStore } from '../context/StoreContext';
 
 interface JerseyCardProps {
   product: JerseyProduct;
@@ -23,6 +24,7 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
   isWishlisted = false,
   onToggleWishlist
 }) => {
+  const { addToCart } = useStore();
   const [viewMode, setViewMode] = useState<'back' | 'front'>('back');
   const [isHovered, setIsHovered] = useState(false);
 
@@ -30,6 +32,19 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
   const origPriceConverted = product.originalPrice 
     ? Math.round(product.originalPrice * activeCurrency.rate) 
     : null;
+
+  const handleQuickAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(
+      product,
+      product.availableSizes[0] || 'L',
+      'Fan Version (Standard Fit)',
+      '',
+      '',
+      []
+    );
+  };
 
   return (
     <div
@@ -102,7 +117,7 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
           <span className="text-gray-400 dark:text-gray-400 light:text-slate-500 font-semibold">{product.league}</span>
         </div>
 
-        {/* Price & Action */}
+        {/* Price & Action Buttons */}
         <div className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-[#1a1a1a] dark:border-[#1a1a1a] light:border-slate-200">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-sm sm:text-base font-black text-[#f4c84a] dark:text-[#f4c84a] light:text-amber-600 font-mono">
@@ -115,12 +130,16 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
             )}
           </div>
 
-          <Link
-            href={`/shop/${product.slug}`}
-            className="w-full sm:w-auto text-center justify-center px-3 py-1.5 bg-[#f4c84a] hover:bg-[#ffd96a] text-black font-extrabold text-[10px] sm:text-xs rounded uppercase tracking-wider flex items-center gap-1 transition-transform hover:scale-105 shadow-sm"
-          >
-            <span>BUY NOW</span>
-          </Link>
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <button
+              onClick={handleQuickAddToCart}
+              className="flex-1 sm:flex-none text-center justify-center px-2.5 py-1.5 bg-[#f4c84a] hover:bg-[#ffd96a] text-black font-extrabold text-[10px] sm:text-xs rounded uppercase tracking-wider flex items-center gap-1 transition-transform hover:scale-105 shadow-sm cursor-pointer"
+              title="Add to Cart"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>ADD TO CART</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

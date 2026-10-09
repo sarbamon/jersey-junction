@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   ShoppingBag, 
   Search, 
@@ -20,6 +21,8 @@ import {
 import { JerseyProduct, Currency } from '../types';
 import { CURRENCIES, CATEGORIES } from '../data/jerseys';
 import { useStore } from '../context/StoreContext';
+import { categoryService } from '../lib/services/categoryService';
+import { AdminCategory } from '../lib/types/admin';
 
 interface NavbarProps {
   cartCount: number;
@@ -27,7 +30,6 @@ interface NavbarProps {
   activeCurrency: Currency;
   onSelectCurrency: (currency: Currency) => void;
   onOpenCart: () => void;
-  onOpenTrackOrder: () => void;
   onOpenCustomLab: () => void;
   onOpenSizeGuide: () => void;
   onSelectCategory: (category: string) => void;
@@ -41,20 +43,30 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeCurrency,
   onSelectCurrency,
   onOpenCart,
-  onOpenTrackOrder,
   onOpenCustomLab,
   onOpenSizeGuide,
   onSelectCategory,
   products,
   onSelectProduct
 }) => {
-  const { theme, toggleTheme } = useStore();
+  const router = useRouter();
+  const { theme, toggleTheme, currentUser, setIsAuthOpen } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+
+  const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    categoryService.getActiveCategories().then((cats) => {
+      if (isMounted) setAdminCategories(cats);
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   const searchResults = searchQuery.trim()
     ? products.filter((p) =>
@@ -113,19 +125,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="absolute left-0 top-full mt-2 w-64 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50"
                 onMouseEnter={() => setIsShopDropdownOpen(true)}
               >
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      scrollToShop(cat.id);
-                      setIsShopDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center"
-                  >
-                    <span>{cat.name}</span>
-                    <span className="text-[10px] text-gray-500 font-mono">{cat.tag}</span>
-                  </button>
-                ))}
+                {adminCategories.map((cat) => {
+                  const catKey = cat.slug || cat.id;
+                  return (
+                    <button
+                      key={cat.id || cat.slug}
+                      onClick={() => {
+                        scrollToShop(catKey);
+                        setIsShopDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center"
+                    >
+                      <span>{cat.name}</span>
+                      <span className="text-[10px] text-gray-500 font-mono">{cat.tag}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -146,12 +161,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="absolute left-0 top-full mt-2 w-48 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50"
                 onMouseEnter={() => setIsMoreDropdownOpen(true)}
               >
-                <button
-                  onClick={() => { onOpenTrackOrder(); setIsMoreDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111]"
-                >
-                  Track Package
-                </button>
                 <button
                   onClick={() => { onOpenSizeGuide(); setIsMoreDropdownOpen(false); }}
                   className="w-full text-left px-4 py-2 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111]"
@@ -198,11 +207,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Account Icon */}
           <button
-            onClick={onOpenTrackOrder}
-            className="hidden sm:block transition-opacity hover:opacity-70 text-[#f4c84a] p-1 sm:p-1.5"
+            onClick={() => {
+              if (currentUser) {
+                router.push('/account');
+              } else {
+                setIsAuthOpen(true);
+              }
+            }}
+            className="flex items-center gap-1.5 transition-all hover:scale-105 text-[#f4c84a] p-1 sm:p-1.5 rounded-lg hover:bg-zinc-800/40 cursor-pointer"
             aria-label="Account"
+            title={currentUser ? `Account: ${currentUser.name} (${currentUser.role})` : 'Login / Register'}
           >
-            <UserRound className="w-5 h-5" />
+            {currentUser ? (
+              <div className="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/30 px-2.5 py-1 rounded-full text-amber-400 text-xs font-bold shadow-sm">
+                <span className="font-mono font-black">{currentUser.name.charAt(0)}</span>
+                <span className="hidden md:inline max-w-[90px] truncate">{currentUser.name}</span>
+                {currentUser.role === 'admin' && (
+                  <span className="bg-amber-400 text-black text-[9px] font-black px-1 rounded uppercase">ADMIN</span>
+                )}
+              </div>
+            ) : (
+              <UserRound className="w-4 h-4 sm:w-5 sm:h-5" />
+            )}
           </button>
 
           {/* Wishlist Icon */}
@@ -293,7 +319,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-black border-t border-[#242424] p-4 space-y-4 font-sans text-xs">
-          <div className="font-bold">
+          <div className="grid grid-cols-2 gap-2 font-bold">
             <Link
               href="/"
               onClick={() => setIsMobileMenuOpen(false)}
@@ -301,17 +327,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               HOME
             </Link>
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (currentUser) {
+                  router.push('/account');
+                } else {
+                  setIsAuthOpen(true);
+                }
+              }}
+              className="block w-full p-3 bg-[#111] hover:bg-[#222] text-[#f4c84a] rounded text-center font-bold"
+            >
+              MY ACCOUNT
+            </button>
           </div>
 
-          <div className="flex justify-between items-center bg-[#111] p-3 rounded border border-[#222]">
-            <button 
-              onClick={() => { onOpenTrackOrder(); setIsMobileMenuOpen(false); }}
-              className="text-gray-300 font-bold hover:text-[#f4c84a] flex items-center gap-1.5"
-            >
-              <PackageCheck className="w-4 h-4 text-[#f4c84a]" />
-              <span>Track Order</span>
-            </button>
-
+          <div className="flex justify-center items-center bg-[#111] p-3 rounded border border-[#222]">
             <button 
               onClick={() => { onOpenSizeGuide(); setIsMobileMenuOpen(false); }}
               className="text-gray-300 font-bold hover:text-[#f4c84a] flex items-center gap-1.5"

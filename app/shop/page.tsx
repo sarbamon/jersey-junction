@@ -3,17 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Filter, SlidersHorizontal, ChevronRight, TrendingUp } from 'lucide-react';
-import { PRODUCTS, CATEGORIES } from '../../data/jerseys';
+import { Filter, SlidersHorizontal, ChevronRight, RefreshCw } from 'lucide-react';
+import { JerseyProduct } from '../../types';
+import { productService } from '../../lib/services/productService';
 import { JerseyCard } from '../../components/JerseyCard';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { CartDrawer } from '../../components/CartDrawer';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
-import { TrackOrderModal } from '../../components/TrackOrderModal';
+import { AuthModal } from '../../components/AuthModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CheckoutModal } from '../../components/CheckoutModal';
 import { useStore } from '../../context/StoreContext';
+import { CATEGORIES } from '../../data/jerseys';
+import { matchesCategory } from '../../lib/utils/categoryMatcher';
+import { categoryService } from '../../lib/services/categoryService';
 
 export default function ShopPage() {
   const router = useRouter();
@@ -32,6 +36,8 @@ export default function ShopPage() {
     addToCart
   } = useStore();
 
+  const [products, setProducts] = useState<JerseyProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedLeague, setSelectedLeague] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
@@ -44,23 +50,41 @@ export default function ShopPage() {
         setActiveCategory(catParam);
       }
     }
+
+    let isMounted = true;
+    setIsLoading(true);
+    productService.getActiveProducts()
+      .then((prods) => {
+        if (isMounted) {
+          setProducts(prods);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load shop products:', err);
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => { isMounted = false; };
   }, []);
 
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
-  // Filter products by category
-  let filteredProducts = PRODUCTS.filter((p) => {
-    if (activeCategory !== 'all') {
-      if (activeCategory === 'player-version' && !p.name.includes('PLAYER VERSION')) return false;
-      if (activeCategory === 'retro' && p.sport !== 'retro') return false;
-      if (activeCategory === 'formula-1' && p.league !== 'Formula 1') return false;
-      if (activeCategory === 'cricket' && p.sport !== 'cricket') return false;
-      if (activeCategory === 'nba' && p.sport !== 'nba') return false;
-      if (activeCategory === 'jackets' && p.sport !== 'jackets') return false;
-    }
+  const [adminCategories, setAdminCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    categoryService.getActiveCategories().then((cats) => {
+      if (isMounted) setAdminCategories(cats);
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Filter products by category & league
+  let filteredProducts = products.filter((p) => {
+    if (!matchesCategory(p, activeCategory)) return false;
     if (selectedLeague !== 'all' && p.league !== selectedLeague) return false;
     return true;
   });
@@ -74,7 +98,16 @@ export default function ShopPage() {
     filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
   }
 
-  const leagues = ['all', ...Array.from(new Set(PRODUCTS.map((p) => p.league)))];
+  const leagues = ['all', ...Array.from(new Set(products.map((p) => p.league).filter(Boolean)))];
+
+  const getCategoryTitle = (catKey: string) => {
+    if (catKey === 'all') return 'All Jerseys & Apparel';
+    const found = adminCategories.find(c => c.slug === catKey || c.id === catKey);
+    if (found) return found.name;
+    const staticFound = CATEGORIES.find(c => c.id === catKey);
+    if (staticFound) return staticFound.name;
+    return catKey.replace(/-/g, ' ').toUpperCase();
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-[#f4c84a] selection:text-black">
@@ -86,11 +119,10 @@ export default function ShopPage() {
         activeCurrency={activeCurrency}
         onSelectCurrency={setActiveCurrency}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectCategory={(cat) => setActiveCategory(cat)}
-        products={PRODUCTS}
+        products={products}
         onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
       />
 
@@ -108,9 +140,9 @@ export default function ShopPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-[#242424] pb-6">
           <div>
-            <p className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest mb-1">OFFICIAL CATALOG</p>
+            <p className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest mb-1">OFFICIAL CATALOG (MONGODB)</p>
             <h1 className="text-3xl sm:text-4xl font-bold font-serif text-white uppercase">
-              {activeCategory === 'all' ? 'All Jerseys & Apparel' : activeCategory.replace('-', ' ').toUpperCase()}
+              {getCategoryTitle(activeCategory)}
             </h1>
           </div>
 
@@ -147,26 +179,68 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Product Cards Grid */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-          {filteredProducts.map((product) => (
-            <JerseyCard
-              key={product.id}
-              product={product}
-              activeCurrency={activeCurrency}
-              onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
-              onQuickCustomize={(p) => router.push(`/shop/${p.slug}`)}
-              isWishlisted={wishlist.some((item) => item.id === product.id)}
-              onToggleWishlist={toggleWishlist}
-            />
-          ))}
+        {/* Category Pills Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-[#1c1c1c]">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+              activeCategory === 'all'
+                ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-lg scale-105'
+                : 'bg-[#111] text-gray-300 border-[#242424] hover:border-[#f4c84a]/50 hover:text-white'
+            }`}
+          >
+            All Items ({products.length})
+          </button>
+          {adminCategories.map((cat) => {
+            const catKey = cat.slug || cat.id;
+            const count = products.filter((p) => matchesCategory(p, catKey)).length;
+            const isActive = activeCategory === catKey;
+            return (
+              <button
+                key={cat.id || cat.slug}
+                onClick={() => setActiveCategory(catKey)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                  isActive
+                    ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-lg scale-105'
+                    : 'bg-[#111] text-gray-300 border-[#242424] hover:border-[#f4c84a]/50 hover:text-white'
+                }`}
+              >
+                {cat.name} ({count})
+              </button>
+            );
+          })}
         </div>
+
+        {/* Product Cards Grid */}
+        {isLoading ? (
+          <div className="py-24 text-center text-zinc-400 font-mono text-xs flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
+            <span>Loading shop items from backend...</span>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="py-20 text-center text-zinc-500 font-mono text-xs">
+            No products found matching selected filter options.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
+            {filteredProducts.map((product) => (
+              <JerseyCard
+                key={product.id}
+                product={product}
+                activeCurrency={activeCurrency}
+                onSelectProduct={(p) => router.push(`/shop/${p.slug}`)}
+                onQuickCustomize={(p) => router.push(`/shop/${p.slug}`)}
+                isWishlisted={wishlist.some((item) => item.id === product.id)}
+                onToggleWishlist={toggleWishlist}
+              />
+            ))}
+          </div>
+        )}
 
       </main>
 
       <Footer
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectSport={(cat) => setActiveCategory(cat)}
       />
@@ -178,22 +252,9 @@ export default function ShopPage() {
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeFromCart}
         activeCurrency={activeCurrency}
-        onOpenCheckout={() => setIsCheckoutOpen(true)}
+        onOpenCheckout={() => router.push('/checkout')}
         discountPercentage={discountPercentage}
         onApplyCoupon={applyCoupon}
-      />
-
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        items={cartItems}
-        activeCurrency={activeCurrency}
-        onOrderSuccess={() => {}}
-      />
-
-      <TrackOrderModal
-        isOpen={isTrackOrderOpen}
-        onClose={() => setIsTrackOrderOpen(false)}
       />
 
       <SizeGuideModal
@@ -207,6 +268,8 @@ export default function ShopPage() {
         activeCurrency={activeCurrency}
         onAddToCart={addToCart}
       />
+
+      <AuthModal />
 
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { JerseyProduct, CartItem, Currency, VersionType, PatchOption } from '../types';
+import { JerseyProduct, CartItem, Currency, VersionType, PatchOption, UserProfile } from '../types';
 import { CURRENCIES, PRODUCTS } from '../data/jerseys';
 
 export type Theme = 'dark' | 'light';
@@ -12,6 +12,11 @@ interface StoreContextType {
   activeCurrency: Currency;
   isCartOpen: boolean;
   theme: Theme;
+  currentUser: UserProfile | null;
+  isAuthOpen: boolean;
+  setIsAuthOpen: (open: boolean) => void;
+  loginUser: (user: UserProfile) => void;
+  logoutUser: () => void;
   toggleTheme: () => void;
   discountPercentage: number;
   setDiscountPercentage: (discount: number) => void;
@@ -41,8 +46,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [theme, setTheme] = useState<Theme>('dark');
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
-  // Load theme and data from localStorage
+  // Load theme, user, and data from localStorage
   useEffect(() => {
     try {
       const savedTheme = (localStorage.getItem('jj_theme') as Theme) || 'dark';
@@ -54,12 +61,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const savedCart = localStorage.getItem('jj_cart');
       const savedWishlist = localStorage.getItem('jj_wishlist');
+      const savedUser = localStorage.getItem('jj_user');
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+      if (savedUser) setCurrentUser(JSON.parse(savedUser));
     } catch (e) {
       console.log('Context init error', e);
     }
   }, []);
+
+  const loginUser = (user: UserProfile) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('jj_user', JSON.stringify(user));
+    } catch (e) {}
+  };
+
+  const logoutUser = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('jj_user');
+    } catch (e) {}
+  };
 
   const toggleTheme = () => {
     const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
@@ -173,6 +196,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         activeCurrency,
         isCartOpen,
         theme,
+        currentUser,
+        isAuthOpen,
+        setIsAuthOpen,
+        loginUser,
+        logoutUser,
         toggleTheme,
         discountPercentage,
         setDiscountPercentage,

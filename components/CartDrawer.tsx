@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Tag, Sparkles } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { JerseyViewerSVG } from './JerseyViewerSVG';
@@ -28,6 +29,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   discountPercentage,
   onApplyCoupon
 }) => {
+  const router = useRouter();
   const [couponCode, setCouponCode] = useState('');
   const [couponMsg, setCouponMsg] = useState<{ text: string; isError: boolean } | null>(null);
 
@@ -251,9 +253,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <button
                 onClick={() => {
                   onClose();
-                  onOpenCheckout();
+                  if (onOpenCheckout) onOpenCheckout();
+                  router.push('/checkout');
                 }}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm uppercase tracking-widest rounded-xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all"
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm uppercase tracking-widest rounded-xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all cursor-pointer"
               >
                 <span>PROCEED TO CHECKOUT</span>
                 <ArrowRight className="w-4 h-4 text-slate-950" />

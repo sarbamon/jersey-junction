@@ -31,6 +31,8 @@ export interface JerseyProduct {
   team: string;
   league: string;
   sport: SportCategory;
+  category?: string;
+  subcategory?: string;
   season: string;
   price: number;
   originalPrice?: number;
@@ -86,4 +88,11 @@ export interface Review {
   verified: boolean;
   jerseyName: string;
   userAvatar?: string;
+}
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  role: 'user' | 'admin';
+  phone?: string;
 }

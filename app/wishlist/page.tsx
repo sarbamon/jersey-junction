@@ -10,7 +10,6 @@ import { JerseyCard } from '../../components/JerseyCard';
 import { PRODUCTS } from '../../data/jerseys';
 import { useStore } from '../../context/StoreContext';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
-import { TrackOrderModal } from '../../components/TrackOrderModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
 import { CheckoutModal } from '../../components/CheckoutModal';
@@ -33,7 +32,6 @@ export default function WishlistPage() {
   } = useStore();
 
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
@@ -46,7 +44,6 @@ export default function WishlistPage() {
         activeCurrency={activeCurrency}
         onSelectCurrency={setActiveCurrency}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectCategory={() => router.push('/shop')}
@@ -99,14 +96,11 @@ export default function WishlistPage() {
 
       <Footer
         onOpenCustomLab={() => setIsCustomStudioOpen(true)}
-        onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectSport={() => router.push('/shop')}
       />
 
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cartItems} onUpdateQuantity={updateQuantity} onRemoveItem={removeFromCart} activeCurrency={activeCurrency} onOpenCheckout={() => setIsCheckoutOpen(true)} discountPercentage={discountPercentage} onApplyCoupon={applyCoupon} />
-      <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} items={cartItems} activeCurrency={activeCurrency} onOrderSuccess={() => {}} />
-      <TrackOrderModal isOpen={isTrackOrderOpen} onClose={() => setIsTrackOrderOpen(false)} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cartItems} onUpdateQuantity={updateQuantity} onRemoveItem={removeFromCart} activeCurrency={activeCurrency} onOpenCheckout={() => router.push('/checkout')} discountPercentage={discountPercentage} onApplyCoupon={applyCoupon} />
       <SizeGuideModal isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
       <CustomJerseyStudio isOpen={isCustomStudioOpen} onClose={() => setIsCustomStudioOpen(false)} activeCurrency={activeCurrency} onAddToCart={addToCart} />
 
