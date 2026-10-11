@@ -124,9 +124,11 @@ export default function MyOrdersPage() {
                         <div className="text-gray-400 text-[11px] font-mono">
                           Size: <strong className="text-white">{item.size}</strong> • Qty: <strong className="text-white">{item.quantity}</strong>
                         </div>
-                        {item.customName && (
-                          <div className="text-[10px] text-amber-400 font-mono">
-                            Print: {item.customName} #{item.customNumber}
+                        {(item.customName || item.customNumber) && (
+                          <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-400/15 border border-amber-400/30 text-[10px] font-mono text-amber-300 font-bold">
+                            <span>★ CUSTOM PRINT:</span>
+                            <span className="uppercase text-white">{item.customName || 'CUSTOM'}</span>
+                            <span className="text-amber-400">#{item.customNumber || '00'}</span>
                           </div>
                         )}
                       </div>

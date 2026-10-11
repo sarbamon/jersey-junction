@@ -41,6 +41,7 @@ export interface JerseyProduct {
   isNew?: boolean;
   isBestseller?: boolean;
   isHot?: boolean;
+  isCustomizable?: boolean;
   colors: {
     primary: string;
     secondary: string;
@@ -51,6 +52,7 @@ export interface JerseyProduct {
   sponsorText?: string;
   crestIcon?: string;
   availableSizes: ('S' | 'M' | 'L' | 'XL' | '2XL' | '3XL')[];
+  sizeStock?: Record<string, number>;
   defaultName?: string;
   defaultNumber?: string;
   description: string;
@@ -58,6 +60,7 @@ export interface JerseyProduct {
   availablePatches: PatchOption[];
   tags: string[];
   image?: string;
+  images?: string[];
 }
 
 export interface CartItem {

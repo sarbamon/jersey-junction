@@ -280,8 +280,15 @@ export default function AdminOrdersPage() {
                         <div className="max-w-xs truncate text-zinc-200 font-bold">
                           {o.items.map(i => i.name).join(', ')}
                         </div>
-                        <div className="text-[10px] text-zinc-500 font-mono">
-                          {o.items.reduce((sum, i) => sum + i.quantity, 0)} total item(s)
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            {o.items.reduce((sum, i) => sum + i.quantity, 0)} item(s)
+                          </span>
+                          {o.items.some(i => i.customName || i.customNumber) && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[9px] font-extrabold uppercase tracking-wider">
+                              ★ Custom Print: {o.items.filter(i => i.customName || i.customNumber).map(i => `${i.customName || ''} #${i.customNumber || ''}`).join(', ')}
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -290,7 +297,12 @@ export default function AdminOrdersPage() {
                       </td>
 
                       <td className="py-3 px-4">
-                        <StatusBadge status={o.paymentStatus} type="payment" />
+                        <div className="flex flex-col items-start gap-1">
+                          <StatusBadge status={o.paymentStatus} type="payment" />
+                          <span className="text-[9px] font-mono uppercase text-zinc-400">
+                            {o.paymentMethod || 'Online'}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="py-3 px-4">

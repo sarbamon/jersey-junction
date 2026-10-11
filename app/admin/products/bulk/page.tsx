@@ -36,9 +36,9 @@ export default function BulkAddProductsPage() {
 
   // Rows state
   const [rows, setRows] = useState<BulkRow[]>([
-    { id: '1', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, stock: 25, sizes: 'S10, M15, L20, XL10', image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg' },
-    { id: '2', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, stock: 25, sizes: 'S10, M15, L20, XL10', image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg' },
-    { id: '3', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, stock: 25, sizes: 'S10, M15, L20, XL10', image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg' },
+    { id: '1', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, stock: 25, sizes: 'S10, M15, L20, XL10', image: '' },
+    { id: '2', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, stock: 25, sizes: 'S10, M15, L20, XL10', image: '' },
+    { id: '3', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, stock: 25, sizes: 'S10, M15, L20, XL10', image: '' },
   ]);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function BulkAddProductsPage() {
     originalPrice: presetRegPrice ? Number(presetRegPrice) : 1999,
     stock: 25,
     sizes: presetSizesStock || 'S10, M15, L20, XL10',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+    image: '',
   });
 
   const addRows = (count: number) => {
@@ -140,14 +140,14 @@ export default function BulkAddProductsPage() {
           brand: 'Nike',
           sizes: ['S', 'M', 'L', 'XL'],
           colors: ['Red', 'White'],
-          image: r.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+          image: r.image || '',
           isFeatured: true,
           isBestseller: false,
           status: 'Active',
         });
       }
 
-      setToastMsg(`Successfully saved ${validRows.length} products to MongoDB database!`);
+      setToastMsg(`Successfully saved ${validRows.length} products!`);
       setTimeout(() => {
         router.push('/admin/products');
       }, 1200);

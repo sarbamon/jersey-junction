@@ -91,7 +91,7 @@ export default function BulkEditProductsPage() {
         });
       }
 
-      setToastMsg(`Successfully updated all ${products.length} products in MongoDB database!`);
+      setToastMsg(`Successfully updated all ${products.length} products!`);
       setTimeout(() => {
         router.push('/admin/products');
       }, 1200);
@@ -213,16 +213,15 @@ export default function BulkEditProductsPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={8} className="py-16 text-center text-zinc-400 text-xs font-mono">
-                    <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
-                      <span>Loading product catalog from MongoDB...</span>
+                    <div className="flex items-center justify-center">
+                      <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs">
-                    No products found in MongoDB database.
+                    No products found in catalog.
                   </td>
                 </tr>
               ) : (
@@ -349,7 +348,7 @@ export default function BulkEditProductsPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-black" />
-                <span>SAVING ALL TO MONGODB...</span>
+                <span>SAVING ALL PRODUCTS...</span>
               </>
             ) : (
               <>

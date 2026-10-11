@@ -130,7 +130,7 @@ export default function AdminProductsPage() {
             {isLoading && <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />}
           </h1>
           <p className="text-xs text-zinc-400">
-            Manage store catalog, prices, inventory levels, and product availability connected to MongoDB.
+            Manage store catalog, prices, inventory levels, and product availability.
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function AdminProductsPage() {
           <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
           <input
             type="text"
-            placeholder="Search products by title, SKU, or category..."
+            placeholder="Search products by title or category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
@@ -272,9 +272,8 @@ export default function AdminProductsPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={9} className="py-16 text-center text-zinc-400 text-xs">
-                    <div className="flex items-center justify-center gap-2 font-mono">
-                      <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
-                      <span>Fetching products from MongoDB backend...</span>
+                    <div className="flex items-center justify-center">
+                      <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
                   </td>
                 </tr>
@@ -306,16 +305,17 @@ export default function AdminProductsPage() {
                       <td className="py-3 px-4">
                         <div className="h-12 w-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0">
                           {p.image ? (
-                            <Image src={p.image} alt={p.name} fill className="object-cover" />
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-zinc-600">JJ</div>
+                            <div className="w-full h-full flex items-center justify-center font-bold text-zinc-600 text-[10px] uppercase">
+                              No Img
+                            </div>
                           )}
                         </div>
                       </td>
 
                       <td className="py-3 px-4">
                         <div className="font-bold text-white max-w-xs truncate">{p.name}</div>
-                        <div className="text-[10px] font-mono text-zinc-500">{p.sku}</div>
                       </td>
 
                       <td className="py-3 px-4">

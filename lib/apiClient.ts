@@ -50,6 +50,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
 
   try {
     const response = await fetch(url, {
+      cache: 'no-store',
       ...options,
       headers,
       credentials: 'omit',

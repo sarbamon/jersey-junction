@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { JerseyProduct, CartItem, Currency, VersionType, PatchOption, UserProfile } from '../types';
 import { CURRENCIES, PRODUCTS } from '../data/jerseys';
+import { authService } from '../lib/services/authService';
 
 export type Theme = 'dark' | 'light';
 
@@ -65,6 +66,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
       if (savedUser) setCurrentUser(JSON.parse(savedUser));
+
+      // Verify token with backend database
+      authService.fetchMe().then((me) => {
+        if (me) {
+          setCurrentUser({
+            name: me.name,
+            email: me.email,
+            role: me.role,
+            phone: ''
+          });
+        }
+      }).catch(() => {});
     } catch (e) {
       console.log('Context init error', e);
     }
@@ -81,6 +94,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentUser(null);
     try {
       localStorage.removeItem('jj_user');
+      authService.logout();
     } catch (e) {}
   };
 

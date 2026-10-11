@@ -12,6 +12,7 @@ export interface AdminProduct {
   originalPrice?: number;
   discount?: number;
   stock: number;
+  sizeStock?: Record<string, number>;
   sku: string;
   brand: string;
   sizes: ('XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL')[];
@@ -20,6 +21,7 @@ export interface AdminProduct {
   images?: string[];
   isFeatured: boolean;
   isBestseller: boolean;
+  isCustomizable?: boolean;
   status: ProductStatus;
   createdDate: string;
   totalSold: number;
@@ -108,6 +110,7 @@ export interface AdminCategory {
   productsCount: number;
   status: 'Active' | 'Disabled';
   image?: string;
+  order?: number;
 }
 
 export interface AdminCoupon {

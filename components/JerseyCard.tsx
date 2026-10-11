@@ -54,8 +54,16 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
     >
       {/* Top Header Tag & Wishlist Button */}
       <div className="mb-2.5 flex items-center justify-between min-h-[24px]">
-        <div className="border border-[#f4c84a] px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#f4c84a] rounded-sm bg-[#f4c84a]/10">
-          {product.sport === 'soccer' ? (product.name.toLowerCase().includes('set') ? 'SET' : 'FOOTBALL') : product.sport.toUpperCase()}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="border border-[#f4c84a] px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#f4c84a] rounded-sm bg-[#f4c84a]/10">
+            {product.sport === 'soccer' ? (product.name.toLowerCase().includes('set') ? 'SET' : 'FOOTBALL') : product.sport.toUpperCase()}
+          </div>
+          {product.isCustomizable && (
+            <div className="border border-[#f4c84a]/40 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-[#f4c84a] rounded-sm bg-[#f4c84a]/10 flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>CUSTOM</span>
+            </div>
+          )}
         </div>
 
         <button

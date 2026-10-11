@@ -53,8 +53,14 @@ export default function Home() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   useEffect(() => {
+    // Immediate client cache hydration (prevents SSR mismatch while keeping 0ms speed)
+    const cached = productService.getCachedProductsSync();
+    if (cached.length > 0) {
+      setProducts(cached);
+      setIsLoading(false);
+    }
+
     let isMounted = true;
-    setIsLoading(true);
     productService.getActiveProducts()
       .then((prods) => {
         if (isMounted) {
@@ -184,7 +190,7 @@ export default function Home() {
           
           <div className="mb-10 flex flex-col sm:flex-row items-start sm:items-end justify-between border-b border-[#242424] pb-6 gap-4">
             <div>
-              <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-[#f4c84a]">JERSEY JUNCTION (MONGODB CONNECTED)</p>
+              <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-[#f4c84a]">JERSEY JUNCTION EXCLUSIVE</p>
               <h2 className="font-serif text-3xl font-bold text-white sm:text-4xl uppercase">
                 {activeCategory === 'all' ? 'Featured Jerseys' : `${activeCategory.replace('-', ' ').toUpperCase()}`}
               </h2>
@@ -208,13 +214,12 @@ export default function Home() {
           </div>
 
           {isLoading ? (
-            <div className="py-20 text-center text-zinc-400 font-mono text-xs flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
-              <span>Fetching live products from backend database...</span>
+            <div className="py-20 text-center text-zinc-400 flex items-center justify-center">
+              <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 font-mono text-xs">
-              No products found in backend database matching this category.
+              No products found in this category.
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">

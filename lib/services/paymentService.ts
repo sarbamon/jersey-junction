@@ -6,6 +6,7 @@ export interface RazorpayOrderResponse {
   currency: string;
   receipt?: string;
   status?: string;
+  internalOrderId?: string;
 }
 
 export const paymentService = {
@@ -24,17 +25,29 @@ export const paymentService = {
     }
   },
 
-  // Create Razorpay Order on backend
-  createRazorpayOrder: async (amount: number, currency: string = 'INR'): Promise<RazorpayOrderResponse> => {
+  // Create Razorpay Order on backend (with orderData for backend webhook synchronization)
+  createRazorpayOrder: async (
+    amount: number,
+    currency: string = 'INR',
+    orderData?: any
+  ): Promise<RazorpayOrderResponse> => {
     try {
       const res = await fetch(`${API_URL}/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, currency, receipt: `rcpt_${Date.now()}` }),
+        body: JSON.stringify({
+          amount,
+          currency,
+          receipt: `rcpt_${Date.now()}`,
+          orderData,
+        }),
       });
       const data = await res.json();
       if (data.success && data.data) {
-        return data.data;
+        return {
+          ...data.data,
+          internalOrderId: data.internalOrderId,
+        };
       }
       throw new Error(data.message || 'Failed to create Razorpay order');
     } catch (err) {

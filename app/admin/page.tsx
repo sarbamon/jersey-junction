@@ -50,10 +50,6 @@ export default function AdminDashboardPage() {
   const todayOrdersList = orders.filter((o) => o.date === todayStr);
   const todayRevenue = todayOrdersList.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const weekOrdersList = orders.filter((o) => new Date(o.date) >= sevenDaysAgo);
-  const weekRevenue = weekOrdersList.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   const currentMonthPrefix = new Date().toISOString().substring(0, 7); // e.g. "2026-10"
   const monthOrdersList = orders.filter((o) => o.date && o.date.startsWith(currentMonthPrefix));
@@ -87,15 +83,11 @@ export default function AdminDashboardPage() {
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-950 p-6 rounded-3xl border border-zinc-800 shadow-xl">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-mono font-bold uppercase text-amber-400 tracking-widest">REAL-TIME MONGODB METRICS</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-white">
             STORE EXECUTIVE DASHBOARD
           </h1>
           <p className="text-xs text-zinc-400">
-            Real-time revenue telemetry, live MongoDB inventory counts, and order status.
+            Real-time revenue telemetry, live inventory counts, and order status.
           </p>
         </div>
 
@@ -142,7 +134,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Sales Period Breakdowns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase text-zinc-400 font-mono">TODAY&apos;S SALES</span>
@@ -150,16 +142,6 @@ export default function AdminDashboardPage() {
           </div>
           <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold font-mono">
             {todayOrdersList.length} Order(s) Today
-          </span>
-        </div>
-
-        <div className="bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold uppercase text-zinc-400 font-mono">THIS WEEK&apos;S SALES</span>
-            <div className="text-xl font-mono font-black text-white">₹{weekRevenue.toLocaleString('en-IN')}</div>
-          </div>
-          <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full border border-blue-500/20 font-bold font-mono">
-            {weekOrdersList.length} Order(s) Week
           </span>
         </div>
 

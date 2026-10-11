@@ -39,10 +39,16 @@ export default function ShopPage() {
   const [products, setProducts] = useState<JerseyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [selectedLeague, setSelectedLeague] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
 
   useEffect(() => {
+    // Immediate client cache hydration (prevents SSR mismatch while keeping 0ms speed)
+    const cached = productService.getCachedProductsSync();
+    if (cached.length > 0) {
+      setProducts(cached);
+      setIsLoading(false);
+    }
+
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const catParam = params.get('category');
@@ -52,7 +58,6 @@ export default function ShopPage() {
     }
 
     let isMounted = true;
-    setIsLoading(true);
     productService.getActiveProducts()
       .then((prods) => {
         if (isMounted) {
@@ -82,10 +87,19 @@ export default function ShopPage() {
     return () => { isMounted = false; };
   }, []);
 
-  // Filter products by category & league
+  // Merge admin categories from backend with default categories for dropdown filter
+  const allCategoryList = Array.from(
+    new Map(
+      [
+        ...adminCategories.map((c) => ({ id: c.slug || c.id, name: c.name })),
+        ...CATEGORIES.map((c) => ({ id: c.id, name: c.name }))
+      ].map((item) => [item.id, item])
+    ).values()
+  );
+
+  // Filter products by category
   let filteredProducts = products.filter((p) => {
     if (!matchesCategory(p, activeCategory)) return false;
-    if (selectedLeague !== 'all' && p.league !== selectedLeague) return false;
     return true;
   });
 
@@ -97,8 +111,6 @@ export default function ShopPage() {
   } else if (sortBy === 'price-high') {
     filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
   }
-
-  const leagues = ['all', ...Array.from(new Set(products.map((p) => p.league).filter(Boolean)))];
 
   const getCategoryTitle = (catKey: string) => {
     if (catKey === 'all') return 'All Jerseys & Apparel';
@@ -140,24 +152,26 @@ export default function ShopPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-[#242424] pb-6">
           <div>
-            <p className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest mb-1">OFFICIAL CATALOG (MONGODB)</p>
+            <p className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest mb-1">OFFICIAL CATALOG</p>
             <h1 className="text-3xl sm:text-4xl font-bold font-serif text-white uppercase">
               {getCategoryTitle(activeCategory)}
             </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Filter */}
+            {/* Category Dropdown Filter */}
             <div className="flex items-center gap-1.5 bg-[#111] border border-[#242424] rounded-xl px-3 py-2 text-xs">
-              <Filter className="w-3.5 h-3.5 text-gray-400" />
+              <Filter className="w-3.5 h-3.5 text-[#f4c84a]" />
               <select
-                value={selectedLeague}
-                onChange={(e) => setSelectedLeague(e.target.value)}
+                value={activeCategory}
+                onChange={(e) => setActiveCategory(e.target.value)}
                 className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
               >
-                <option value="all" className="bg-black">All Leagues</option>
-                {leagues.filter((l) => l !== 'all').map((l) => (
-                  <option key={l} value={l} className="bg-black">{l}</option>
+                <option value="all" className="bg-black">All Categories</option>
+                {allCategoryList.map((cat) => (
+                  <option key={cat.id} value={cat.id} className="bg-black">
+                    {cat.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -179,43 +193,10 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Category Pills Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-[#1c1c1c]">
-          <button
-            onClick={() => setActiveCategory('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-              activeCategory === 'all'
-                ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-lg scale-105'
-                : 'bg-[#111] text-gray-300 border-[#242424] hover:border-[#f4c84a]/50 hover:text-white'
-            }`}
-          >
-            All Items ({products.length})
-          </button>
-          {adminCategories.map((cat) => {
-            const catKey = cat.slug || cat.id;
-            const count = products.filter((p) => matchesCategory(p, catKey)).length;
-            const isActive = activeCategory === catKey;
-            return (
-              <button
-                key={cat.id || cat.slug}
-                onClick={() => setActiveCategory(catKey)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-                  isActive
-                    ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-lg scale-105'
-                    : 'bg-[#111] text-gray-300 border-[#242424] hover:border-[#f4c84a]/50 hover:text-white'
-                }`}
-              >
-                {cat.name} ({count})
-              </button>
-            );
-          })}
-        </div>
-
         {/* Product Cards Grid */}
         {isLoading ? (
-          <div className="py-24 text-center text-zinc-400 font-mono text-xs flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
-            <span>Loading shop items from backend...</span>
+          <div className="py-24 text-center text-zinc-400 flex items-center justify-center">
+            <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-20 text-center text-zinc-500 font-mono text-xs">

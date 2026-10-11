@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import confettiFn from 'canvas-confetti';
-import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2 } from 'lucide-react';
+import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
@@ -70,16 +70,121 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [showAddressForm, setShowAddressForm] = useState(false);
+
+  // Load saved address from localStorage or user profile on mount
   useEffect(() => {
-    if (currentUser) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: currentUser.name || prev.fullName,
-        email: currentUser.email || prev.email,
-        phone: currentUser.phone || prev.phone,
-      }));
-    }
+    try {
+      const stored = localStorage.getItem('jj_customer_addresses');
+      const last = localStorage.getItem('jj_last_address');
+      let addrs: any[] = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(addrs)) addrs = [];
+
+      // Filter out stale demo seeds like Aarav Sharma / Indiranagar
+      const isFakeDemo = (a: any) =>
+        a && (
+          a.name === 'Aarav Sharma' ||
+          (typeof a.addressLine === 'string' && a.addressLine.includes('Indiranagar')) ||
+          (typeof a.address === 'string' && a.address.includes('Indiranagar')) ||
+          a.phone === '+91 98765 43210'
+        );
+
+      addrs = addrs.filter((a) => !isFakeDemo(a));
+      localStorage.setItem('jj_customer_addresses', JSON.stringify(addrs));
+
+      let lastObj = last ? JSON.parse(last) : null;
+      if (isFakeDemo(lastObj)) {
+        localStorage.removeItem('jj_last_address');
+        lastObj = null;
+      }
+
+      let chosen = addrs.find((a) => a.isDefault) || addrs[0];
+      if (!chosen && lastObj) {
+        chosen = lastObj;
+        addrs.push(chosen);
+      }
+
+      setSavedAddresses(addrs);
+
+      if (chosen) {
+        setSelectedAddressId(chosen.id || 'default');
+        setFormData((prev) => ({
+          ...prev,
+          fullName: chosen.name || currentUser?.name || prev.fullName,
+          email: chosen.email || currentUser?.email || prev.email,
+          phone: chosen.phone || currentUser?.phone || prev.phone,
+          address: chosen.addressLine || chosen.address || '',
+          city: chosen.city || '',
+          state: chosen.state || '',
+          zip: chosen.pincode || chosen.zip || '',
+          country: chosen.country || 'India',
+        }));
+      } else {
+        setSelectedAddressId('');
+        setShowAddressForm(true);
+        setFormData((prev) => ({
+          ...prev,
+          fullName: currentUser?.name || prev.fullName || '',
+          email: currentUser?.email || prev.email || '',
+          phone: currentUser?.phone || prev.phone || '',
+          address: '',
+          city: '',
+          state: '',
+          zip: '',
+          country: 'India',
+        }));
+      }
+    } catch (e) {}
   }, [currentUser]);
+
+  const handleSelectAddress = (addr: any) => {
+    setSelectedAddressId(addr.id);
+    setFormData((prev) => ({
+      ...prev,
+      fullName: addr.name || prev.fullName,
+      phone: addr.phone || prev.phone,
+      address: addr.addressLine || addr.address || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      zip: addr.pincode || addr.zip || '',
+      country: addr.country || 'India',
+    }));
+  };
+
+  const persistAddress = () => {
+    try {
+      if (!formData.address && !formData.city) return;
+      const addrObj = {
+        id: selectedAddressId && selectedAddressId !== 'new' ? selectedAddressId : `addr-${Date.now()}`,
+        name: formData.fullName,
+        phone: formData.phone,
+        email: formData.email,
+        addressLine: formData.address,
+        city: formData.city,
+        state: formData.state || 'Karnataka',
+        pincode: formData.zip,
+        country: formData.country || 'India',
+        isDefault: true,
+      };
+      localStorage.setItem('jj_last_address', JSON.stringify(addrObj));
+
+      const raw = localStorage.getItem('jj_customer_addresses');
+      let list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) list = [];
+      const idx = list.findIndex(
+        (a: any) => a.id === addrObj.id || (a.addressLine === addrObj.addressLine && a.pincode === addrObj.pincode)
+      );
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...addrObj };
+      } else {
+        list.unshift(addrObj);
+      }
+      localStorage.setItem('jj_customer_addresses', JSON.stringify(list));
+      setSavedAddresses(list);
+    } catch (e) {}
+  };
 
   // Base item prices stored in INR
   const rawSubtotalINR = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
@@ -106,7 +211,57 @@ export default function CheckoutPage() {
     setIsProcessing(true);
     try {
       const razorpayKey = await paymentService.getRazorpayKey();
-      const rzpOrder = await paymentService.createRazorpayOrder(grandTotalINR, 'INR');
+
+      const newIdNum = Math.floor(1000 + Math.random() * 9000);
+      const newId = `#JJ${newIdNum}`;
+
+      const pendingOrderData: AdminOrder = {
+        id: newId,
+        customerName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        shippingAddress: {
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          addressLine: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.zip,
+          country: formData.country,
+        },
+        items: cartItems.map((item) => ({
+          productId: item.product.id || item.product.slug,
+          name: item.product.name,
+          size: item.size,
+          version: item.version,
+          customName: item.customName,
+          customNumber: item.customNumber,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          image: item.product.image,
+        })),
+        subtotal: rawSubtotalINR,
+        shippingFee: shippingCostINR,
+        discountAmount: 0,
+        totalAmount: grandTotalINR,
+        paymentMethod: 'Razorpay',
+        paymentStatus: 'Pending',
+        orderStatus: 'Pending',
+        date: new Date().toISOString().split('T')[0],
+        timeline: [
+          {
+            status: 'Pending',
+            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            note: 'Payment initiated via Razorpay',
+          },
+        ],
+      };
+
+      // Pre-creates order in MongoDB & links Razorpay notes (Backend-to-Backend protection)
+      const rzpOrder = await paymentService.createRazorpayOrder(grandTotalINR, 'INR', pendingOrderData);
+      const activeOrderId = rzpOrder.internalOrderId || newId;
+      setOrderId(activeOrderId);
 
       const options = {
         key: razorpayKey,
@@ -125,44 +280,20 @@ export default function CheckoutPage() {
           color: '#f4c84a',
         },
         handler: async function (response: any) {
-          const newIdNum = Math.floor(1000 + Math.random() * 9000);
-          const newId = `#JJ${newIdNum}`;
-          setOrderId(newId);
+          // Backend verification
+          if (response.razorpay_signature) {
+            await paymentService.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+          }
 
-          const createdOrder: AdminOrder = {
-            id: newId,
-            customerName: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            shippingAddress: {
-              name: formData.fullName,
-              email: formData.email,
-              phone: formData.phone,
-              addressLine: formData.address,
-              city: formData.city,
-              state: formData.state,
-              pincode: formData.zip,
-              country: formData.country,
-            },
-            items: cartItems.map((item) => ({
-              productId: item.product.id || item.product.slug,
-              name: item.product.name,
-              size: item.size,
-              version: item.version,
-              customName: item.customName,
-              customNumber: item.customNumber,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              image: item.product.image,
-            })),
-            subtotal: rawSubtotalINR,
-            shippingFee: shippingCostINR,
-            discountAmount: 0,
-            totalAmount: grandTotalINR,
-            paymentMethod: 'Razorpay',
+          const confirmedOrder: AdminOrder = {
+            ...pendingOrderData,
+            id: activeOrderId,
             paymentStatus: 'Paid',
             orderStatus: 'Confirmed',
-            date: new Date().toISOString().split('T')[0],
             timeline: [
               {
                 status: 'Confirmed',
@@ -173,13 +304,13 @@ export default function CheckoutPage() {
           };
 
           try {
-            await orderService.addOrder(createdOrder);
+            await orderService.addOrder(confirmedOrder);
           } catch (err) {
             console.error('Error saving order:', err);
           }
 
           setIsProcessing(false);
-          triggerSuccess(newId);
+          triggerSuccess(activeOrderId);
         },
         modal: {
           ondismiss: function () {
@@ -377,11 +508,68 @@ export default function CheckoutPage() {
 
               {/* Step 1: Shipping Info */}
               {step === 1 && (
-                <form onSubmit={(e) => { e.preventDefault(); setStep(2); }} className="space-y-6">
+                <form 
+                  onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    persistAddress();
+                    setStep(2); 
+                  }} 
+                  className="space-y-6"
+                >
                   <div className="space-y-4">
-                    <h2 className="text-xs font-bold uppercase tracking-widest text-[#f4c84a] font-mono">
-                      1. SHIPPING &amp; CONTACT INFORMATION
-                    </h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xs font-bold uppercase tracking-widest text-[#f4c84a] font-mono flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" />
+                        1. SHIPPING &amp; CONTACT INFORMATION
+                      </h2>
+                      {savedAddresses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAddressForm(!showAddressForm)}
+                          className="text-xs text-[#f4c84a] hover:underline font-bold"
+                        >
+                          {showAddressForm ? 'Hide Form' : '+ Edit / Add Address'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Saved Addresses Quick Selector */}
+                    {savedAddresses.length > 0 && (
+                      <div className="space-y-2.5">
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                          Deliver to Saved Address
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {savedAddresses.map((addr) => {
+                            const isSelected = selectedAddressId === addr.id || (!selectedAddressId && addr.isDefault);
+                            return (
+                              <div
+                                key={addr.id}
+                                onClick={() => handleSelectAddress(addr)}
+                                className={`p-3.5 rounded-2xl border text-xs cursor-pointer transition-all ${
+                                  isSelected
+                                    ? 'bg-[#f4c84a]/15 border-[#f4c84a] text-white shadow-md ring-1 ring-[#f4c84a]'
+                                    : 'bg-[#111] border-[#333] text-gray-400 hover:border-gray-500'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-bold text-white text-xs">{addr.name}</span>
+                                  {isSelected && (
+                                    <span className="text-[9px] bg-[#f4c84a] text-black font-extrabold px-2 py-0.5 rounded-full uppercase font-mono">
+                                      Deliver Here
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-gray-300 leading-snug truncate">
+                                  {addr.addressLine || addr.address}, {addr.city} - {addr.pincode || addr.zip}
+                                </p>
+                                <p className="text-[10px] font-mono text-gray-400 mt-1">{addr.phone}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -465,6 +653,11 @@ export default function CheckoutPage() {
                           className="w-full bg-[#111] border border-[#333] rounded-xl px-3.5 py-3 text-xs text-white font-medium focus:outline-none focus:border-[#f4c84a]"
                         />
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Address is automatically saved to your profile for future one-click checkout.</span>
                     </div>
 
                     {/* Shipping Options */}

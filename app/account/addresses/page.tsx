@@ -39,21 +39,7 @@ export default function AddressesPage() {
         if (stored) {
           setAddresses(JSON.parse(stored));
         } else {
-          // Initialize default sample address for user
-          const initial: SavedAddress[] = [
-            {
-              id: 'addr-1',
-              name: currentUser.name,
-              phone: currentUser.phone || '+91 98765 43210',
-              addressLine: 'Flat 402, Golden Heights, Indiranagar',
-              city: 'Bengaluru',
-              state: 'Karnataka',
-              pincode: '560038',
-              isDefault: true
-            }
-          ];
-          setAddresses(initial);
-          localStorage.setItem(ADDRESSES_STORAGE_KEY, JSON.stringify(initial));
+          setAddresses([]);
         }
       } catch (e) {}
     }
@@ -63,6 +49,10 @@ export default function AddressesPage() {
     setAddresses(updated);
     try {
       localStorage.setItem(ADDRESSES_STORAGE_KEY, JSON.stringify(updated));
+      const def = updated.find(a => a.isDefault) || updated[0];
+      if (def) {
+        localStorage.setItem('jj_last_address', JSON.stringify(def));
+      }
     } catch (e) {}
   };
 

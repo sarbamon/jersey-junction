@@ -12,7 +12,8 @@ function getLocalCategories(): AdminCategory[] {
     return INITIAL_CATEGORIES;
   }
   try {
-    return JSON.parse(stored);
+    const parsed: AdminCategory[] = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : INITIAL_CATEGORIES;
   } catch {
     return INITIAL_CATEGORIES;
   }
@@ -35,7 +36,7 @@ export const categoryService = {
     try {
       const res = await apiClient.get('/categories/admin/all');
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped: AdminCategory[] = res.data.map((c: any) => ({
+        const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
           id: c._id || c.id || c.slug,
           name: c.name,
           slug: c.slug,
@@ -43,6 +44,7 @@ export const categoryService = {
           productsCount: c.productsCount || 0,
           status: c.status || 'Active',
           image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+          order: typeof c.order === 'number' ? c.order : idx,
         }));
         saveLocalCategories(mapped);
         return mapped;
@@ -58,7 +60,7 @@ export const categoryService = {
     try {
       const res = await apiClient.get('/categories');
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped: AdminCategory[] = res.data.map((c: any) => ({
+        const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
           id: c.slug || c._id || c.id,
           name: c.name,
           slug: c.slug,
@@ -66,6 +68,7 @@ export const categoryService = {
           productsCount: c.productsCount || 0,
           status: c.status || 'Active',
           image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+          order: typeof c.order === 'number' ? c.order : idx,
         }));
         return mapped;
       }
@@ -143,5 +146,45 @@ export const categoryService = {
     } catch (err) {
       console.error('Failed to delete category on backend:', err);
     }
+  },
+
+  // Reorder categories
+  reorderCategories: async (orderedIds: string[]): Promise<AdminCategory[]> => {
+    const local = getLocalCategories();
+    const orderedLocal: AdminCategory[] = [];
+    orderedIds.forEach((id, index) => {
+      const found = local.find(c => c.id === id || c.slug === id);
+      if (found) {
+        orderedLocal.push({ ...found, order: index });
+      }
+    });
+    local.forEach(c => {
+      if (!orderedLocal.some(o => o.id === c.id || o.slug === c.slug)) {
+        orderedLocal.push({ ...c, order: orderedLocal.length });
+      }
+    });
+
+    saveLocalCategories(orderedLocal);
+
+    try {
+      const res = await apiClient.put('/categories/reorder', { orderedIds });
+      if (res.success && Array.isArray(res.data)) {
+        const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
+          id: c._id || c.id || c.slug,
+          name: c.name,
+          slug: c.slug,
+          tag: c.tag || 'Sport Collection',
+          productsCount: c.productsCount || 0,
+          status: c.status || 'Active',
+          image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+          order: typeof c.order === 'number' ? c.order : idx,
+        }));
+        saveLocalCategories(mapped);
+        return mapped;
+      }
+    } catch (err) {
+      console.error('Failed to update category order on backend:', err);
+    }
+    return orderedLocal;
   }
 };

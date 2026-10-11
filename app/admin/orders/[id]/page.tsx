@@ -133,9 +133,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <span>•</span>
                         <span>Qty: <strong className="text-white font-mono">{item.quantity}</strong></span>
                       </div>
-                      {item.customName && (
-                        <div className="text-[11px] text-amber-400 font-mono font-bold">
-                          Custom Print: {item.customName} #{item.customNumber}
+                      {item.customName ? (
+                        <div className="mt-2.5 p-3 rounded-2xl bg-amber-400/15 border border-amber-400/50 shadow-md space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-400 text-black font-mono tracking-wider">
+                              ★ CUSTOM KIT PRINT
+                            </span>
+                            <span className="text-xs text-amber-300 font-bold">Player Name &amp; Number</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs font-mono font-black pt-1">
+                            <div className="bg-black/70 px-3 py-1.5 rounded-xl border border-amber-400/30">
+                              <span className="text-zinc-400 text-[10px] uppercase block font-sans">BACK NAME</span>
+                              <span className="text-amber-300 text-sm tracking-wider font-sans font-extrabold">{item.customName}</span>
+                            </div>
+                            <div className="bg-black/70 px-3 py-1.5 rounded-xl border border-amber-400/30">
+                              <span className="text-zinc-400 text-[10px] uppercase block font-sans">BACK NUMBER</span>
+                              <span className="text-amber-300 text-sm tracking-wider font-sans font-extrabold">#{item.customNumber || '00'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-zinc-500 font-mono">
+                          Standard Kit (No Custom Back Print)
                         </div>
                       )}
                     </div>
@@ -175,7 +194,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               )}
 
               <div className="flex justify-between text-white font-extrabold text-base pt-3 border-t border-zinc-800">
-                <span>Total Amount Paid</span>
+                <span>
+                  {order.paymentStatus === 'Paid'
+                    ? 'Total Amount Paid'
+                    : order.paymentMethod === 'COD'
+                    ? 'Total Amount to Collect (COD)'
+                    : 'Total Payable Amount'}
+                </span>
                 <span className="text-amber-400">₹{order.totalAmount}</span>
               </div>
             </div>
@@ -212,10 +237,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="space-y-1 text-zinc-300 leading-relaxed">
-              <div className="font-bold text-white">{order.shippingAddress.name}</div>
-              <div>{order.shippingAddress.addressLine}</div>
-              <div>{order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}</div>
-              <div className="font-bold text-amber-400 uppercase text-[10px]">{order.shippingAddress.country}</div>
+              <div className="font-bold text-white">{order.shippingAddress?.name || order.customerName}</div>
+              <div>{order.shippingAddress?.addressLine || 'No street address specified'}</div>
+              <div>
+                {[order.shippingAddress?.city, order.shippingAddress?.state].filter(Boolean).join(', ')}
+                {order.shippingAddress?.pincode ? ` - ${order.shippingAddress.pincode}` : ''}
+              </div>
+              <div className="font-bold text-amber-400 uppercase text-[10px]">{order.shippingAddress?.country || 'INDIA'}</div>
             </div>
           </div>
 
@@ -248,6 +276,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   <option value="Refunded">Refunded</option>
                 </select>
               </div>
+
+              {/* COD Explanatory Banner */}
+              {order.paymentMethod === 'COD' && order.paymentStatus !== 'Paid' && (
+                <div className="mt-3 p-3 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-2.5">
+                  <span className="text-base">💵</span>
+                  <div>
+                    <div className="font-bold text-amber-400 uppercase text-[10px]">Cash on Delivery (Pending)</div>
+                    <div className="text-[11px] text-zinc-300 font-sans">Collect <strong className="text-white">₹{order.totalAmount}</strong> in cash upon delivery</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

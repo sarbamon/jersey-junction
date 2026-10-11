@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FolderTree, Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { 
+  FolderTree, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Save, 
+  X, 
+  CheckSquare, 
+  GripVertical, 
+  ChevronUp, 
+  ChevronDown, 
+  ArrowUpDown 
+} from 'lucide-react';
 import { categoryService } from '../../../lib/services/categoryService';
 import { productService } from '../../../lib/services/productService';
 import { matchesCategory } from '../../../lib/utils/categoryMatcher';
@@ -21,6 +33,14 @@ export default function AdminCategoriesPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
   const [toastMsg, setToastMsg] = useState('');
 
+  // Multiple selection state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
+  // Drag and drop / Reordering state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   const loadData = async () => {
     const rawCats = await categoryService.getCategories();
     try {
@@ -38,6 +58,42 @@ export default function AdminCategoriesPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+    const newCats = [...categories];
+    const [moved] = newCats.splice(index, 1);
+    newCats.splice(targetIndex, 0, moved);
+    setCategories(newCats);
+
+    const orderedIds = newCats.map((c) => c.id || c.slug);
+    await categoryService.reorderCategories(orderedIds);
+    setToastMsg(`Category order updated! Live on storefront & navigation.`);
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    const newCats = [...categories];
+    const [moved] = newCats.splice(draggedIndex, 1);
+    newCats.splice(targetIndex, 0, moved);
+    setDraggedIndex(null);
+    setCategories(newCats);
+
+    const orderedIds = newCats.map((c) => c.id || c.slug);
+    await categoryService.reorderCategories(orderedIds);
+    setToastMsg(`Category order updated! Live on storefront & navigation.`);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,12 +129,47 @@ export default function AdminCategoriesPage() {
     await loadData();
   };
 
+  const isAllSelected = categories.length > 0 && selectedIds.length === categories.length;
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(categories.map((c) => c.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
       await categoryService.deleteCategory(deleteTarget.id);
       setToastMsg(`Category "${deleteTarget.name}" deleted.`);
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTarget.id));
       setDeleteTarget(null);
       await loadData();
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await Promise.all(selectedIds.map((id) => categoryService.deleteCategory(id)));
+      setToastMsg(`Successfully deleted ${selectedIds.length} categories.`);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+      await loadData();
+    } catch (err: any) {
+      setToastMsg(`Error deleting categories: ${err.message || 'Failed'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -232,12 +323,57 @@ export default function AdminCategoriesPage() {
         </form>
       )}
 
+      {/* Bulk Action Bar when items are selected */}
+      {selectedIds.length > 0 && (
+        <div className="bg-amber-400/10 border border-amber-400/30 p-4 rounded-2xl flex items-center justify-between text-xs font-bold animate-fade-in shadow-lg">
+          <div className="text-amber-400 flex items-center gap-2 font-mono">
+            <CheckSquare className="w-4 h-4" />
+            <span>SELECTED {selectedIds.length} OF {categories.length} CATEGORIES</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg cursor-pointer transition-colors"
+            >
+              Deselect All
+            </button>
+            <button
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              disabled={isDeleting}
+              className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reorder Hint Sub-bar */}
+      <div className="text-[11px] font-mono text-amber-400/90 bg-amber-400/5 border border-amber-400/20 px-4 py-2.5 rounded-2xl flex items-center gap-2">
+        <ArrowUpDown className="w-4 h-4 text-amber-400 shrink-0" />
+        <span>
+          Rearrange category sequence by clicking <strong>↑ Move Up</strong> / <strong>↓ Move Down</strong> or dragging rows. This order controls how categories appear on the user storefront, navigation bar, and category grid.
+        </span>
+      </div>
+
       {/* Categories Grid Table */}
       <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] tracking-wider border-b border-zinc-800">
               <tr>
+                <th className="py-4 px-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleSelectAll}
+                    title="Select All Categories"
+                    className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
+                  />
+                </th>
+                <th className="py-4 px-3 font-bold w-28 text-center">Store Order</th>
                 <th className="py-4 px-4 font-bold">Category Title</th>
                 <th className="py-4 px-4 font-bold">Tag / Subtitle</th>
                 <th className="py-4 px-4 font-bold">Products Count</th>
@@ -246,54 +382,119 @@ export default function AdminCategoriesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 font-medium">
-              {categories.map((c) => (
-                <tr key={c.id} className="hover:bg-zinc-800/40 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-white text-sm">
-                    {c.name}
-                  </td>
+              {categories.map((c, idx) => {
+                const isSelected = selectedIds.includes(c.id);
+                const isBeingDragged = draggedIndex === idx;
 
-                  <td className="py-3.5 px-4 text-zinc-400 font-mono">
-                    {c.tag}
-                  </td>
+                return (
+                  <tr
+                    key={c.id}
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(idx)}
+                    className={`transition-colors cursor-default ${
+                      isBeingDragged
+                        ? 'opacity-40 bg-amber-400/20 border-2 border-dashed border-amber-400'
+                        : isSelected
+                        ? 'bg-amber-400/10'
+                        : 'hover:bg-zinc-800/40'
+                    }`}
+                  >
+                    <td className="py-3.5 px-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectOne(c.id)}
+                        className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
+                      />
+                    </td>
 
-                  <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
-                    {c.productsCount} items
-                  </td>
+                    {/* Order Rank & Move Up/Down Controls */}
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <div
+                          className="p-1 text-zinc-500 hover:text-amber-400 cursor-grab active:cursor-grabbing transition-colors"
+                          title="Drag to rearrange"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </div>
 
-                  <td className="py-3.5 px-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                      c.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
-                    }`}>
-                      {c.status}
-                    </span>
-                  </td>
+                        <span className="w-7 h-6 rounded-md bg-zinc-950 text-amber-400 font-mono font-bold text-[11px] flex items-center justify-center border border-zinc-800">
+                          #{idx + 1}
+                        </span>
 
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => setEditTarget(c)}
-                        className="p-2 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded-lg transition-all"
-                        title="Edit Category"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                        <div className="flex flex-col -space-y-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMove(idx, 'up')}
+                            className="p-0.5 text-zinc-400 hover:text-amber-400 disabled:opacity-20 disabled:hover:text-zinc-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                            title="Move Category Up"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === categories.length - 1}
+                            onClick={() => handleMove(idx, 'down')}
+                            className="p-0.5 text-zinc-400 hover:text-amber-400 disabled:opacity-20 disabled:hover:text-zinc-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                            title="Move Category Down"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
 
-                      <button
-                        onClick={() => setDeleteTarget(c)}
-                        className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                        title="Delete Category"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="py-3.5 px-4 font-bold text-white text-sm">
+                      {c.name}
+                    </td>
+
+                    <td className="py-3.5 px-4 text-zinc-400 font-mono">
+                      {c.tag}
+                    </td>
+
+                    <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
+                      {c.productsCount} items
+                    </td>
+
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                        c.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setEditTarget(c)}
+                          className="p-2 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded-lg transition-all cursor-pointer"
+                          title="Edit Category"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                          title="Delete Category"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Single Delete Confirm Modal */}
       <ConfirmModal
         isOpen={!!deleteTarget}
         title="Delete Category"
@@ -301,6 +502,16 @@ export default function AdminCategoriesPage() {
         confirmText="Delete Category"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* Bulk Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        title="Delete Selected Categories"
+        message={`Are you sure you want to delete ${selectedIds.length} selected categories?`}
+        confirmText={`Delete ${selectedIds.length} Categories`}
+        onConfirm={handleBulkDeleteConfirm}
+        onCancel={() => setIsBulkDeleteModalOpen(false)}
       />
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}

@@ -10,7 +10,11 @@ import {
   ShoppingBag, 
   Heart,
   ChevronRight,
-  RefreshCw
+  ChevronLeft,
+  RefreshCw,
+  Type,
+  Hash,
+  AlertCircle
 } from 'lucide-react';
 import { JerseyViewerSVG } from '../../../components/JerseyViewerSVG';
 import { JerseyProduct, VersionType, PatchOption } from '../../../types';
@@ -22,6 +26,7 @@ import { CartDrawer } from '../../../components/CartDrawer';
 import { SizeGuideModal } from '../../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../../components/CustomJerseyStudio';
 import { CheckoutModal } from '../../../components/CheckoutModal';
+import { ProductImageZoom } from '../../../components/ProductImageZoom';
 import { useStore } from '../../../context/StoreContext';
 
 interface PageProps {
@@ -51,8 +56,12 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedSize, setSelectedSize] = useState('L');
-  const [selectedVersion, setSelectedVersion] = useState<VersionType>('Fan Version (Standard Fit)');
-  const [printOption] = useState<'blank' | 'preset' | 'custom'>('preset');
+  const selectedVersion: VersionType = 'Fan Version (Standard Fit)';
+  const [wantCustomPrint, setWantCustomPrint] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customNumber, setCustomNumber] = useState('');
+  const [customError, setCustomError] = useState('');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedPatches] = useState<PatchOption[]>([]);
   const [view] = useState<'back' | 'front'>('back');
   const [activeTab, setActiveTab] = useState<'details' | 'reviews'>('details');
@@ -62,12 +71,18 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   useEffect(() => {
+    // Immediate client cache hydration (prevents SSR mismatch while keeping 0ms speed)
+    const cached = productService.getCachedProductBySlugSync(slug);
+    if (cached) {
+      setProduct(cached);
+      setIsLoading(false);
+    }
+
     let isMounted = true;
-    setIsLoading(true);
     productService.getProductBySlug(slug)
       .then((found) => {
         if (isMounted) {
-          setProduct(found);
+          if (found) setProduct(found);
           setIsLoading(false);
         }
       })
@@ -80,9 +95,8 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center font-mono text-xs gap-2">
-        <RefreshCw className="w-4 h-4 text-[#f4c84a] animate-spin" />
-        <span>Loading product specs from MongoDB...</span>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <RefreshCw className="w-6 h-6 text-[#f4c84a] animate-spin" />
       </div>
     );
   }
@@ -99,21 +113,26 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   }
 
-  const versionExtra = selectedVersion.includes('Player') ? 150 : 0;
   const patchesExtra = selectedPatches.reduce((acc, p) => acc + p.price, 0);
-  const printExtra = printOption === 'blank' ? 0 : 100;
+  const printExtra = (product.isCustomizable && wantCustomPrint) ? 100 : 0;
 
-  const finalUnitPrice = product.price + versionExtra + patchesExtra + printExtra;
+  const finalUnitPrice = product.price + patchesExtra + printExtra;
   const finalUnitPriceConverted = Math.round(finalUnitPrice * activeCurrency.rate);
   const isWishlisted = wishlist.some((item) => item.id === product.id);
 
   const handleAddToCart = () => {
+    if (product.isCustomizable && wantCustomPrint && !customName.trim()) {
+      setCustomError('Please enter a name for the back print, or select Blank Back.');
+      return;
+    }
+    setCustomError('');
+
     addToCart(
       product,
       selectedSize,
       selectedVersion,
-      '',
-      '',
+      (product.isCustomizable && wantCustomPrint) ? customName.trim().toUpperCase() : '',
+      (product.isCustomizable && wantCustomPrint) ? customNumber.trim() : '',
       []
     );
     setIsCartOpen(true);
@@ -152,33 +171,115 @@ export default function ProductDetailPage({ params }: PageProps) {
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Left Column: Product Image */}
-          <div className="lg:col-span-6 bg-[#080808] border border-[#242424] rounded-3xl p-6 sm:p-8 relative flex flex-col items-center justify-center shadow-2xl min-h-[350px] sm:min-h-[450px]">
-            
-            {/* Real Product Picture / SVG Visualizer Canvas */}
-            <div className="py-4 my-auto w-full flex flex-col items-center justify-center">
-              {product.image ? (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-72 sm:h-96 w-full object-contain drop-shadow-2xl rounded-xl"
-                />
-              ) : (
-                <JerseyViewerSVG
-                  primaryColor={product.colors.primary}
-                  secondaryColor={product.colors.secondary}
-                  accentColor={product.colors.accent}
-                  textColor={product.colors.text}
-                  pattern={product.pattern}
-                  sponsorText={product.sponsorText}
-                  name={product.defaultName || ''}
-                  number={product.defaultNumber || ''}
-                  view={view}
-                  patchNames={[]}
-                  height={380}
-                />
-              )}
+          {/* Left Column: Product Image Gallery (Supports 2-3 or more photos) */}
+          <div className="lg:col-span-6 space-y-4">
+            <div className="bg-[#080808] border border-[#242424] rounded-3xl p-6 sm:p-8 relative flex flex-col items-center justify-center shadow-2xl min-h-[350px] sm:min-h-[450px] group">
+              
+              {/* Photo Indicator Badge */}
+              {(() => {
+                const allImages = (Array.isArray(product.images) && product.images.length > 0)
+                  ? product.images
+                  : (product.image ? [product.image] : []);
+                const currentDisplayImage = allImages[selectedImageIndex] || product.image;
+
+                return (
+                  <>
+                    {allImages.length > 1 && (
+                      <div className="absolute top-4 left-4 z-10 px-2.5 py-1 rounded-full bg-black/80 border border-zinc-800 text-[11px] font-mono font-bold text-[#f4c84a] backdrop-blur-sm">
+                        {selectedImageIndex + 1} / {allImages.length}
+                      </div>
+                    )}
+
+                    {/* Prev & Next Photo Arrows */}
+                    {allImages.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedImageIndex(prev => (prev === 0 ? allImages.length - 1 : prev - 1));
+                          }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/75 hover:bg-black text-white border border-[#333] hover:border-[#f4c84a] transition-all opacity-80 hover:opacity-100 hover:scale-110 cursor-pointer shadow-lg"
+                          aria-label="Previous photo"
+                        >
+                          <ChevronLeft className="w-5 h-5 text-[#f4c84a]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedImageIndex(prev => (prev === allImages.length - 1 ? 0 : prev + 1));
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/75 hover:bg-black text-white border border-[#333] hover:border-[#f4c84a] transition-all opacity-80 hover:opacity-100 hover:scale-110 cursor-pointer shadow-lg"
+                          aria-label="Next photo"
+                        >
+                          <ChevronRight className="w-5 h-5 text-[#f4c84a]" />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Real Product Picture with Zoom / SVG Visualizer Canvas */}
+                    <div className="w-full flex flex-col items-center justify-center">
+                      {currentDisplayImage ? (
+                        <ProductImageZoom
+                          images={allImages}
+                          selectedIndex={selectedImageIndex}
+                          onSelectIndex={setSelectedImageIndex}
+                          productName={product.name}
+                        />
+                      ) : (
+                        <JerseyViewerSVG
+                          primaryColor={product.colors.primary}
+                          secondaryColor={product.colors.secondary}
+                          accentColor={product.colors.accent}
+                          textColor={product.colors.text}
+                          pattern={product.pattern}
+                          sponsorText={product.sponsorText}
+                          name={(product.isCustomizable && wantCustomPrint && customName) ? customName.trim().toUpperCase() : (product.defaultName || '')}
+                          number={(product.isCustomizable && wantCustomPrint && customNumber) ? customNumber.trim() : (product.defaultNumber || '')}
+                          view={view}
+                          patchNames={[]}
+                          height={380}
+                        />
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
+
+            {/* Thumbnail Gallery Row for 2, 3 or more photos */}
+            {(() => {
+              const allImages = (Array.isArray(product.images) && product.images.length > 0)
+                ? product.images
+                : (product.image ? [product.image] : []);
+
+              if (allImages.length <= 1) return null;
+
+              return (
+                <div className="flex items-center gap-3 overflow-x-auto pb-1 px-1">
+                  {allImages.map((imgUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border p-2 bg-[#0c0c0c] transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                        selectedImageIndex === idx
+                          ? 'border-[#f4c84a] shadow-lg shadow-[#f4c84a]/10 scale-105 ring-1 ring-[#f4c84a]'
+                          : 'border-[#262626] opacity-60 hover:opacity-100 hover:border-gray-500'
+                      }`}
+                      title={`View photo ${idx + 1}`}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full h-full object-contain rounded-lg"
+                      />
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right Column: Customization & Product Specification Form */}
@@ -225,43 +326,6 @@ export default function ProductDetailPage({ params }: PageProps) {
                   {activeCurrency.symbol}{Math.round(product.originalPrice * activeCurrency.rate)}
                 </span>
               )}
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                MONGODB CONNECTED &amp; IN STOCK
-              </span>
-            </div>
-
-            {/* Edition Selector */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
-                Select Edition
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedVersion('Fan Version (Standard Fit)')}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all text-left flex justify-between items-center cursor-pointer ${
-                    selectedVersion === 'Fan Version (Standard Fit)'
-                      ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-md font-extrabold'
-                      : 'bg-[#111] text-gray-300 border-[#333] hover:bg-[#1a1a1a]'
-                  }`}
-                >
-                  <span>Fan Version</span>
-                  <span className="font-mono text-[10px] opacity-80">Standard Fit</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedVersion('Player Edition (Slim Fit)')}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all text-left flex justify-between items-center cursor-pointer ${
-                    selectedVersion === 'Player Edition (Slim Fit)'
-                      ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-md font-extrabold'
-                      : 'bg-[#111] text-gray-300 border-[#333] hover:bg-[#1a1a1a]'
-                  }`}
-                >
-                  <span>Player Edition</span>
-                  <span className="font-mono text-[10px] opacity-80">+₹150</span>
-                </button>
-              </div>
             </div>
 
             {/* Size Selector */}
@@ -280,26 +344,149 @@ export default function ProductDetailPage({ params }: PageProps) {
               </div>
 
               <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
-                {(product.availableSizes || ['S', 'M', 'L', 'XL', '2XL']).map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`py-3 text-xs font-black rounded-xl border transition-all ${
-                      selectedSize === size
-                        ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-md scale-105'
-                        : 'bg-[#111] text-gray-300 border-[#333] hover:bg-[#1a1a1a]'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {(product.availableSizes || ['S', 'M', 'L', 'XL', '2XL']).map((size) => {
+                  const sizeQty = product.sizeStock ? product.sizeStock[size] : undefined;
+                  const isOutOfStock = sizeQty !== undefined && sizeQty <= 0;
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => !isOutOfStock && setSelectedSize(size)}
+                      disabled={isOutOfStock}
+                      className={`py-2.5 px-1 text-xs font-black rounded-xl border transition-all flex flex-col items-center justify-center cursor-pointer ${
+                        isOutOfStock
+                          ? 'opacity-40 cursor-not-allowed border-[#222] bg-[#0c0c0c] text-gray-500 line-through'
+                          : selectedSize === size
+                            ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow-md scale-105'
+                            : 'bg-[#111] text-gray-300 border-[#333] hover:bg-[#1a1a1a]'
+                      }`}
+                    >
+                      <span>{size}</span>
+                      {sizeQty !== undefined && sizeQty > 0 && (
+                        <span className={`text-[9px] font-mono font-bold mt-0.5 ${selectedSize === size ? 'text-black/80' : 'text-[#f4c84a]'}`}>
+                          {sizeQty} left
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Custom Jersey Name & Number Section (Only when isCustomizable is enabled in Admin) */}
+            {product.isCustomizable && (
+              <div className="bg-[#0e0e0e] border border-[#262626] rounded-2xl p-4 sm:p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-200 uppercase tracking-wider">
+                      Custom Back Printing
+                    </span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#f4c84a]/10 text-[#f4c84a] border border-[#f4c84a]/30">
+                    +₹100
+                  </span>
+                </div>
+
+                {/* Option Tabs: Blank Back vs Custom Name & Number */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWantCustomPrint(false);
+                      setCustomError('');
+                    }}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer ${
+                      !wantCustomPrint
+                        ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow'
+                        : 'bg-[#141414] text-gray-400 border-[#2b2b2b] hover:text-white'
+                    }`}
+                  >
+                    Blank Back (Standard)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWantCustomPrint(true)}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      wantCustomPrint
+                        ? 'bg-[#f4c84a] text-black border-[#f4c84a] shadow'
+                        : 'bg-[#141414] text-gray-400 border-[#2b2b2b] hover:text-white'
+                    }`}
+                  >
+                    <span>Custom Name &amp; No.</span>
+                    <span className={`text-[10px] font-mono px-1 py-0.5 rounded font-bold ${wantCustomPrint ? 'bg-black/20 text-black' : 'bg-[#f4c84a]/20 text-[#f4c84a]'}`}>
+                      +₹100
+                    </span>
+                  </button>
+                </div>
+
+                {/* Custom Inputs */}
+                {wantCustomPrint && (
+                  <div className="pt-2 border-t border-[#222] space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2 space-y-1.5">
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                          <Type className="w-3 h-3 text-[#f4c84a]" />
+                          <span>Name on Back</span>
+                          <span className="text-[10px] text-gray-500 font-normal">(Max 12)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={customName}
+                          onChange={(e) => {
+                            setCustomName(e.target.value.toUpperCase().slice(0, 12));
+                            if (customError) setCustomError('');
+                          }}
+                          placeholder="e.g. RONALDO"
+                          maxLength={12}
+                          className="w-full bg-[#161616] border border-[#333] focus:border-[#f4c84a] text-white px-3 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-widest focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                          <Hash className="w-3 h-3 text-[#f4c84a]" />
+                          <span>Number</span>
+                          <span className="text-[10px] text-gray-500 font-normal">(0-99)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={customNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                            setCustomNumber(val);
+                          }}
+                          placeholder="7"
+                          maxLength={2}
+                          className="w-full bg-[#161616] border border-[#333] focus:border-[#f4c84a] text-white px-3 py-2.5 rounded-xl text-xs font-mono font-bold text-center focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Preview pill */}
+                    {customName.trim() && (
+                      <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 flex items-center justify-between text-xs">
+                        <span className="text-gray-400 text-[11px]">Print Preview:</span>
+                        <span className="font-mono font-extrabold text-[#f4c84a] tracking-widest uppercase">
+                          {customName.trim()} {customNumber ? `#${customNumber}` : ''}
+                        </span>
+                      </div>
+                    )}
+
+                    {customError && (
+                      <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-950/30 border border-red-800/40 rounded-lg p-2 font-medium">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{customError}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Add to Cart CTA Button */}
             <button
               onClick={handleAddToCart}
-              className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all mt-6"
+              className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all mt-6 cursor-pointer"
             >
               <ShoppingBag className="w-5 h-5 text-black" />
               <span>ADD TO BAG ({activeCurrency.symbol}{finalUnitPriceConverted})</span>

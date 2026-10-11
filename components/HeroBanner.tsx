@@ -114,24 +114,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       {/* Background Radial Glow Accent */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[700px] h-[350px] sm:h-[700px] bg-[#f4c84a]/25 rounded-full blur-[120px] pointer-events-none z-20"></div>
 
-      {/* Text Content Layered Above Full-Size Image */}
-      <div className="relative z-30 mx-auto max-w-4xl px-4 py-8 text-center flex flex-col items-center justify-center space-y-6 w-full">
-
-        {/* Centered Headline Title with Fixed Height Container to prevent layout shift */}
-        <div className="min-h-[120px] sm:min-h-[160px] lg:min-h-[180px] flex flex-col items-center justify-center w-full px-2">
-          <h1 className="font-serif text-2xl sm:text-5xl lg:text-6xl font-black text-white leading-tight uppercase tracking-tight drop-shadow-[0_10px_20px_rgba(0,0,0,0.9)] max-w-3xl">
-            {current.title} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f4c84a] via-[#ffd96a] to-[#f4c84a]">
-              {current.highlight}
-            </span>
-          </h1>
-        </div>
+      {/* Content Layered Above Full-Size Image */}
+      <div className="relative z-30 mx-auto max-w-4xl px-4 py-8 text-center flex flex-col items-center justify-end h-full pb-8 sm:pb-12 w-full space-y-4">
 
         {/* CENTERED SHOP NOW BUTTON */}
-        <div className="pt-1">
+        <div>
           <Link
             href="/shop"
-            className="group flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#f4c84a] to-[#d4af37] px-8 py-3.5 sm:px-10 sm:py-4.5 text-sm sm:text-lg font-black tracking-widest text-black transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(244,200,74,0.7)] cursor-pointer shadow-2xl"
+            className="group flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#f4c84a] to-[#d4af37] px-8 py-3.5 sm:px-10 sm:py-4 text-sm sm:text-base font-black tracking-widest text-black transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(244,200,74,0.7)] cursor-pointer shadow-2xl"
           >
             <span>SHOP NOW</span>
             <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 text-black" />
@@ -139,7 +129,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </div>
 
         {/* Slide Indicator Dots */}
-        <div className="flex items-center justify-center gap-2.5 pt-4">
+        <div className="flex items-center justify-center gap-2.5 pt-2">
           {slides.map((_, idx) => (
             <button
               key={idx}

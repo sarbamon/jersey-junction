@@ -17,14 +17,16 @@ export function mapBackendToAdminProduct(item: any): AdminProduct {
     originalPrice: item.originalPrice || item.price,
     discount: item.discount || 0,
     stock: item.stock !== undefined ? item.stock : 50,
+    sizeStock: item.sizeStock || {},
     sku: item.sku || `JJ-PROD-${id.slice(-6)}`,
     brand: item.brand || 'Jersey Junction',
     sizes: item.sizes || item.availableSizes || ['S', 'M', 'L', 'XL', '2XL'],
     colors: Array.isArray(item.colors) ? item.colors : (item.colors ? [item.colors.primary, item.colors.secondary].filter(Boolean) : []),
-    image: item.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
-    images: item.images || [item.image].filter(Boolean),
+    image: item.image || (item.images && item.images[0]) || '',
+    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []),
     isFeatured: Boolean(item.isFeatured),
     isBestseller: Boolean(item.isBestseller),
+    isCustomizable: Boolean(item.isCustomizable),
     status: item.status || 'Active',
     createdDate: item.createdDate || item.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
     totalSold: item.totalSold || 0,
@@ -51,6 +53,7 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     isNew: Boolean(item.isNewProduct || item.isNew),
     isBestseller: Boolean(item.isBestseller),
     isHot: Boolean(item.isHot),
+    isCustomizable: Boolean(item.isCustomizable),
     colors: typeof item.colors === 'object' && item.colors !== null && !Array.isArray(item.colors) 
       ? item.colors 
       : { primary: '#000000', secondary: '#ffffff', accent: '#f4c84a', text: '#ffffff' },
@@ -58,19 +61,77 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     sponsorText: item.sponsorText || '',
     crestIcon: item.crestIcon || '',
     availableSizes: item.availableSizes || item.sizes || ['S', 'M', 'L', 'XL', '2XL'],
+    sizeStock: item.sizeStock || {},
     defaultName: item.defaultName || '',
     defaultNumber: item.defaultNumber || '',
     description: item.description || '',
     details: item.details || [],
     availablePatches: item.availablePatches || [],
     tags: item.tags || [],
-    image: item.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+    image: item.image || (item.images && item.images[0]) || '',
+    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []),
   };
 }
 
+let memoryProductsCache: JerseyProduct[] | null = null;
+const CACHE_KEY = 'jj_store_products_cache';
+
+function getStoredCache(): JerseyProduct[] {
+  if (memoryProductsCache && memoryProductsCache.length > 0) return memoryProductsCache;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          memoryProductsCache = parsed;
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return [];
+}
+
+function saveStoredCache(products: JerseyProduct[]) {
+  if (!products || products.length === 0) return;
+  memoryProductsCache = products;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(products));
+    } catch {}
+  }
+}
+
 export const productService = {
-  // Storefront active products
+  // Synchronous cached products getter (instant 0ms render)
+  getCachedProductsSync: (): JerseyProduct[] => {
+    return getStoredCache();
+  },
+
+  // Synchronous single product getter from cache
+  getCachedProductBySlugSync: (slug: string): JerseyProduct | null => {
+    const cached = getStoredCache();
+    const lower = (slug || '').toLowerCase();
+    return cached.find(p => (p.slug || '').toLowerCase() === lower || (p.id || '').toLowerCase() === lower) || null;
+  },
+
+  // Storefront active products with SWR cache
   getActiveProducts: async (filters?: { sport?: string; search?: string; category?: string }): Promise<JerseyProduct[]> => {
+    const hasFilters = Boolean(filters?.sport || filters?.category || filters?.search);
+    const cached = getStoredCache();
+
+    // If no specific filters and cache exists, return immediately and revalidate in background
+    if (!hasFilters && cached.length > 0) {
+      apiClient.get('/products').then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          const fresh = res.data.map(mapBackendToJerseyProduct);
+          saveStoredCache(fresh);
+        }
+      }).catch(() => {});
+      return cached;
+    }
+
     const params = new URLSearchParams();
     if (filters?.sport) params.append('sport', filters.sport);
     if (filters?.category) params.append('category', filters.category);
@@ -80,9 +141,13 @@ export const productService = {
     const res = await apiClient.get(`/products${query}`);
 
     if (res.success && Array.isArray(res.data)) {
-      return res.data.map(mapBackendToJerseyProduct);
+      const mapped = res.data.map(mapBackendToJerseyProduct);
+      if (!hasFilters) {
+        saveStoredCache(mapped);
+      }
+      return mapped;
     }
-    return [];
+    return cached;
   },
 
   // Admin list all products
@@ -101,7 +166,6 @@ export const productService = {
 
   // Synchronous getter wrapper for admin components transitioning to async
   getProducts: (): AdminProduct[] => {
-    // Note: Callers should use getAdminProducts() async instead
     return [];
   },
 
@@ -114,9 +178,30 @@ export const productService = {
   },
 
   getProductBySlug: async (slug: string): Promise<JerseyProduct | null> => {
+    // Check cache first for instant 0ms load
+    const cached = productService.getCachedProductBySlugSync(slug);
+    if (cached) {
+      // Revalidate in background
+      apiClient.get(`/products/${slug}`).then((res) => {
+        if (res.success && res.data) {
+          const fresh = mapBackendToJerseyProduct(res.data);
+          const currentCache = getStoredCache();
+          const idx = currentCache.findIndex(p => p.slug === slug || p.id === slug);
+          if (idx !== -1) {
+            currentCache[idx] = fresh;
+            saveStoredCache(currentCache);
+          }
+        }
+      }).catch(() => {});
+      return cached;
+    }
+
     const res = await apiClient.get(`/products/${slug}`);
     if (res.success && res.data) {
-      return mapBackendToJerseyProduct(res.data);
+      const fresh = mapBackendToJerseyProduct(res.data);
+      const currentCache = getStoredCache();
+      saveStoredCache([...currentCache.filter(p => p.id !== fresh.id && p.slug !== fresh.slug), fresh]);
+      return fresh;
     }
     return null;
   },
@@ -133,6 +218,7 @@ export const productService = {
       originalPrice: productData.originalPrice,
       discount: productData.discount,
       stock: productData.stock,
+      sizeStock: productData.sizeStock || {},
       sku: productData.sku,
       brand: productData.brand,
       sizes: productData.sizes,
@@ -142,6 +228,7 @@ export const productService = {
       images: productData.images,
       isFeatured: productData.isFeatured,
       isBestseller: productData.isBestseller,
+      isCustomizable: Boolean(productData.isCustomizable),
       status: productData.status || 'Active',
       team: productData.subcategory || 'Jersey Junction',
       sport: productData.category?.toLowerCase() || 'soccer',
