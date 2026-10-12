@@ -219,13 +219,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={currentUser ? `Account: ${currentUser.name}` : 'Login / Register'}
           >
             {currentUser ? (
-              <div className="flex items-center gap-2 group">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-black font-extrabold flex items-center justify-center text-xs shadow-md border-2 border-amber-300 group-hover:scale-105 transition-transform uppercase font-mono">
-                  {currentUser.name ? currentUser.name.trim().charAt(0).toUpperCase() : 'U'}
-                </div>
-                <span className="hidden sm:inline font-bold text-xs text-white max-w-[80px] truncate group-hover:text-amber-400 transition-colors">
-                  {currentUser.name}
-                </span>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-black font-extrabold flex items-center justify-center text-xs shadow-md border-2 border-amber-300 hover:scale-105 transition-transform uppercase font-mono">
+                {currentUser.name ? currentUser.name.trim().charAt(0).toUpperCase() : 'U'}
               </div>
             ) : (
               <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 hover:border-amber-400/50 hover:bg-zinc-800/80 flex items-center justify-center transition-all shadow-sm">
