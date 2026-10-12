@@ -6,11 +6,13 @@ export interface AuthUser {
   name: string;
   role: 'admin' | 'user';
   token: string;
+  phone?: string;
 }
 
-const AUTH_STORAGE_KEY = 'jj_admin_auth_user';
-const TOKEN_STORAGE_KEY = 'jj_admin_token';
+const ADMIN_AUTH_KEY = 'jj_admin_auth_user';
+const ADMIN_TOKEN_KEY = 'jj_admin_token';
 const CUSTOMER_AUTH_KEY = 'jj_customer_user';
+const CUSTOMER_TOKEN_KEY = 'jj_customer_token';
 
 export const authService = {
   // Admin Login
@@ -34,8 +36,8 @@ export const authService = {
     };
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-      localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(user));
+      localStorage.setItem(ADMIN_TOKEN_KEY, res.token);
     }
 
     return user;
@@ -54,12 +56,19 @@ export const authService = {
       email: res.user?.email || email,
       name: res.user?.name || email.split('@')[0],
       role: res.user?.role || 'user',
+      phone: res.user?.phone || '',
       token: res.token,
     };
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(user));
-      localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      localStorage.setItem(CUSTOMER_TOKEN_KEY, res.token);
+      localStorage.setItem('jj_user', JSON.stringify({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone || ''
+      }));
     }
 
     return user;
@@ -78,12 +87,19 @@ export const authService = {
       email: res.user?.email || email,
       name: res.user?.name || name,
       role: res.user?.role || 'user',
+      phone: res.user?.phone || phone || '',
       token: res.token,
     };
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(user));
-      localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      localStorage.setItem(CUSTOMER_TOKEN_KEY, res.token);
+      localStorage.setItem('jj_user', JSON.stringify({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone || ''
+      }));
     }
 
     return user;
@@ -109,29 +125,51 @@ export const authService = {
       email: res.user?.email || payload.email || '',
       name: res.user?.name || payload.name || 'Google User',
       role: res.user?.role || 'user',
+      phone: res.user?.phone || '',
       token: res.token,
     };
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(user));
-      localStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      localStorage.setItem(CUSTOMER_TOKEN_KEY, res.token);
+      localStorage.setItem('jj_user', JSON.stringify({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone || ''
+      }));
     }
 
     return user;
   },
 
-  logout: (): void => {
+  // Customer Logout
+  logoutCustomer: (): void => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem(CUSTOMER_AUTH_KEY);
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+      localStorage.removeItem('jj_user');
     }
+  },
+
+  // Admin Logout
+  logoutAdmin: (): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(ADMIN_AUTH_KEY);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+  },
+
+  // Generic logout
+  logout: (): void => {
+    authService.logoutCustomer();
+    authService.logoutAdmin();
     apiClient.get('/auth/logout').catch(() => {});
   },
 
-  getCurrentUser: (): AuthUser | null => {
+  getCustomerUser: (): AuthUser | null => {
     if (typeof window === 'undefined') return null;
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY) || localStorage.getItem(CUSTOMER_AUTH_KEY);
+    const stored = localStorage.getItem(CUSTOMER_AUTH_KEY);
     if (!stored) return null;
     try {
       return JSON.parse(stored);
@@ -140,14 +178,40 @@ export const authService = {
     }
   },
 
-  isAuthenticated: (): boolean => {
+  getAdminUser: (): AuthUser | null => {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem(ADMIN_AUTH_KEY);
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  },
+
+  getCurrentUser: (): AuthUser | null => {
+    return authService.getAdminUser() || authService.getCustomerUser();
+  },
+
+  isAdminAuthenticated: (): boolean => {
     if (typeof window === 'undefined') return false;
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    const user = authService.getCurrentUser();
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    const user = authService.getAdminUser();
     return Boolean(token && user && user.role === 'admin');
   },
 
+  isAuthenticated: (): boolean => {
+    return authService.isAdminAuthenticated();
+  },
+
   fetchMe: async (): Promise<AuthUser | null> => {
+    if (typeof window === 'undefined') return null;
+    const isDashboard = window.location.pathname.startsWith('/admin');
+    const token = isDashboard 
+      ? localStorage.getItem(ADMIN_TOKEN_KEY) 
+      : (localStorage.getItem(CUSTOMER_TOKEN_KEY) || localStorage.getItem(ADMIN_TOKEN_KEY));
+    if (!token) return null;
+
     const res = await apiClient.get('/auth/me');
     if (res.success && res.data) {
       const user: AuthUser = {
@@ -155,10 +219,13 @@ export const authService = {
         email: res.data.email,
         name: res.data.name,
         role: res.data.role,
-        token: localStorage.getItem(TOKEN_STORAGE_KEY) || '',
+        phone: res.data.phone || '',
+        token,
       };
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+      if (user.role === 'admin') {
+        localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(user));
+      } else {
+        localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(user));
       }
       return user;
     }

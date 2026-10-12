@@ -21,17 +21,15 @@ export interface ApiResponse<T = any> {
 
 const getAuthToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  const token = localStorage.getItem('jj_admin_token');
-  if (token) return token;
-  const userStr = localStorage.getItem('jj_admin_auth_user');
-  if (userStr) {
-    try {
-      const parsed = JSON.parse(userStr);
-      return parsed.token || null;
-    } catch {
-      return null;
-    }
+  const isDashboardRoute = window.location.pathname.startsWith('/admin');
+  if (isDashboardRoute) {
+    const adminToken = localStorage.getItem('jj_admin_token');
+    if (adminToken) return adminToken;
   }
+  const customerToken = localStorage.getItem('jj_customer_token');
+  if (customerToken) return customerToken;
+  const adminToken = localStorage.getItem('jj_admin_token');
+  if (adminToken) return adminToken;
   return null;
 };
 

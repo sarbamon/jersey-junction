@@ -12,10 +12,14 @@ import {
   GripVertical, 
   ChevronUp, 
   ChevronDown, 
-  ArrowUpDown 
+  ArrowUpDown,
+  UploadCloud,
+  Loader2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { categoryService } from '../../../lib/services/categoryService';
 import { productService } from '../../../lib/services/productService';
+import { uploadService } from '../../../lib/services/uploadService';
 import { matchesCategory } from '../../../lib/utils/categoryMatcher';
 import { AdminCategory } from '../../../lib/types/admin';
 import { ConfirmModal } from '../../../components/admin/ConfirmModal';
@@ -26,8 +30,8 @@ export default function AdminCategoriesPage() {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [name, setName] = useState('');
-  const [tag, setTag] = useState('');
-  const [status, setStatus] = useState<'Active' | 'Disabled'>('Active');
+  const [image, setImage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const [editTarget, setEditTarget] = useState<AdminCategory | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
@@ -95,20 +99,42 @@ export default function AdminCategoriesPage() {
     setToastMsg(`Category order updated! Live on storefront & navigation.`);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadService.uploadImage(file);
+      if (isEdit && editTarget) {
+        setEditTarget({ ...editTarget, image: url });
+      } else {
+        setImage(url);
+      }
+      setToastMsg('Category photo uploaded successfully!');
+    } catch (err: any) {
+      setToastMsg(`Upload failed: ${err.message || 'Image upload error'}`);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await categoryService.addCategory({
-      name,
+      name: name.trim(),
       slug,
-      tag: tag || 'Sport Collection',
-      status
+      tag: 'Collection',
+      status: 'Active',
+      image: image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg'
     });
 
     setName('');
-    setTag('');
+    setImage('');
     setIsAddOpen(false);
     setToastMsg(`Category "${name}" created successfully.`);
     await loadData();
@@ -119,9 +145,10 @@ export default function AdminCategoriesPage() {
     if (!editTarget) return;
 
     await categoryService.updateCategory(editTarget.id, {
-      name: editTarget.name,
-      tag: editTarget.tag,
-      status: editTarget.status
+      name: editTarget.name.trim(),
+      image: editTarget.image,
+      tag: editTarget.tag || 'Collection',
+      status: 'Active'
     });
 
     setEditTarget(null);
@@ -181,13 +208,13 @@ export default function AdminCategoriesPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
             <FolderTree className="w-4 h-4" />
-            <span>CATALOG TAXONOMY & CATEGORIES</span>
+            <span>CATALOG TAXONOMY &amp; CATEGORIES</span>
           </div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white">
             CATEGORIES ({categories.length})
           </h1>
           <p className="text-xs text-zinc-400">
-            Organize kit collections, sport types, fit versions, and department tags.
+            Organize kit collections, sport types, and storefront categories.
           </p>
         </div>
 
@@ -210,7 +237,7 @@ export default function AdminCategoriesPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div>
               <label className="font-bold text-zinc-400 block mb-1 uppercase">Category Title *</label>
               <input
@@ -218,32 +245,49 @@ export default function AdminCategoriesPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. National Teams"
+                placeholder="e.g. Cricket Kits"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400"
               />
             </div>
 
             <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Tag / Badge Subtitle</label>
-              <input
-                type="text"
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="e.g. World Cup & Euro Kits"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400"
-              />
-            </div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">Category Photo</label>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0 flex items-center justify-center">
+                  {image ? (
+                    <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-5 h-5 text-zinc-600" />
+                  )}
+                </div>
 
-            <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-              >
-                <option value="Active">Active</option>
-                <option value="Disabled">Disabled</option>
-              </select>
+                <label className="px-3.5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer border border-zinc-700 transition-colors">
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  ) : (
+                    <UploadCloud className="w-4 h-4 text-amber-400" />
+                  )}
+                  <span>{isUploading ? 'Uploading...' : image ? 'Change Photo' : 'Upload Photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, false)}
+                    disabled={isUploading}
+                    className="hidden"
+                  />
+                </label>
+
+                {image && (
+                  <button
+                    type="button"
+                    onClick={() => setImage('')}
+                    className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                    title="Remove photo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -269,9 +313,9 @@ export default function AdminCategoriesPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Title</label>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">Category Title *</label>
               <input
                 type="text"
                 required
@@ -282,25 +326,43 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Tag Subtitle</label>
-              <input
-                type="text"
-                value={editTarget.tag}
-                onChange={(e) => setEditTarget({ ...editTarget, tag: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400"
-              />
-            </div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">Category Photo</label>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0 flex items-center justify-center">
+                  {editTarget.image ? (
+                    <img src={editTarget.image} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-5 h-5 text-zinc-600" />
+                  )}
+                </div>
 
-            <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Status</label>
-              <select
-                value={editTarget.status}
-                onChange={(e) => setEditTarget({ ...editTarget, status: e.target.value as any })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-              >
-                <option value="Active">Active</option>
-                <option value="Disabled">Disabled</option>
-              </select>
+                <label className="px-3.5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer border border-zinc-700 transition-colors">
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  ) : (
+                    <UploadCloud className="w-4 h-4 text-amber-400" />
+                  )}
+                  <span>{isUploading ? 'Uploading...' : editTarget.image ? 'Change Photo' : 'Upload Photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, true)}
+                    disabled={isUploading}
+                    className="hidden"
+                  />
+                </label>
+
+                {editTarget.image && (
+                  <button
+                    type="button"
+                    onClick={() => setEditTarget({ ...editTarget, image: '' })}
+                    className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                    title="Remove photo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -328,23 +390,21 @@ export default function AdminCategoriesPage() {
         <div className="bg-amber-400/10 border border-amber-400/30 p-4 rounded-2xl flex items-center justify-between text-xs font-bold animate-fade-in shadow-lg">
           <div className="text-amber-400 flex items-center gap-2 font-mono">
             <CheckSquare className="w-4 h-4" />
-            <span>SELECTED {selectedIds.length} OF {categories.length} CATEGORIES</span>
+            <span>SELECTED {selectedIds.length} CATEGORIES</span>
           </div>
-
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSelectedIds([])}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg cursor-pointer transition-colors"
+              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg cursor-pointer"
             >
               Deselect All
             </button>
             <button
               onClick={() => setIsBulkDeleteModalOpen(true)}
-              disabled={isDeleting}
-              className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow"
+              className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-1.5 cursor-pointer shadow"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete Selected ({selectedIds.length})</span>
+              <span>Delete Selected</span>
             </button>
           </div>
         </div>
@@ -374,10 +434,9 @@ export default function AdminCategoriesPage() {
                   />
                 </th>
                 <th className="py-4 px-3 font-bold w-28 text-center">Store Order</th>
+                <th className="py-4 px-3 font-bold w-16">Photo</th>
                 <th className="py-4 px-4 font-bold">Category Title</th>
-                <th className="py-4 px-4 font-bold">Tag / Subtitle</th>
                 <th className="py-4 px-4 font-bold">Products Count</th>
-                <th className="py-4 px-4 font-bold">Status</th>
                 <th className="py-4 px-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
@@ -447,24 +506,23 @@ export default function AdminCategoriesPage() {
                       </div>
                     </td>
 
+                    {/* Photo thumbnail */}
+                    <td className="py-3.5 px-3">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden shrink-0 flex items-center justify-center">
+                        {c.image ? (
+                          <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 text-zinc-600" />
+                        )}
+                      </div>
+                    </td>
+
                     <td className="py-3.5 px-4 font-bold text-white text-sm">
                       {c.name}
                     </td>
 
-                    <td className="py-3.5 px-4 text-zinc-400 font-mono">
-                      {c.tag}
-                    </td>
-
                     <td className="py-3.5 px-4 font-mono font-bold text-amber-400">
                       {c.productsCount} items
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                        c.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
-                      }`}>
-                        {c.status}
-                      </span>
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
@@ -498,8 +556,7 @@ export default function AdminCategoriesPage() {
       <ConfirmModal
         isOpen={!!deleteTarget}
         title="Delete Category"
-        message={`Are you sure you want to delete category "${deleteTarget?.name}"?`}
-        confirmText="Delete Category"
+        message={`Are you sure you want to delete category "${deleteTarget?.name}"? Products in this category will not be deleted.`}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -507,9 +564,9 @@ export default function AdminCategoriesPage() {
       {/* Bulk Delete Confirm Modal */}
       <ConfirmModal
         isOpen={isBulkDeleteModalOpen}
-        title="Delete Selected Categories"
-        message={`Are you sure you want to delete ${selectedIds.length} selected categories?`}
-        confirmText={`Delete ${selectedIds.length} Categories`}
+        title="Delete Multiple Categories"
+        message={`Are you sure you want to delete ${selectedIds.length} categories? Products within them will remain intact.`}
+        confirmText={isDeleting ? 'Deleting...' : 'Delete Selected'}
         onConfirm={handleBulkDeleteConfirm}
         onCancel={() => setIsBulkDeleteModalOpen(false)}
       />

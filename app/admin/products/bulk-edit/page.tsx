@@ -3,26 +3,179 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Sparkles, Loader2, UploadCloud, RefreshCw, Image as ImageIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  UploadCloud,
+  RefreshCw,
+  X,
+  Star
+} from 'lucide-react';
 import { categoryService } from '../../../../lib/services/categoryService';
 import { productService } from '../../../../lib/services/productService';
 import { uploadService } from '../../../../lib/services/uploadService';
 import { AdminProduct, AdminCategory } from '../../../../lib/types/admin';
 import { Toast } from '../../../../components/admin/Toast';
 
+export interface EditableProductRow extends AdminProduct {
+  sizesText: string;
+}
+
+/**
+ * Robust parser for sizes and stock text.
+ * Accepts formats:
+ * - "S5, M5, L5, XL5"
+ * - "S: 5, M: 5, L: 5, XL: 5"
+ * - "S10, M15, L20, XL10"
+ * - "S 5, M 5, L 5, XL 5"
+ * - "S-5, M-5, L-5, XL-5"
+ * - "S5 M5 L5 XL5"
+ * - "2XL5, XXL5, 3XL10"
+ * - "5" (uniform 5 units per standard size)
+ * - "S, M, L, XL" (defaults to 5 each)
+ */
+export function parseSizesAndStock(input: string): {
+  sizeStock: Record<string, number>;
+  totalStock: number;
+  sizes: string[];
+} {
+  const fallback = {
+    sizeStock: { S: 5, M: 5, L: 5, XL: 5 },
+    totalStock: 20,
+    sizes: ['S', 'M', 'L', 'XL'],
+  };
+
+  if (!input || !input.trim()) {
+    return fallback;
+  }
+
+  const str = input.trim();
+
+  // If user entered a single uniform quantity like "5" or "10"
+  if (/^\d+$/.test(str)) {
+    const qty = parseInt(str, 10);
+    return {
+      sizeStock: { S: qty, M: qty, L: qty, XL: qty },
+      totalStock: qty * 4,
+      sizes: ['S', 'M', 'L', 'XL'],
+    };
+  }
+
+  const sizeStock: Record<string, number> = {};
+
+  // Split tokens by comma, semicolon, slash, or newlines
+  const rawTokens = str.split(/[,;\n\/]+/).map((t) => t.trim()).filter(Boolean);
+
+  const tokens = rawTokens.flatMap((t) => {
+    if (t.includes(' ') && !t.includes(':') && !t.includes('-') && !t.includes('=')) {
+      if (/^[a-zA-Z0-9]+\s+\d+$/.test(t)) {
+        return [t];
+      }
+      return t.split(/\s+/).filter(Boolean);
+    }
+    return [t];
+  });
+
+  for (const token of tokens) {
+    const colonMatch = token.match(/^([a-zA-Z0-9]+)\s*[:=\-]\s*(\d+)$/);
+    const spaceMatch = token.match(/^([a-zA-Z0-9]+)\s+(\d+)$/);
+    const compactMatch = token.match(/^([a-zA-Z]+|\d+[a-zA-Z]+)(\d+)$/);
+
+    if (colonMatch) {
+      const size = colonMatch[1].toUpperCase();
+      const qty = parseInt(colonMatch[2], 10);
+      sizeStock[size] = (sizeStock[size] || 0) + qty;
+    } else if (spaceMatch) {
+      const size = spaceMatch[1].toUpperCase();
+      const qty = parseInt(spaceMatch[2], 10);
+      sizeStock[size] = (sizeStock[size] || 0) + qty;
+    } else if (compactMatch) {
+      const size = compactMatch[1].toUpperCase();
+      const qty = parseInt(compactMatch[2], 10);
+      sizeStock[size] = (sizeStock[size] || 0) + qty;
+    } else {
+      const clean = token.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      if (clean) {
+        sizeStock[clean] = (sizeStock[clean] || 0) + 5;
+      }
+    }
+  }
+
+  const sizes = Object.keys(sizeStock);
+  if (sizes.length === 0) {
+    return fallback;
+  }
+
+  const totalStock = Object.values(sizeStock).reduce((sum, q) => sum + q, 0);
+  return {
+    sizeStock,
+    totalStock,
+    sizes,
+  };
+}
+
+function formatSizeStockToString(
+  sizeStock?: Record<string, number>,
+  fallbackStock?: number,
+  sizes?: string[]
+): string {
+  if (sizeStock && Object.keys(sizeStock).length > 0) {
+    const parts = Object.entries(sizeStock).map(([sz, qty]) => `${sz}${qty}`);
+    return parts.join(', ');
+  }
+  if (fallbackStock !== undefined && fallbackStock > 0) {
+    const sList = sizes && sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'];
+    const perSize = Math.max(1, Math.round(fallbackStock / sList.length));
+    return sList.map((s) => `${s}${perSize}`).join(', ');
+  }
+  return 'S5, M5, L5, XL5';
+}
+
 export default function BulkEditProductsPage() {
   const router = useRouter();
-  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [products, setProducts] = useState<EditableProductRow[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [toastMsg, setToastMsg] = useState('');
 
-  // Batch Presets for editing
-  const [presetCategory, setPresetCategory] = useState('');
-  const [presetPrice, setPresetPrice] = useState('');
-  const [presetStatus, setPresetStatus] = useState('');
+  // Category Filter to view & edit specific categories
+  const [categoryFilter, setCategoryFilter] = useState('all');
+
+  // Apply to All controls (prices and stock only, category is never overwritten)
+  const [applyPrice, setApplyPrice] = useState('');
+  const [applyRegPrice, setApplyRegPrice] = useState('');
+  const [applySizesStock, setApplySizesStock] = useState('');
+
+  const displayedProducts = products.filter((p) => {
+    if (categoryFilter === 'all') return true;
+    if (categoryFilter.toLowerCase().includes('fan')) return (p.category || '').toLowerCase().includes('fan');
+    if (categoryFilter.toLowerCase().includes('player')) return (p.category || '').toLowerCase().includes('player') && !(p.category || '').toLowerCase().includes('fan');
+    return (p.category || '').toLowerCase() === categoryFilter.toLowerCase();
+  });
+
+  const handleApplyToAll = () => {
+    if (applyPrice === '' && applyRegPrice === '' && !applySizesStock.trim()) {
+      setToastMsg('Please enter price or size stock to apply');
+      return;
+    }
+
+    const targetIds = new Set(displayedProducts.map(p => p.id));
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (!targetIds.has(p.id)) return p;
+        const updated = { ...p };
+        if (applyPrice !== '') updated.price = Number(applyPrice);
+        if (applyRegPrice !== '') updated.originalPrice = Number(applyRegPrice);
+        if (applySizesStock.trim()) updated.sizesText = applySizesStock.trim();
+        return updated;
+      })
+    );
+    setToastMsg(`Applied values to ${displayedProducts.length} displayed product(s)!`);
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -31,7 +184,25 @@ export default function BulkEditProductsPage() {
         productService.getAdminProducts(),
         Promise.resolve(categoryService.getCategories()),
       ]);
-      setProducts(prods);
+
+      let filteredProds = prods;
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const ids = params.get('ids');
+        if (ids) {
+          const idList = ids.split(',').filter(Boolean);
+          if (idList.length > 0) {
+            filteredProds = prods.filter(p => idList.includes(p.id));
+          }
+        }
+      }
+
+      const editableRows: EditableProductRow[] = filteredProds.map((p) => ({
+        ...p,
+        sizesText: formatSizeStockToString(p.sizeStock, p.stock, p.sizes),
+      }));
+
+      setProducts(editableRows);
       setCategories(cats);
     } catch (err: any) {
       setToastMsg(`Error loading data: ${err.message}`);
@@ -44,50 +215,107 @@ export default function BulkEditProductsPage() {
     loadData();
   }, []);
 
-  const updateProductRow = (id: string, field: keyof AdminProduct, value: any) => {
-    setProducts(products.map(p => p.id === id ? { ...p, [field]: value } : p));
+  const updateProductRow = (id: string, field: keyof EditableProductRow, value: any) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
   };
 
-  const applyPresets = () => {
-    setProducts(products.map(p => ({
-      ...p,
-      category: presetCategory || p.category,
-      price: presetPrice ? Number(presetPrice) : p.price,
-      status: (presetStatus as any) || p.status,
-    })));
-    setToastMsg('Applied batch presets to all products in editor');
-  };
-
+  // Multiple photo upload for a specific product row
   const handleRowImageUpload = async (prodId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setUploadingProductId(prodId);
+    setUploadProgress(`Uploading ${files.length} photo(s)...`);
     try {
-      const uploadedUrl = await uploadService.uploadImage(file);
-      updateProductRow(prodId, 'image', uploadedUrl);
-      setToastMsg('Image uploaded to Cloudinary successfully!');
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
+        const url = await uploadService.uploadImage(files[i]);
+        if (url) uploadedUrls.push(url);
+      }
+
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id !== prodId) return p;
+          const currentImages = p.images || (p.image ? [p.image] : []);
+          const updated = [...currentImages, ...uploadedUrls];
+          return {
+            ...p,
+            images: updated,
+            image: updated[0] || '',
+          };
+        })
+      );
+      setToastMsg(`Uploaded ${uploadedUrls.length} photo(s) successfully!`);
     } catch (err: any) {
-      setToastMsg(`Image upload failed: ${err.message}`);
+      setToastMsg(`Photo upload failed: ${err.message}`);
     } finally {
       setUploadingProductId(null);
+      setUploadProgress('');
+      e.target.value = '';
     }
+  };
+
+  // Remove individual photo from row gallery
+  const removeRowImage = (prodId: string, imgIdx: number) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== prodId) return p;
+        const updated = (p.images || []).filter((_, idx) => idx !== imgIdx);
+        return {
+          ...p,
+          images: updated,
+          image: updated[0] || '',
+        };
+      })
+    );
+  };
+
+  // Set an image as primary cover photo (move to index 0)
+  const setPrimaryRowImage = (prodId: string, imgIdx: number) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== prodId) return p;
+        const imgs = [...(p.images || [])];
+        const selected = imgs.splice(imgIdx, 1)[0];
+        if (selected) {
+          imgs.unshift(selected);
+        }
+        return {
+          ...p,
+          images: imgs,
+          image: imgs[0] || '',
+        };
+      })
+    );
+    setToastMsg('Set as primary cover photo');
   };
 
   const handleSaveAll = async () => {
     setIsSubmitting(true);
     try {
       for (const p of products) {
-        const discount = p.originalPrice ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+        const { sizeStock, totalStock, sizes: parsedSizes } = parseSizesAndStock(p.sizesText);
+        const finalImages = p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+        const primaryImage = finalImages[0] || '';
+        const discount = p.originalPrice
+          ? Math.round(((Number(p.originalPrice) - Number(p.price)) / Number(p.originalPrice)) * 100)
+          : 0;
+
         await productService.updateProduct(p.id, {
           name: p.name,
+          sku: p.sku,
           category: p.category,
           price: Number(p.price),
           originalPrice: Number(p.originalPrice || 0),
           discount,
-          stock: Number(p.stock),
-          status: p.status,
-          image: p.image,
+          stock: totalStock,
+          sizeStock,
+          sizes: parsedSizes as any,
+          image: primaryImage,
+          images: finalImages,
         });
       }
 
@@ -104,7 +332,6 @@ export default function BulkEditProductsPage() {
 
   return (
     <div className="space-y-6 font-sans">
-      
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900/90 p-6 rounded-3xl border border-zinc-800 shadow-xl">
         <div className="flex items-center gap-4">
@@ -116,15 +343,39 @@ export default function BulkEditProductsPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">
-              Bulk Edit Catalog Products ({products.length})
+              Bulk Edit Catalog Products ({displayedProducts.length}{categoryFilter !== 'all' ? ` of ${products.length}` : ''})
             </h1>
             <p className="text-xs text-zinc-400">
-              Edit title, category, prices, stock, status, and Cloudinary images across all store items simultaneously.
+              Directly edit product title, sku, prices, size inventory (e.g. S5, M5, L5, XL5), and photos for every item.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Category Filter */}
+          <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase font-bold">CATEGORY:</span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-transparent text-xs font-bold text-amber-400 focus:outline-none cursor-pointer"
+            >
+              <option value="all" className="bg-zinc-900 text-white">All Categories ({products.length})</option>
+              {categories.map((c) => {
+                const count = products.filter(p =>
+                  c.name.toLowerCase().includes('fan') ? (p.category || '').toLowerCase().includes('fan') :
+                  c.name.toLowerCase().includes('player') ? ((p.category || '').toLowerCase().includes('player') && !(p.category || '').toLowerCase().includes('fan')) :
+                  (p.category || '').toLowerCase() === c.name.toLowerCase()
+                ).length;
+                return (
+                  <option key={c.id} value={c.name} className="bg-zinc-900 text-white">
+                    {c.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
           <button
             onClick={loadData}
             className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-zinc-700"
@@ -135,60 +386,53 @@ export default function BulkEditProductsPage() {
         </div>
       </div>
 
-      {/* Quick Batch Presets */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-4 text-xs">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <div className="flex items-center gap-2 text-amber-400 font-mono font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4" />
-            <span>BATCH PRESETS (UPDATE ALL PRODUCTS BELOW AT ONCE)</span>
-          </div>
-
+      {/* Apply to All Section */}
+      <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 shadow-xl space-y-3 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-mono font-bold text-amber-400 uppercase tracking-wider text-[11px]">
+            APPLY TO ALL DISPLAYED ({displayedProducts.length} PRODUCTS)
+          </span>
           <button
-            onClick={applyPresets}
+            type="button"
+            onClick={handleApplyToAll}
             className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-black font-extrabold uppercase rounded-xl text-[11px] tracking-wider transition-all cursor-pointer shadow-lg"
           >
-            APPLY PRESETS TO ALL
+            APPLY TO ALL
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">SET CATEGORY</label>
-            <select
-              value={presetCategory}
-              onChange={(e) => setPresetCategory(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-            >
-              <option value="">Keep Existing Categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">SET PRICE (₹)</label>
+            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">PRICE (₹)</label>
             <input
               type="number"
               placeholder="Leave blank to keep existing"
-              value={presetPrice}
-              onChange={(e) => setPresetPrice(e.target.value)}
+              value={applyPrice}
+              onChange={(e) => setApplyPrice(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-400"
             />
           </div>
 
           <div>
-            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">SET STATUS</label>
-            <select
-              value={presetStatus}
-              onChange={(e) => setPresetStatus(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-            >
-              <option value="">Keep Existing Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Draft">Draft</option>
-              <option value="Out of Stock">Out of Stock</option>
-            </select>
+            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">REG. PRICE (₹)</label>
+            <input
+              type="number"
+              placeholder="Leave blank to keep existing"
+              value={applyRegPrice}
+              onChange={(e) => setApplyRegPrice(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-400 font-mono font-bold focus:outline-none focus:border-amber-400"
+            />
+          </div>
+
+          <div>
+            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">SIZES &amp; STOCK</label>
+            <input
+              type="text"
+              placeholder="e.g. S5, M5, L5, XL5"
+              value={applySizesStock}
+              onChange={(e) => setApplySizesStock(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+            />
           </div>
         </div>
       </div>
@@ -200,127 +444,196 @@ export default function BulkEditProductsPage() {
             <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] tracking-wider border-b border-zinc-800">
               <tr>
                 <th className="py-4 px-3 w-10 text-center font-bold">#</th>
-                <th className="py-4 px-4 font-bold min-w-[220px]">PRODUCT TITLE</th>
-                <th className="py-4 px-4 font-bold min-w-[160px]">CATEGORY</th>
-                <th className="py-4 px-4 font-bold min-w-[110px]">PRICE (₹)</th>
-                <th className="py-4 px-4 font-bold min-w-[110px]">REG. PRICE (₹)</th>
-                <th className="py-4 px-4 font-bold min-w-[100px]">STOCK</th>
-                <th className="py-4 px-4 font-bold min-w-[130px]">STATUS</th>
-                <th className="py-4 px-4 font-bold min-w-[160px]">IMAGE</th>
+                <th className="py-4 px-4 font-bold min-w-[240px]">PRODUCT TITLE &amp; SKU</th>
+                <th className="py-4 px-3 font-bold min-w-[110px]">PRICE (₹)</th>
+                <th className="py-4 px-3 font-bold min-w-[110px]">REG. PRICE (₹)</th>
+                <th className="py-4 px-4 font-bold min-w-[240px]">SIZES &amp; STOCK INVENTORY</th>
+                <th className="py-4 px-4 font-bold min-w-[260px]">PHOTOS (MULTI-UPLOAD)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 font-medium">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-zinc-400 text-xs font-mono">
+                  <td colSpan={6} className="py-16 text-center text-zinc-400 text-xs font-mono">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
                   </td>
                 </tr>
-              ) : products.length === 0 ? (
+              ) : displayedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs">
-                    No products found in catalog.
+                  <td colSpan={6} className="py-12 text-center text-zinc-500 text-xs font-mono">
+                    No products found in this category filter.
                   </td>
                 </tr>
               ) : (
-                products.map((p, idx) => (
-                  <tr key={p.id} className="hover:bg-zinc-800/40 transition-colors">
-                    <td className="py-3 px-3 text-center font-mono text-zinc-500 font-bold">
-                      {idx + 1}
-                    </td>
+                displayedProducts.map((p, idx) => {
+                  const parsed = parseSizesAndStock(p.sizesText);
+                  const imagesCount = p.images?.length || 0;
 
-                    <td className="py-3 px-4">
-                      <input
-                        type="text"
-                        value={p.name}
-                        onChange={(e) => updateProductRow(p.id, 'name', e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white text-xs font-semibold focus:outline-none focus:border-amber-400"
-                      />
-                      <div className="text-[10px] font-mono text-zinc-500 mt-1">{p.sku}</div>
-                    </td>
+                  return (
+                    <tr key={p.id} className="hover:bg-zinc-800/40 transition-colors">
+                      {/* Index */}
+                      <td className="py-3 px-3 text-center font-mono text-zinc-500 font-bold">
+                        {idx + 1}
+                      </td>
 
-                    <td className="py-3 px-4">
-                      <select
-                        value={p.category}
-                        onChange={(e) => updateProductRow(p.id, 'category', e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-                      >
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.name}>{c.name}</option>
-                        ))}
-                      </select>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        value={p.price}
-                        onChange={(e) => updateProductRow(p.id, 'price', Number(e.target.value))}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-amber-400 font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        value={p.originalPrice || ''}
-                        onChange={(e) => updateProductRow(p.id, 'originalPrice', Number(e.target.value))}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-400 font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        value={p.stock}
-                        onChange={(e) => updateProductRow(p.id, 'stock', Number(e.target.value))}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <select
-                        value={p.status}
-                        onChange={(e) => updateProductRow(p.id, 'status', e.target.value as any)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-2 text-white text-xs font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Draft">Draft</option>
-                        <option value="Out of Stock">Out of Stock</option>
-                      </select>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0">
-                          {p.image ? (
-                            <img src={p.image} alt="Thumb" className="w-full h-full object-cover" />
-                          ) : (
-                            <ImageIcon className="w-4 h-4 text-zinc-600 m-2" />
-                          )}
-                        </div>
-
-                        <label className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer shrink-0 border border-zinc-700">
-                          {uploadingProductId === p.id ? (
-                            <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                          ) : (
-                            <UploadCloud className="w-3 h-3 text-amber-400" />
-                          )}
-                          <span>{uploadingProductId === p.id ? 'Uploading...' : 'Replace Image'}</span>
+                      {/* Product Title & SKU */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-1.5">
                           <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleRowImageUpload(p.id, e)}
-                            disabled={uploadingProductId === p.id}
-                            className="hidden"
+                            type="text"
+                            placeholder="Product Title"
+                            value={p.name}
+                            onChange={(e) => updateProductRow(p.id, 'name', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white text-xs font-semibold focus:outline-none focus:border-amber-400"
                           />
-                        </label>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <input
+                            type="text"
+                            placeholder="SKU (e.g. JJ-XXX-123)"
+                            value={p.sku || ''}
+                            onChange={(e) => updateProductRow(p.id, 'sku', e.target.value)}
+                            className="w-full bg-zinc-950/80 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-[11px] font-mono text-zinc-400 focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </td>
+
+                      {/* Sale Price */}
+                      <td className="py-3 px-3">
+                        <input
+                          type="number"
+                          value={p.price}
+                          onChange={(e) => updateProductRow(p.id, 'price', Number(e.target.value))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-2 text-amber-400 font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </td>
+
+                      {/* Regular Price */}
+                      <td className="py-3 px-3">
+                        <input
+                          type="number"
+                          value={p.originalPrice || ''}
+                          onChange={(e) => updateProductRow(p.id, 'originalPrice', Number(e.target.value))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-2 text-zinc-400 font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </td>
+
+                      {/* Sizes & Stock Inventory */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={p.sizesText}
+                            placeholder="e.g. S5, M5, L5, XL5"
+                            onChange={(e) => updateProductRow(p.id, 'sizesText', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                          />
+
+                          {/* Live computed stock breakdown badge */}
+                          <div className="flex items-center justify-between text-[10px] font-mono px-1">
+                            <span className="text-zinc-400">
+                              Breakdown:{' '}
+                              <strong className="text-zinc-200">
+                                {Object.entries(parsed.sizeStock)
+                                  .map(([s, q]) => `${s}:${q}`)
+                                  .join(' ')}
+                              </strong>
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/30 text-amber-400 font-black">
+                              {parsed.totalStock} in stock
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Multi-Photo Upload & Gallery */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-2">
+                          {/* Gallery Thumbnails List */}
+                          {imagesCount > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {(p.images || []).map((imgUrl, imgIdx) => (
+                                <div
+                                  key={imgIdx}
+                                  className={`relative group w-10 h-10 rounded-lg overflow-hidden border ${
+                                    imgIdx === 0 ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-zinc-800'
+                                  } bg-zinc-950 shrink-0`}
+                                  title={imgIdx === 0 ? 'Primary cover photo' : 'Click star to make primary cover photo'}
+                                >
+                                  <img
+                                    src={imgUrl}
+                                    alt={`Product photo ${imgIdx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+
+                                  {/* Primary Badge indicator */}
+                                  {imgIdx === 0 && (
+                                    <div className="absolute top-0.5 left-0.5 bg-amber-400 text-black rounded p-0.5 shadow">
+                                      <Star className="w-2.5 h-2.5 fill-black" />
+                                    </div>
+                                  )}
+
+                                  {/* Hover action controls */}
+                                  <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                    {imgIdx !== 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setPrimaryRowImage(p.id, imgIdx)}
+                                        className="p-1 bg-amber-400 hover:bg-amber-300 text-black rounded cursor-pointer"
+                                        title="Set as primary cover"
+                                      >
+                                        <Star className="w-2.5 h-2.5" />
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeRowImage(p.id, imgIdx)}
+                                      className="p-1 bg-red-500/80 hover:bg-red-500 text-white rounded cursor-pointer"
+                                      title="Delete photo"
+                                    >
+                                      <X className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Upload Button */}
+                          <div className="flex items-center gap-2">
+                            <label className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-[10px] font-bold flex items-center gap-1.5 cursor-pointer shrink-0 border border-zinc-700 transition-colors">
+                              {uploadingProductId === p.id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                                  <span>{uploadProgress || 'Uploading...'}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <UploadCloud className="w-3 h-3 text-amber-400" />
+                                  <span>{imagesCount > 0 ? '+ Add More Photos' : 'Upload Photos (Multi)'}</span>
+                                </>
+                              )}
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={(e) => handleRowImageUpload(p.id, e)}
+                                disabled={uploadingProductId === p.id}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {imagesCount > 0 && (
+                              <span className="text-[10px] font-mono text-zinc-400">
+                                {imagesCount} photo{imagesCount !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -361,7 +674,6 @@ export default function BulkEditProductsPage() {
       </div>
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}
-
     </div>
   );
 }

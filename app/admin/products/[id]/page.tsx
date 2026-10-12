@@ -41,7 +41,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     XXL: 0,
   });
   const [category, setCategory] = useState('');
-  const [status, setStatus] = useState<'Active' | 'Draft' | 'Out of Stock'>('Active');
+  const [status, setStatus] = useState<'Active' | 'Out of Stock'>('Active');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -113,7 +113,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           });
           setSizeStock(initStock);
         }
-        setStatus(found.status);
+        setStatus(found.status === 'Out of Stock' ? 'Out of Stock' : 'Active');
         setDescription(found.description);
         const coverImg = found.image || (found.images && found.images[0]) || '';
         const galleryImgs = Array.isArray(found.images) && found.images.length > 0 ? found.images : (coverImg ? [coverImg] : []);
@@ -336,7 +336,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <div>
                   <label className="font-bold text-zinc-400 block mb-1 uppercase">Category</label>
                   <select
-                    value={category}
+                    value={categories.find(c => c.name.toLowerCase() === (category || '').toLowerCase())?.name || category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
                   >
@@ -354,7 +354,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
                   >
                     <option value="Active">Active</option>
-                    <option value="Draft">Draft</option>
                     <option value="Out of Stock">Out of Stock</option>
                   </select>
                 </div>

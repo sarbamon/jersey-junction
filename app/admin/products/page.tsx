@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Square, Trash } from 'lucide-react';
-import { StatusBadge } from '../../../components/admin/StatusBadge';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX } from 'lucide-react';
 import { ConfirmModal } from '../../../components/admin/ConfirmModal';
 import { Toast } from '../../../components/admin/Toast';
 import { productService } from '../../../lib/services/productService';
@@ -12,6 +12,7 @@ import { categoryService } from '../../../lib/services/categoryService';
 import { AdminProduct, AdminCategory } from '../../../lib/types/admin';
 
 export default function AdminProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,10 +20,10 @@ export default function AdminProductsPage() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Modal & Toast states
   const [deleteTarget, setDeleteTarget] = useState<AdminProduct | null>(null);
@@ -57,10 +58,12 @@ export default function AdminProductsPage() {
       p.sku.toLowerCase().includes(queryLower) ||
       p.category.toLowerCase().includes(queryLower);
 
-    const matchesCategory = categoryFilter === 'all' || p.category.toLowerCase() === categoryFilter.toLowerCase();
-    const matchesStatus = statusFilter === 'all' || p.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesCategory = 
+      categoryFilter === 'all' ||
+      (categoryFilter.toLowerCase().includes('fan') && p.category.toLowerCase().includes('fan')) ||
+      (categoryFilter.toLowerCase().includes('player') && p.category.toLowerCase().includes('player') && !p.category.toLowerCase().includes('fan'));
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesCategory;
   });
 
   const isAllSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedIds.includes(p.id));
@@ -113,6 +116,45 @@ export default function AdminProductsPage() {
         setIsDeleting(false);
       }
     }
+  };
+
+  const handleBulkOutOfStock = async () => {
+    if (selectedIds.length === 0) return;
+    setIsUpdatingStatus(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          productService.updateProduct(id, {
+            status: 'Out of Stock',
+            stock: 0,
+            sizeStock: { XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0 },
+          })
+        )
+      );
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedIds.includes(p.id)
+            ? {
+                ...p,
+                status: 'Out of Stock',
+                stock: 0,
+                sizeStock: { XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0 },
+              }
+            : p
+        )
+      );
+      setToastMessage(`Marked ${selectedIds.length} product(s) as Out of Stock!`);
+      setSelectedIds([]);
+    } catch (err: any) {
+      setToastMessage(`Failed to update products: ${err.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleBulkEditSelected = () => {
+    if (selectedIds.length === 0) return;
+    router.push(`/admin/products/bulk-edit?ids=${selectedIds.join(',')}`);
   };
 
   return (
@@ -201,40 +243,39 @@ export default function AdminProductsPage() {
               <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
-
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-zinc-300 focus:outline-none focus:border-amber-400 cursor-pointer"
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
-            <option value="out of stock">Out of Stock</option>
-          </select>
         </div>
       </div>
 
       {/* Bulk Action Toolbar Bar */}
       {selectedIds.length > 0 && (
-        <div className="bg-amber-400/10 border border-amber-400/30 p-4 rounded-2xl flex items-center justify-between text-xs font-bold">
+        <div className="bg-amber-400/10 border border-amber-400/30 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
           <div className="text-amber-400 flex items-center gap-2 font-mono">
             <CheckSquare className="w-4 h-4" />
             <span>SELECTED {selectedIds.length} OF {filteredProducts.length} PRODUCTS</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setSelectedIds([])}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg cursor-pointer"
+              onClick={handleBulkEditSelected}
+              className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-black font-extrabold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
             >
-              Deselect All
+              <Edit className="w-3.5 h-3.5" />
+              <span>Edit Selected ({selectedIds.length})</span>
             </button>
+
+            <button
+              onClick={handleBulkOutOfStock}
+              disabled={isUpdatingStatus}
+              className="px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-zinc-700 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <PackageX className="w-3.5 h-3.5" />
+              <span>{isUpdatingStatus ? 'Updating...' : `Out of Stock (${selectedIds.length})`}</span>
+            </button>
+
             <button
               onClick={handleBulkDelete}
               disabled={isDeleting}
-              className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Trash className="w-3.5 h-3.5" />
               <span>Delete Selected ({selectedIds.length})</span>
@@ -263,7 +304,6 @@ export default function AdminProductsPage() {
                 <th className="py-4 px-4 font-bold">Category</th>
                 <th className="py-4 px-4 font-bold">Price</th>
                 <th className="py-4 px-4 font-bold">Stock</th>
-                <th className="py-4 px-4 font-bold">Status</th>
                 <th className="py-4 px-4 font-bold">Created</th>
                 <th className="py-4 px-4 font-bold text-right">Actions</th>
               </tr>
@@ -271,7 +311,7 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-zinc-800/60 font-medium">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-zinc-400 text-xs">
+                  <td colSpan={8} className="py-16 text-center text-zinc-400 text-xs">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
@@ -279,7 +319,7 @@ export default function AdminProductsPage() {
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-zinc-500 text-xs">
+                  <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs">
                     No products found in backend database matching filter criteria.
                   </td>
                 </tr>
@@ -320,7 +360,7 @@ export default function AdminProductsPage() {
 
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] font-bold">
-                          {p.category}
+                          {p.category.toLowerCase().includes('fan') ? 'Fan Version' : 'Player Version'}
                         </span>
                       </td>
 
@@ -332,13 +372,9 @@ export default function AdminProductsPage() {
                       </td>
 
                       <td className="py-3 px-4">
-                        <span className={`font-mono font-bold ${p.stock <= 5 ? 'text-red-400' : 'text-zinc-300'}`}>
-                          {p.stock} units
+                        <span className={`font-mono font-bold ${p.status === 'Out of Stock' || p.stock === 0 ? 'text-red-400' : p.stock <= 5 ? 'text-amber-400' : 'text-zinc-300'}`}>
+                          {p.status === 'Out of Stock' || p.stock === 0 ? 'Out of Stock' : `${p.stock} units`}
                         </span>
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <StatusBadge status={p.status} type="product" />
                       </td>
 
                       <td className="py-3 px-4 font-mono text-[11px] text-zinc-400">

@@ -22,8 +22,12 @@ export function matchesCategory(p: JerseyProduct, catKey: string): boolean {
 
   // Handle category IDs / slugs / names:
   if (keyLower === 'player-version' || keyLower.includes('player')) {
+    if (catLower.includes('fan') || sportLower === 'fan version' || sportLower === 'fan-version') {
+      return false;
+    }
     return (
       sportLower === 'player-version' ||
+      sportLower === 'player version' ||
       catLower.includes('player') ||
       nameLower.includes('player') ||
       subcatLower.includes('player')
@@ -31,12 +35,15 @@ export function matchesCategory(p: JerseyProduct, catKey: string): boolean {
   }
 
   if (keyLower === 'fan-version' || keyLower.includes('fan')) {
+    if (catLower.includes('player') || sportLower === 'player version' || sportLower === 'player-version') {
+      return false;
+    }
     return (
       sportLower === 'fan-version' ||
+      sportLower === 'fan version' ||
       catLower.includes('fan') ||
       nameLower.includes('fan') ||
-      subcatLower.includes('fan') ||
-      (!nameLower.includes('player') && !nameLower.includes('retro') && !nameLower.includes('jacket') && sportLower === 'soccer')
+      subcatLower.includes('fan')
     );
   }
 

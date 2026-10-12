@@ -43,7 +43,7 @@ export default function AddProductPage() {
   const [isFeatured, setIsFeatured] = useState(true);
   const [isBestseller, setIsBestseller] = useState(false);
   const [isCustomizable, setIsCustomizable] = useState(false);
-  const [status, setStatus] = useState<'Active' | 'Draft' | 'Out of Stock'>('Active');
+  const [status, setStatus] = useState<'Active' | 'Out of Stock'>('Active');
 
   const [toastMsg, setToastMsg] = useState('');
 
@@ -227,7 +227,7 @@ export default function AddProductPage() {
               <div>
                 <label className="font-bold text-zinc-400 block mb-1 uppercase">Category *</label>
                 <select
-                  value={category}
+                  value={categories.find(c => c.name.toLowerCase() === (category || '').toLowerCase())?.name || category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
@@ -487,8 +487,7 @@ export default function AddProductPage() {
                 onChange={(e) => setStatus(e.target.value as any)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
               >
-                <option value="Active">Active (Visible in Store)</option>
-                <option value="Draft">Draft (Hidden)</option>
+                <option value="Active">Active (In Stock / Live)</option>
                 <option value="Out of Stock">Out of Stock</option>
               </select>
             </div>

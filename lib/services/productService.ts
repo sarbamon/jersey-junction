@@ -218,7 +218,7 @@ export const productService = {
       originalPrice: productData.originalPrice,
       discount: productData.discount,
       stock: productData.stock,
-      sizeStock: productData.sizeStock || {},
+      sizeStock: productData.sizeStock,
       sku: productData.sku,
       brand: productData.brand,
       sizes: productData.sizes,
@@ -243,6 +243,9 @@ export const productService = {
 
   updateProduct: async (id: string, updates: Partial<AdminProduct>): Promise<AdminProduct> => {
     const payload: any = { ...updates };
+    if (payload.category) {
+      payload.sport = payload.category.toLowerCase();
+    }
     if (payload.sizes && !payload.availableSizes) {
       payload.availableSizes = payload.sizes;
     }

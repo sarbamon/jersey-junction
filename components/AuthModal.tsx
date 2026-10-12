@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2, Phone } from 'lucide-react';
+import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2, Phone, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../lib/services/authService';
 
@@ -40,6 +40,7 @@ export const AuthModal: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
@@ -124,6 +125,7 @@ export const AuthModal: React.FC = () => {
     setIsAuthOpen(false);
     setError('');
     setIsLoading(false);
+    setShowPassword(false);
   };
 
   // Trigger Google Official OAuth Popup Window
@@ -167,16 +169,10 @@ export const AuthModal: React.FC = () => {
       }
     }
 
-    // Open official Google Sign-In window directly without any config warnings
-    const width = 500;
-    const height = 600;
-    const left = typeof window !== 'undefined' ? window.screen.width / 2 - width / 2 : 100;
-    const top = typeof window !== 'undefined' ? window.screen.height / 2 - height / 2 : 100;
-    window.open(
-      'https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin',
-      'GoogleSignIn',
-      `width=${width},height=${height},top=${top},left=${left},toolbar=no,location=no,status=no,menubar=no`
-    );
+    if (!googleClientId) {
+      setError('Google Sign-In is not configured yet. Please sign in with your email and password.');
+      return;
+    }
   };
 
   const handleUserLogin = async (e: React.FormEvent) => {
@@ -195,7 +191,7 @@ export const AuthModal: React.FC = () => {
         name: authUser.name,
         email: authUser.email,
         role: authUser.role,
-        phone: ''
+        phone: authUser.phone || ''
       });
       handleClose();
     } catch (err: any) {
@@ -207,8 +203,8 @@ export const AuthModal: React.FC = () => {
 
   const handleUserSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) {
-      setError('Please fill in all required fields.');
+    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
+      setError('Please fill in all required fields (Name, Email, Phone, Password).');
       return;
     }
 
@@ -275,8 +271,8 @@ export const AuthModal: React.FC = () => {
           <div className="space-y-4">
             <div className="p-4 bg-zinc-900/80 rounded-2xl border border-zinc-800 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-amber-400/20 border border-amber-400/30 text-amber-400 flex items-center justify-center font-serif font-black text-lg">
-                  {currentUser.name.charAt(0)}
+                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-black font-extrabold flex items-center justify-center text-lg shadow-md border-2 border-amber-300 font-mono uppercase">
+                  {currentUser.name ? currentUser.name.trim().charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div>
                   <div className="font-bold text-sm text-white">{currentUser.name}</div>
@@ -312,13 +308,13 @@ export const AuthModal: React.FC = () => {
             {/* Mode Switcher Tabs */}
             <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
               <button
-                onClick={() => { setMode('login'); setError(''); }}
+                onClick={() => { setMode('login'); setError(''); setShowPassword(false); }}
                 className={`flex-1 py-2 rounded-lg transition-all ${mode === 'login' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
               >
                 Sign In
               </button>
               <button
-                onClick={() => { setMode('signup'); setError(''); }}
+                onClick={() => { setMode('signup'); setError(''); setShowPassword(false); }}
                 className={`flex-1 py-2 rounded-lg transition-all ${mode === 'signup' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
               >
                 Sign Up
@@ -376,11 +372,12 @@ export const AuthModal: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="font-bold text-zinc-400 block mb-1 uppercase">Phone Number</label>
+                    <label className="font-bold text-zinc-400 block mb-1 uppercase">Phone Number *</label>
                     <div className="relative">
                       <Phone className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
                       <input
                         type="tel"
+                        required
                         placeholder="+91 9876543210"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
@@ -415,13 +412,21 @@ export const AuthModal: React.FC = () => {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-amber-400"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-10 py-2.5 text-white focus:outline-none focus:border-amber-400"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 

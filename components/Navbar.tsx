@@ -214,20 +214,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setIsAuthOpen(true);
               }
             }}
-            className="flex items-center gap-1.5 transition-all hover:scale-105 text-[#f4c84a] p-1 sm:p-1.5 rounded-lg hover:bg-zinc-800/40 cursor-pointer"
+            className="flex items-center gap-2 transition-all p-0.5 rounded-full cursor-pointer"
             aria-label="Account"
-            title={currentUser ? `Account: ${currentUser.name} (${currentUser.role})` : 'Login / Register'}
+            title={currentUser ? `Account: ${currentUser.name}` : 'Login / Register'}
           >
             {currentUser ? (
-              <div className="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/30 px-2.5 py-1 rounded-full text-amber-400 text-xs font-bold shadow-sm">
-                <span className="font-mono font-black">{currentUser.name.charAt(0)}</span>
-                <span className="hidden md:inline max-w-[90px] truncate">{currentUser.name}</span>
-                {currentUser.role === 'admin' && (
-                  <span className="bg-amber-400 text-black text-[9px] font-black px-1 rounded uppercase">ADMIN</span>
-                )}
+              <div className="flex items-center gap-2 group">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-black font-extrabold flex items-center justify-center text-xs shadow-md border-2 border-amber-300 group-hover:scale-105 transition-transform uppercase font-mono">
+                  {currentUser.name ? currentUser.name.trim().charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="hidden sm:inline font-bold text-xs text-white max-w-[80px] truncate group-hover:text-amber-400 transition-colors">
+                  {currentUser.name}
+                </span>
               </div>
             ) : (
-              <UserRound className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 hover:border-amber-400/50 hover:bg-zinc-800/80 flex items-center justify-center transition-all shadow-sm">
+                <UserRound className="w-4 h-4" />
+              </div>
             )}
           </button>
 

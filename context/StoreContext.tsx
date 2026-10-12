@@ -69,12 +69,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // Verify token with backend database
       authService.fetchMe().then((me) => {
-        if (me) {
+        if (me && me.role === 'user') {
           setCurrentUser({
             name: me.name,
             email: me.email,
             role: me.role,
-            phone: ''
+            phone: me.phone || ''
           });
         }
       }).catch(() => {});
@@ -94,7 +94,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentUser(null);
     try {
       localStorage.removeItem('jj_user');
-      authService.logout();
+      authService.logoutCustomer();
     } catch (e) {}
   };
 

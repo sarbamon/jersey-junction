@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldAlert, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { authService } from '../../../lib/services/authService';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@jerseyspot.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,17 +50,9 @@ export default function AdminLoginPage() {
             </div>
           </Link>
           
-          <div>
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block font-mono">
-              STORE MANAGEMENT SYSTEM
-            </span>
-            <h1 className="font-serif text-2xl font-black uppercase text-white tracking-tight">
-              ADMIN PORTAL
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-400 font-medium">
-            Sign in to manage catalog, orders, customers & settings
-          </p>
+          <h1 className="font-serif text-2xl font-black uppercase text-white tracking-tight">
+            ADMIN PORTAL
+          </h1>
         </div>
 
         {/* Credentials Form */}
@@ -73,7 +66,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@jerseyspot.com"
+                placeholder="admin@example.com"
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-amber-400 transition-colors"
               />
             </div>
@@ -84,13 +77,21 @@ export default function AdminLoginPage() {
             <div className="relative">
               <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-10 py-2.5 text-white focus:outline-none focus:border-amber-400 transition-colors"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3 text-zinc-400 hover:text-amber-400 transition-colors cursor-pointer"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
