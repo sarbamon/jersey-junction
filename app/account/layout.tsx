@@ -189,7 +189,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         discountPercentage={useStore().discountPercentage} 
         onApplyCoupon={useStore().applyCoupon} 
       />
-      <AuthModal />
       <SizeGuideModal isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
       <CustomJerseyStudio 
         isOpen={isCustomStudioOpen} 

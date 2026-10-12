@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import confettiFn from 'canvas-confetti';
-import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin } from 'lucide-react';
+import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin, User } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
@@ -32,7 +32,8 @@ export default function CheckoutPage() {
     setActiveCurrency,
     addToCart,
     currentUser,
-    setIsCartOpen
+    setIsCartOpen,
+    setIsAuthOpen
   } = useStore();
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -69,6 +70,13 @@ export default function CheckoutPage() {
       }
     };
   }, []);
+
+  // Require login on checkout page
+  useEffect(() => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+    }
+  }, [currentUser, setIsAuthOpen]);
 
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
@@ -208,6 +216,10 @@ export default function CheckoutPage() {
   };
 
   const handleRazorpayPayment = async () => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      return;
+    }
     setIsProcessing(true);
     try {
       const razorpayKey = await paymentService.getRazorpayKey();
@@ -386,6 +398,10 @@ export default function CheckoutPage() {
   };
 
   const handleCodPayment = async () => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      return;
+    }
     setIsProcessing(true);
     const newIdNum = Math.floor(1000 + Math.random() * 9000);
     const newId = `#JJ${newIdNum}`;
@@ -446,6 +462,10 @@ export default function CheckoutPage() {
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      return;
+    }
     if (paymentMethod === 'Razorpay') {
       handleRazorpayPayment();
     } else {
@@ -508,14 +528,41 @@ export default function CheckoutPage() {
 
               {/* Step 1: Shipping Info */}
               {step === 1 && (
-                <form 
-                  onSubmit={(e) => { 
-                    e.preventDefault(); 
-                    persistAddress();
-                    setStep(2); 
-                  }} 
-                  className="space-y-6"
-                >
+                <>
+                  {!currentUser && (
+                    <div className="bg-amber-400/10 border border-amber-400/30 rounded-2xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-400 border border-amber-400/30 flex items-center justify-center shrink-0">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-sm text-white uppercase tracking-tight">Account Required to Checkout</h3>
+                          <p className="text-xs text-zinc-400">Please sign in or create an account to place and track your order.</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAuthOpen(true)}
+                        className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold text-xs rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
+                      >
+                        <User className="w-3.5 h-3.5" />
+                        <span>Sign In / Register</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <form 
+                    onSubmit={(e) => { 
+                      e.preventDefault(); 
+                      if (!currentUser) {
+                        setIsAuthOpen(true);
+                        return;
+                      }
+                      persistAddress();
+                      setStep(2); 
+                    }} 
+                    className="space-y-6"
+                  >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xs font-bold uppercase tracking-widest text-[#f4c84a] font-mono flex items-center gap-1.5">
@@ -706,6 +753,7 @@ export default function CheckoutPage() {
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </form>
+                </>
               )}
 
               {/* Step 2: Razorpay Payment Gateway Selection */}

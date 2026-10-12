@@ -250,8 +250,6 @@ export default function ShopPage() {
         onAddToCart={addToCart}
       />
 
-      <AuthModal />
-
     </div>
   );
 }

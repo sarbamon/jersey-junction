@@ -40,13 +40,10 @@ export default function AccountOverviewPage() {
     <div className="space-y-8 font-sans">
       
       {/* Welcome Banner */}
-      <div className="bg-[#0d0d0d] border border-[#242424] p-6 sm:p-8 rounded-2xl space-y-2">
+      <div className="bg-[#0d0d0d] border border-[#242424] p-6 sm:p-8 rounded-2xl">
         <h1 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-white">
           WELCOME BACK, {currentUser.name.split(' ')[0]}
         </h1>
-        <p className="text-xs sm:text-sm text-gray-400">
-          Manage your orders, account details and saved items.
-        </p>
       </div>
 
       {/* 4 Summary Stat Cards */}

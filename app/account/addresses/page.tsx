@@ -129,7 +129,6 @@ export default function AddressesPage() {
             <MapPin className="w-6 h-6 text-[#f4c84a]" />
             <span>SAVED ADDRESSES ({addresses.length})</span>
           </h1>
-          <p className="text-xs text-gray-400">Manage delivery locations and default shipping addresses</p>
         </div>
 
         <button

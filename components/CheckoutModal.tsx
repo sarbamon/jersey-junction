@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import confettiFn from 'canvas-confetti';
-import { X, Check, Lock, ArrowRight, ShieldCheck, Shield, MapPin } from 'lucide-react';
+import { X, Check, Lock, ArrowRight, ShieldCheck, Shield, MapPin, User } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { orderService } from '../lib/services/orderService';
 import { paymentService } from '../lib/services/paymentService';
@@ -31,7 +31,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   activeCurrency,
   onOrderSuccess
 }) => {
-  const { currentUser, clearCart } = useStore();
+  const { currentUser, clearCart, setIsAuthOpen } = useStore();
   const [step, setStep] = useState<1 | 2>(1);
   const [paymentMethod, setPaymentMethod] = useState<'Razorpay' | 'COD'>('Razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -206,6 +206,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const handleRazorpayPayment = async () => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      return;
+    }
     setIsProcessing(true);
     try {
       const razorpayKey = await paymentService.getRazorpayKey();
@@ -383,6 +387,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const handleCodPayment = async () => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      return;
+    }
     setIsProcessing(true);
     const newIdNum = Math.floor(1000 + Math.random() * 9000);
     const newId = `#JJ${newIdNum}`;
@@ -487,14 +495,38 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
 
             {step === 1 && (
-              <form 
-                onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  persistAddress();
-                  setStep(2); 
-                }} 
-                className="space-y-4"
-              >
+              <>
+                {!currentUser && (
+                  <div className="bg-amber-400/10 border border-amber-400/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+                    <div className="flex items-center gap-2.5">
+                      <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div>
+                        <div className="font-bold text-xs text-white">Login Required</div>
+                        <div className="text-[10px] text-zinc-400">Please sign in to complete checkout</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthOpen(true)}
+                      className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-black font-extrabold text-[11px] rounded-lg transition-all shrink-0 cursor-pointer"
+                    >
+                      Sign In / Register
+                    </button>
+                  </div>
+                )}
+
+                <form 
+                  onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    if (!currentUser) {
+                      setIsAuthOpen(true);
+                      return;
+                    }
+                    persistAddress();
+                    setStep(2); 
+                  }} 
+                  className="space-y-4"
+                >
                 {/* Saved Addresses Selector */}
                 {savedAddresses.length > 0 && (
                   <div className="space-y-2">
@@ -675,6 +707,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
+              </>
             )}
 
             {step === 2 && (

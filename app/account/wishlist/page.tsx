@@ -19,7 +19,6 @@ export default function AccountWishlistPage() {
             <Heart className="w-6 h-6 text-[#f4c84a] fill-[#f4c84a]" />
             <span>WISHLIST ({wishlist.length})</span>
           </h1>
-          <p className="text-xs text-gray-400">Items saved for quick purchase and future kit releases</p>
         </div>
       </div>
 

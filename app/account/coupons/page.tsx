@@ -37,7 +37,6 @@ export default function CouponsPage() {
           <Ticket className="w-6 h-6 text-[#f4c84a]" />
           <span>AVAILABLE COUPONS ({coupons.length})</span>
         </h1>
-        <p className="text-xs text-gray-400">Copy or apply promo codes for instant savings at checkout</p>
       </div>
 
       {/* Coupons List Grid */}

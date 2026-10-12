@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Tag, Sparkles } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { JerseyViewerSVG } from './JerseyViewerSVG';
+import { useStore } from '../context/StoreContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onApplyCoupon
 }) => {
   const router = useRouter();
+  const { currentUser, setIsAuthOpen } = useStore();
   const [couponCode, setCouponCode] = useState('');
   const [couponMsg, setCouponMsg] = useState<{ text: string; isError: boolean } | null>(null);
 
@@ -249,16 +251,28 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               </div>
 
+              {!currentUser && (
+                <div className="text-[11px] text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg p-2.5 flex items-center gap-2 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Please sign in or create an account to checkout</span>
+                </div>
+              )}
+
               {/* Checkout Button */}
               <button
                 onClick={() => {
+                  if (!currentUser) {
+                    onClose();
+                    setIsAuthOpen(true);
+                    return;
+                  }
                   onClose();
                   if (onOpenCheckout) onOpenCheckout();
                   router.push('/checkout');
                 }}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm uppercase tracking-widest rounded-xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all cursor-pointer"
               >
-                <span>PROCEED TO CHECKOUT</span>
+                <span>{currentUser ? 'PROCEED TO CHECKOUT' : 'SIGN IN TO CHECKOUT'}</span>
                 <ArrowRight className="w-4 h-4 text-slate-950" />
               </button>
             </div>

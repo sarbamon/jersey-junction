@@ -272,8 +272,6 @@ export default function Home() {
         onClose={() => setIsSizeGuideOpen(false)}
       />
 
-      <AuthModal />
-
     </div>
   );
 }

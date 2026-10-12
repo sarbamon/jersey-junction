@@ -53,7 +53,6 @@ export default function MyOrdersPage() {
           <h1 className="text-xl sm:text-2xl font-black font-serif uppercase tracking-tight text-white">
             MY ORDERS ({filteredOrders.length})
           </h1>
-          <p className="text-xs text-gray-400">View and track all your kit orders and delivery status</p>
         </div>
 
         {/* Filter Tabs */}

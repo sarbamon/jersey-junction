@@ -119,6 +119,19 @@ export const AuthModal: React.FC = () => {
     }
   }, [gsiLoaded, googleClientId, isAuthOpen, mode]);
 
+  // Prevent background body scroll when auth modal is open
+  useEffect(() => {
+    if (isAuthOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isAuthOpen]);
+
   if (!isAuthOpen) return null;
 
   const handleClose = () => {
@@ -233,9 +246,16 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 text-white font-sans overflow-hidden">
-        
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+      className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in overflow-y-auto"
+    >
+      <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 text-white font-sans overflow-hidden my-auto">
+
         {/* Decorative Radial Accent */}
         <div className="absolute -top-20 -right-20 w-48 h-48 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -253,17 +273,17 @@ export const AuthModal: React.FC = () => {
             <UserRound className="w-6 h-6" />
           </div>
           <h2 className="font-serif text-2xl font-black uppercase text-white tracking-tight">
-            {currentUser 
-              ? 'MY ACCOUNT' 
-              : mode === 'signup' 
-                ? 'CREATE AN ACCOUNT' 
+            {currentUser
+              ? 'MY ACCOUNT'
+              : mode === 'signup'
+                ? 'CREATE AN ACCOUNT'
                 : 'CUSTOMER LOGIN'}
           </h2>
-          <p className="text-xs text-zinc-400 font-medium">
-            {currentUser 
-              ? `Logged in as ${currentUser.name}` 
-              : 'Sign in to track orders, save wishlists, & fast checkout'}
-          </p>
+          {currentUser && (
+            <p className="text-xs text-zinc-400 font-medium">
+              Logged in as {currentUser.name}
+            </p>
+          )}
         </div>
 
         {/* If user is already logged in */}
@@ -353,7 +373,7 @@ export const AuthModal: React.FC = () => {
 
             {/* Form Fields for Email & Password */}
             <form onSubmit={mode === 'signup' ? handleUserSignUp : handleUserLogin} className="space-y-4 text-xs">
-              
+
               {mode === 'signup' && (
                 <>
                   <div>

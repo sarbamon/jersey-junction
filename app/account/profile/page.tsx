@@ -44,7 +44,6 @@ export default function ProfilePage() {
             <User className="w-6 h-6 text-[#f4c84a]" />
             <span>PROFILE INFORMATION</span>
           </h1>
-          <p className="text-xs text-gray-400">View and update your personal account information</p>
         </div>
 
         <button

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "../context/StoreContext";
+import { AuthModal } from "../components/AuthModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-black text-white selection:bg-[#f4c84a] selection:text-black">
         <StoreProvider>
           {children}
+          <AuthModal />
         </StoreProvider>
       </body>
     </html>
