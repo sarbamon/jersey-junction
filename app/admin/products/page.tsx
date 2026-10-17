@@ -13,9 +13,10 @@ import { AdminProduct, AdminCategory } from '../../../lib/types/admin';
 
 export default function AdminProductsPage() {
   const router = useRouter();
-  const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<AdminProduct[]>(() => productService.getAdminProductsSync());
+  const [categories, setCategories] = useState<AdminCategory[]>(() => categoryService.getCategoriesSync());
+  const [isLoading, setIsLoading] = useState<boolean>(() => productService.getAdminProductsSync().length === 0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,20 +31,28 @@ export default function AdminProductsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async (forceSpinner = false) => {
+    if (forceSpinner || products.length === 0) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setError('');
+
     try {
       const [prods, cats] = await Promise.all([
         productService.getAdminProducts(),
         Promise.resolve(categoryService.getCategories()),
       ]);
-      setProducts(prods);
-      setCategories(cats);
+      if (prods.length > 0) setProducts(prods);
+      if (cats.length > 0) setCategories(cats);
     } catch (err: any) {
-      setError(err.message || 'Failed to load products from database server.');
+      if (products.length === 0) {
+        setError(err.message || 'Failed to load products from database server.');
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -169,7 +178,7 @@ export default function AdminProductsPage() {
           </div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white flex items-center gap-3">
             PRODUCTS ({filteredProducts.length})
-            {isLoading && <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />}
+            {(isLoading || isRefreshing) && <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />}
           </h1>
           <p className="text-xs text-zinc-400">
             Manage store catalog, prices, inventory levels, and product availability.
@@ -178,11 +187,11 @@ export default function AdminProductsPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={loadData}
+            onClick={() => loadData(true)}
             className="p-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition-all cursor-pointer border border-zinc-700"
             title="Refresh Product List"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${(isLoading || isRefreshing) ? 'animate-spin' : ''}`} />
           </button>
 
           <Link
@@ -214,7 +223,7 @@ export default function AdminProductsPage() {
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-bold flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={loadData} className="underline text-white hover:text-amber-400">Retry</button>
+          <button onClick={() => loadData(true)} className="underline text-white hover:text-amber-400">Retry</button>
         </div>
       )}
 

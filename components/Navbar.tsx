@@ -16,13 +16,19 @@ import {
   Ruler,
   Globe,
   Sun,
-  Moon
+  Moon,
+  FileText,
+  Mail,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import { JerseyProduct, Currency } from '../types';
-import { CURRENCIES, CATEGORIES } from '../data/jerseys';
+import { CURRENCIES } from '../data/jerseys';
 import { useStore } from '../context/StoreContext';
 import { categoryService } from '../lib/services/categoryService';
-import { AdminCategory } from '../lib/types/admin';
+import { settingsService } from '../lib/services/settingsService';
+import { AdminCategory, StoreSettings } from '../lib/types/admin';
+import { INITIAL_CATEGORIES } from '../lib/mock/categories';
 
 interface NavbarProps {
   cartCount: number;
@@ -56,133 +62,188 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
-  const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
+  const [adminCategories, setAdminCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
+
+  React.useEffect(() => {
+    setStoreSettings(settingsService.getSettings());
+  }, []);
+
+  React.useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   React.useEffect(() => {
     let isMounted = true;
+    setAdminCategories(categoryService.getCategoriesSync().filter((c) => c.status === 'Active'));
     categoryService.getActiveCategories().then((cats) => {
       if (isMounted) setAdminCategories(cats);
     });
     return () => { isMounted = false; };
   }, []);
 
-  const searchResults = searchQuery.trim()
-    ? products.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.team.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.league.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5)
-    : [];
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    setIsSearchOpen(false);
+    router.push(`/shop?search=${encodeURIComponent(trimmed)}`);
+  };
   const scrollToShop = (catId?: string) => {
-    if (catId) onSelectCategory(catId);
-    setTimeout(() => {
-      const shopElem = document.getElementById('shop');
-      if (shopElem) {
-        shopElem.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 50);
+    if (catId && catId !== 'all') {
+      router.push(`/shop?category=${catId}`);
+    } else {
+      router.push('/shop');
+    }
   };
 
   return (
     <header className="sticky top-0 z-[100] w-full border-b border-[#242424] bg-black text-[#f4c84a] shadow-md font-sans">
       
       {/* Main Header Container */}
-      <div className="relative mx-auto flex h-[60px] sm:h-[72px] w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:h-[78px] lg:px-10">
+      <div className="relative mx-auto flex h-[60px] sm:h-[72px] w-full max-w-7xl items-center justify-between px-2 sm:px-6 lg:h-[78px] lg:px-10">
         
-        {/* Mobile Hamburger Menu Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="flex h-10 w-10 items-center justify-center lg:hidden text-[#f4c84a] p-1"
-          aria-label="Open menu"
-        >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-
-        {/* Left Nav Menu Links (Desktop) */}
-        <nav className="hidden items-center gap-8 lg:flex">
-          <Link
-            href="/"
-            className="font-serif text-[14px] font-bold tracking-[0.08em] hover:opacity-70 uppercase transition-opacity"
+        {/* Left Side: Hamburger Toggle + Brand Logo (Left on mobile) + Desktop Navigation Links */}
+        <div className="flex items-center gap-1 sm:gap-3">
+          {/* Hamburger Menu Toggle Button (Mobile & Tablet Only, Hidden on Desktop) */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex lg:hidden h-9 w-9 sm:h-10 sm:w-10 items-center justify-center text-[#f4c84a] hover:opacity-80 p-1 cursor-pointer transition-opacity shrink-0"
+            aria-label="Toggle navigation menu"
+            title="Toggle Navigation Menu"
           >
-            HOME
+            {isMobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
+          </button>
+
+          {/* Brand Logo (Left-aligned next to hamburger button, prevents any collision) */}
+          <Link 
+            href="/"
+            className="cursor-pointer flex flex-col items-center pointer-events-auto shrink-0"
+          >
+            <div className="header-logo-crest border px-2 sm:px-3 py-1 rounded-md flex items-center justify-center gap-1 group hover:scale-105 transition-transform">
+              <span className="font-serif text-[11px] xs:text-xs sm:text-base lg:text-xl font-black tracking-tighter whitespace-nowrap">
+                <span className="logo-jersey">JERSEY</span> <span className="logo-junction font-extrabold">JUNCTION</span>
+              </span>
+            </div>
           </Link>
 
-          {/* SHOP Dropdown */}
-          <div className="relative" onMouseLeave={() => setIsShopDropdownOpen(false)}>
-            <button
-              onMouseEnter={() => setIsShopDropdownOpen(true)}
-              onClick={() => scrollToShop('all')}
-              className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity"
+          {/* Left Nav Menu Links (Desktop) */}
+          <nav className="hidden items-center gap-6 xl:gap-8 lg:flex ml-4">
+            <Link
+              href="/"
+              className="font-serif text-[14px] font-bold tracking-[0.08em] hover:opacity-70 uppercase transition-opacity"
             >
-              <span>SHOP</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
+              HOME
+            </Link>
 
-            {isShopDropdownOpen && (
-              <div 
-                className="absolute left-0 top-full mt-2 w-64 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50"
+            {/* SHOP Dropdown */}
+            <div className="relative" onMouseLeave={() => setIsShopDropdownOpen(false)}>
+              <button
                 onMouseEnter={() => setIsShopDropdownOpen(true)}
+                onClick={() => scrollToShop('all')}
+                className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity cursor-pointer"
               >
-                {adminCategories.map((cat) => {
-                  const catKey = cat.slug || cat.id;
-                  return (
-                    <button
-                      key={cat.id || cat.slug}
-                      onClick={() => {
-                        scrollToShop(catKey);
-                        setIsShopDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center"
-                    >
-                      <span>{cat.name}</span>
-                      <span className="text-[10px] text-gray-500 font-mono">{cat.tag}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                <span>SHOP</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
 
-          {/* MORE Dropdown */}
-          <div className="relative" onMouseLeave={() => setIsMoreDropdownOpen(false)}>
-            <button
-              onMouseEnter={() => setIsMoreDropdownOpen(true)}
-              onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
-              className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase"
-            >
-              <span>MORE</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            {isMoreDropdownOpen && (
-              <div 
-                className="absolute left-0 top-full mt-2 w-48 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50"
-                onMouseEnter={() => setIsMoreDropdownOpen(true)}
-              >
-                <button
-                  onClick={() => { onOpenSizeGuide(); setIsMoreDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111]"
+              {isShopDropdownOpen && (
+                <div 
+                  className="absolute left-0 top-full mt-2 w-64 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50 divide-y divide-[#181818]"
+                  onMouseEnter={() => setIsShopDropdownOpen(true)}
                 >
-                  Size Guide
-                </button>
-              </div>
-            )}
-          </div>
-        </nav>
+                  <button
+                    onClick={() => {
+                      scrollToShop('all');
+                      setIsShopDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center cursor-pointer"
+                  >
+                    <span>All Jerseys</span>
+                    <span className="text-[10px] text-gray-500 font-mono">Catalog</span>
+                  </button>
+                  {adminCategories.map((cat) => {
+                    const catKey = cat.slug || cat.id;
+                    return (
+                      <button
+                        key={cat.id || cat.slug}
+                        onClick={() => {
+                          scrollToShop(catKey);
+                          setIsShopDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center cursor-pointer"
+                      >
+                        <span>{cat.name}</span>
+                        {cat.tag && <span className="text-[10px] text-gray-500 font-mono">{cat.tag}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-        {/* Center Brand Logo */}
-        <Link 
-          href="/"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center pointer-events-auto max-w-[50%] sm:max-w-none"
-        >
-          <div className="header-logo-crest border px-2 sm:px-4 py-1 rounded-md flex items-center justify-center gap-1 group hover:scale-105 transition-transform">
-            <span className="font-serif text-[11px] xs:text-xs sm:text-xl lg:text-2xl font-black tracking-tighter whitespace-nowrap">
-              <span className="logo-jersey">JERSEY</span> <span className="logo-junction font-extrabold">JUNCTION</span>
-            </span>
-          </div>
-        </Link>
+            {/* ABOUT US */}
+            <Link
+              href="/about"
+              className="font-serif text-[14px] font-bold tracking-[0.08em] hover:opacity-70 uppercase transition-opacity"
+            >
+              ABOUT US
+            </Link>
+
+            {/* CONTACT US */}
+            <Link
+              href="/contact"
+              className="font-serif text-[14px] font-bold tracking-[0.08em] hover:opacity-70 uppercase transition-opacity"
+            >
+              CONTACT US
+            </Link>
+
+            {/* MORE Dropdown */}
+            <div className="relative" onMouseLeave={() => setIsMoreDropdownOpen(false)}>
+              <button
+                onMouseEnter={() => setIsMoreDropdownOpen(true)}
+                onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
+                className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <span>MORE</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {isMoreDropdownOpen && (
+                <div 
+                  className="absolute left-0 top-full mt-2 w-56 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50 divide-y divide-[#181818]"
+                  onMouseEnter={() => setIsMoreDropdownOpen(true)}
+                >
+                  <Link
+                    href="/terms"
+                    onClick={() => setIsMoreDropdownOpen(false)}
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Terms & Conditions</span>
+                    <FileText className="w-3.5 h-3.5 text-[#f4c84a]" />
+                  </Link>
+                  <button
+                    onClick={() => { onOpenSizeGuide(); setIsMoreDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Size Guide</span>
+                    <Ruler className="w-3.5 h-3.5 text-[#f4c84a]" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </nav>
+        </div>
 
         {/* Right Header Icons */}
         <div className="ml-auto flex items-center gap-0.5 sm:gap-3 shrink-0">
@@ -262,113 +323,166 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Search Input Bar (Expandable) */}
       {isSearchOpen && (
         <div className="bg-[#111] border-t border-[#242424] p-3 relative z-50">
-          <div className="max-w-xl mx-auto relative">
+          <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto relative flex items-center">
             <input
               type="text"
-              placeholder="Search Arsenal, Real Madrid, Messi, Kobe, Retro..."
+              placeholder="Search jerseys, teams, players (Press Enter to search)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearchSubmit(e);
+                }
+              }}
               autoFocus
-              className="w-full bg-black border border-[#f4c84a] rounded-lg px-3.5 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none"
+              className="w-full bg-black border border-[#f4c84a] rounded-lg pl-3.5 pr-24 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#f4c84a]"
             />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+            <div className="absolute right-2 flex items-center gap-1.5">
+              {searchQuery && (
+                <button 
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-gray-400 hover:text-white p-1"
+                  title="Clear text"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="bg-[#f4c84a] text-black px-2.5 py-1 rounded text-xs font-bold hover:bg-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Search on Enter"
               >
-                <X className="w-4 h-4" />
+                <Search className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Search</span>
               </button>
-            )}
+            </div>
+          </form>
+        </div>
+      )}
 
-            {/* Dropdown Overlay Results */}
-            {searchQuery.trim().length > 0 && (
-              <div className="absolute left-0 right-0 top-11 bg-black border border-[#333] rounded-lg shadow-2xl overflow-hidden z-50 max-h-72 overflow-y-auto">
-                {searchResults.length > 0 ? (
-                  searchResults.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => {
-                        onSelectProduct(p);
-                        setIsSearchOpen(false);
-                        setSearchQuery('');
-                      }}
-                      className="p-3 hover:bg-[#1a1a1a] flex items-center justify-between cursor-pointer border-b border-[#222] last:border-0"
-                    >
-                      <div>
-                        <div className="text-xs sm:text-sm font-bold text-white">{p.name}</div>
-                        <div className="text-[10px] text-gray-400">{p.team} • {p.season}</div>
-                      </div>
-                      <div className="text-[#f4c84a] font-black text-xs sm:text-sm">
-                        {activeCurrency.symbol}{(p.price * activeCurrency.rate).toFixed(0)}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-xs text-gray-400">
-                    No jerseys found matching &quot;{searchQuery}&quot;
-                  </div>
-                )}
+      {/* Drawer Menu (Unified Mobile & Desktop) */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Backdrop Overlay for Desktop */}
+          <div 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="hidden lg:block fixed inset-0 top-[78px] bg-black/70 backdrop-blur-sm z-[115] animate-fade-in cursor-pointer"
+          />
+
+          <div className="fixed inset-x-0 top-[60px] sm:top-[72px] lg:top-[78px] lg:left-0 lg:right-auto lg:w-[380px] bottom-0 z-[120] bg-black text-[#f4c84a] overflow-y-auto animate-fade-in divide-y divide-[#181818] border-t lg:border-t-0 lg:border-r border-[#181818] shadow-2xl">
+          
+          {/* 1. HOME */}
+          <Link
+            href="/"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors"
+          >
+            HOME
+          </Link>
+
+          {/* 2. SHOP (with expandable categories) */}
+          <div className="w-full">
+            <button
+              onClick={() => setIsMobileShopOpen(!isMobileShopOpen)}
+              className="w-full px-6 py-4 flex items-center justify-between font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors cursor-pointer"
+            >
+              <span>SHOP</span>
+              <ChevronDown 
+                className={`w-5 h-5 text-[#f4c84a] transition-transform duration-300 ${isMobileShopOpen ? 'rotate-180' : ''}`} 
+              />
+            </button>
+
+            {isMobileShopOpen && (
+              <div className="bg-[#0a0a0a] border-t border-[#181818] divide-y divide-[#141414] animate-fade-in">
+                <button
+                  onClick={() => {
+                    scrollToShop('all');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full px-10 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-[#f4c84a] hover:bg-black/50 transition-colors flex items-center justify-between"
+                >
+                  <span>All Jerseys</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Catalog</span>
+                </button>
+                {adminCategories.map((cat) => (
+                  <button
+                    key={cat.id || cat.slug}
+                    onClick={() => {
+                      scrollToShop(cat.slug || cat.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full px-10 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-[#f4c84a] hover:bg-black/50 transition-colors flex items-center justify-between"
+                  >
+                    <span>{cat.name}</span>
+                    {cat.tag && (
+                      <span className="text-[10px] text-zinc-500 font-mono uppercase">{cat.tag}</span>
+                    )}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        </div>
+
+          {/* 3. ABOUT US */}
+          <Link
+            href="/about"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors"
+          >
+            ABOUT US
+          </Link>
+
+          {/* 4. CONTACT US */}
+          <Link
+            href="/contact"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors"
+          >
+            CONTACT US
+          </Link>
+
+          {/* 5. TERMS AND CONDITIONS */}
+          <Link
+            href="/terms"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors"
+          >
+            TERMS AND CONDITIONS
+          </Link>
+
+          {/* 6. MY ACCOUNT */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              if (currentUser) {
+                router.push('/account');
+              } else {
+                setIsAuthOpen(true);
+              }
+            }}
+            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors cursor-pointer"
+          >
+            MY ACCOUNT
+          </button>
+
+          {/* 7. SIZE GUIDE (Bonus) */}
+          <button
+            onClick={() => {
+              onOpenSizeGuide();
+              setIsMobileMenuOpen(false);
+            }}
+            className="w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-zinc-400 hover:text-[#f4c84a] hover:bg-zinc-950 transition-colors flex items-center justify-between cursor-pointer"
+          >
+            <span>SIZE GUIDE</span>
+            <Ruler className="w-4 h-4 text-[#f4c84a]" />
+          </button>
+
+          </div>
+        </>
       )}
 
-      {/* Mobile Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden bg-black border-t border-[#242424] p-4 space-y-4 font-sans text-xs">
-          <div className="grid grid-cols-2 gap-2 font-bold">
-            <Link
-              href="/"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block w-full p-3 bg-[#111] hover:bg-[#222] rounded text-center text-white font-bold"
-            >
-              HOME
-            </Link>
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                if (currentUser) {
-                  router.push('/account');
-                } else {
-                  setIsAuthOpen(true);
-                }
-              }}
-              className="block w-full p-3 bg-[#111] hover:bg-[#222] text-[#f4c84a] rounded text-center font-bold"
-            >
-              MY ACCOUNT
-            </button>
-          </div>
 
-          <div className="flex justify-center items-center bg-[#111] p-3 rounded border border-[#222]">
-            <button 
-              onClick={() => { onOpenSizeGuide(); setIsMobileMenuOpen(false); }}
-              className="text-gray-300 font-bold hover:text-[#f4c84a] flex items-center gap-1.5"
-            >
-              <Ruler className="w-4 h-4 text-[#f4c84a]" />
-              <span>Size Guide</span>
-            </button>
-          </div>
-
-          <div className="text-xs font-bold text-[#f4c84a] uppercase tracking-wider pt-2 border-t border-[#222]">
-            SHOP BY CATEGORY
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  scrollToShop(cat.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="p-2.5 bg-[#111] hover:bg-[#222] rounded text-left text-gray-300 font-semibold"
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
     </header>
   );

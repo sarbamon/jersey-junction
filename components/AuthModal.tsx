@@ -43,6 +43,7 @@ export const AuthModal: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
@@ -139,6 +140,7 @@ export const AuthModal: React.FC = () => {
     setError('');
     setIsLoading(false);
     setShowPassword(false);
+    setAgreeTerms(false);
   };
 
   // Trigger Google Official OAuth Popup Window
@@ -223,6 +225,11 @@ export const AuthModal: React.FC = () => {
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (!agreeTerms) {
+      setError('Please agree to the Terms and Conditions to create an account.');
       return;
     }
 
@@ -328,13 +335,13 @@ export const AuthModal: React.FC = () => {
             {/* Mode Switcher Tabs */}
             <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
               <button
-                onClick={() => { setMode('login'); setError(''); setShowPassword(false); }}
+                onClick={() => { setMode('login'); setError(''); setShowPassword(false); setAgreeTerms(false); }}
                 className={`flex-1 py-2 rounded-lg transition-all ${mode === 'login' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
               >
                 Sign In
               </button>
               <button
-                onClick={() => { setMode('signup'); setError(''); setShowPassword(false); }}
+                onClick={() => { setMode('signup'); setError(''); setShowPassword(false); setAgreeTerms(false); }}
                 className={`flex-1 py-2 rounded-lg transition-all ${mode === 'signup' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
               >
                 Sign Up
@@ -449,6 +456,36 @@ export const AuthModal: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {mode === 'signup' && (
+                <div className="pt-1">
+                  <label className="flex items-start gap-2.5 cursor-pointer group select-none">
+                    <input
+                      type="checkbox"
+                      id="agree-terms-checkbox"
+                      required
+                      checked={agreeTerms}
+                      onChange={(e) => {
+                        setAgreeTerms(e.target.checked);
+                        if (error.includes('Terms')) setError('');
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-amber-400 focus:ring-amber-400 focus:ring-offset-0 cursor-pointer accent-amber-400"
+                    />
+                    <span className="text-xs text-zinc-400 leading-snug group-hover:text-zinc-300 transition-colors">
+                      I agree to the{' '}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-400 hover:text-amber-300 font-bold underline transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Terms and Conditions
+                      </a>
+                    </span>
+                  </label>
+                </div>
+              )}
 
               {error && (
                 <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-semibold flex items-center gap-2">

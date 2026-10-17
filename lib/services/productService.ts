@@ -1,6 +1,7 @@
 import { apiClient } from '../apiClient';
 import { AdminProduct } from '../types/admin';
 import { JerseyProduct } from '../../types';
+import { SEED_ADMIN_PRODUCTS } from '../mock/products';
 
 // Helper to normalize backend Product Mongoose doc into AdminProduct / JerseyProduct format
 export function mapBackendToAdminProduct(item: any): AdminProduct {
@@ -76,6 +77,9 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
 let memoryProductsCache: JerseyProduct[] | null = null;
 const CACHE_KEY = 'jj_store_products_cache';
 
+let memoryAdminProductsCache: AdminProduct[] | null = null;
+const ADMIN_CACHE_KEY = 'jj_admin_products_cache';
+
 function getStoredCache(): JerseyProduct[] {
   if (memoryProductsCache && memoryProductsCache.length > 0) return memoryProductsCache;
   if (typeof window !== 'undefined') {
@@ -103,10 +107,48 @@ function saveStoredCache(products: JerseyProduct[]) {
   }
 }
 
+function getStoredAdminCache(): AdminProduct[] {
+  if (memoryAdminProductsCache && memoryAdminProductsCache.length > 0) return memoryAdminProductsCache;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(ADMIN_CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          memoryAdminProductsCache = parsed;
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  const defaults = (SEED_ADMIN_PRODUCTS || []).map(mapBackendToAdminProduct);
+  memoryAdminProductsCache = defaults;
+  return defaults;
+}
+
+function saveStoredAdminCache(products: AdminProduct[]) {
+  if (!products || products.length === 0) return;
+  memoryAdminProductsCache = products;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(products));
+    } catch {}
+  }
+}
+
 export const productService = {
   // Synchronous cached products getter (instant 0ms render)
   getCachedProductsSync: (): JerseyProduct[] => {
     return getStoredCache();
+  },
+
+  // Synchronous cached admin products getter (instant 0ms render in admin table)
+  getAdminProductsSync: (): AdminProduct[] => {
+    const adminCached = getStoredAdminCache();
+    if (adminCached.length > 0) return adminCached;
+    const storeCached = getStoredCache();
+    if (storeCached.length > 0) return storeCached.map(mapBackendToAdminProduct);
+    return [];
   },
 
   // Synchronous single product getter from cache
@@ -133,6 +175,7 @@ export const productService = {
     }
 
     const params = new URLSearchParams();
+    params.append('limit', '1000');
     if (filters?.sport) params.append('sport', filters.sport);
     if (filters?.category) params.append('category', filters.category);
     if (filters?.search) params.append('search', filters.search);
@@ -152,16 +195,30 @@ export const productService = {
 
   // Admin list all products
   getAdminProducts: async (): Promise<AdminProduct[]> => {
-    const res = await apiClient.get('/products/admin/all');
-    if (res.success && Array.isArray(res.data)) {
-      return res.data.map(mapBackendToAdminProduct);
+    try {
+      const res = await apiClient.get('/products/admin/all');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = res.data.map(mapBackendToAdminProduct);
+        saveStoredAdminCache(mapped);
+        return mapped;
+      }
+    } catch (e) {
+      console.warn('Failed to load /products/admin/all:', e);
     }
-    // Fallback to public products if admin call fails or user lacks token
-    const fallbackRes = await apiClient.get('/products');
-    if (fallbackRes.success && Array.isArray(fallbackRes.data)) {
-      return fallbackRes.data.map(mapBackendToAdminProduct);
+
+    // Fallback to public products if admin call fails or is empty
+    try {
+      const fallbackRes = await apiClient.get('/products?limit=200');
+      if (fallbackRes.success && Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
+        const mapped = fallbackRes.data.map(mapBackendToAdminProduct);
+        saveStoredAdminCache(mapped);
+        return mapped;
+      }
+    } catch (e) {
+      console.warn('Failed to load /products fallback:', e);
     }
-    return [];
+
+    return productService.getAdminProductsSync();
   },
 
   // Synchronous getter wrapper for admin components transitioning to async

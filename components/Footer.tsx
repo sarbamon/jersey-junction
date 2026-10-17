@@ -110,12 +110,14 @@ export const Footer: React.FC<FooterProps> = ({
                   </Link>
                 </li>
                 <li>
-                  <button
-                    onClick={() => setActiveModal('terms')}
-                    className="text-slate-600 dark:text-[#a1a1a1] hover:text-[#d4af37] transition-colors duration-200 text-left block"
-                  >
+                  <Link href="/contact" className="text-slate-600 dark:text-[#a1a1a1] hover:text-[#d4af37] transition-colors duration-200 block">
+                    Contact us
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="text-slate-600 dark:text-[#a1a1a1] hover:text-[#d4af37] transition-colors duration-200 block">
                     Terms & Conditions
-                  </button>
+                  </Link>
                 </li>
                 <li>
                   <button

@@ -86,6 +86,14 @@ export interface AdminOrder {
   orderStatus: OrderStatus;
   date: string;
   timeline: TimelineEvent[];
+  icarryShipmentId?: string;
+  trackingNumber?: string;
+  courierName?: string;
+  labelUrl?: string;
+  shippingStatus?: string;
+  bookedAt?: string;
+  packageWeight?: number;
+  packageDimensions?: string;
 }
 
 export interface AdminCustomer {
@@ -146,6 +154,8 @@ export interface AdminBanner {
   buttonText: string;
   buttonLink: string;
   status: 'Active' | 'Disabled';
+  order?: number;
+  badge?: string;
 }
 
 export interface StoreSettings {
@@ -166,4 +176,6 @@ export interface StoreSettings {
   midBannerTag?: string;
   midBannerTitle?: string;
   midBannerSubtitle?: string;
+  midBannerOverlayTag?: string;
+  midBannerOverlayTitle?: string;
 }

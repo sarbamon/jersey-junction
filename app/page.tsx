@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowRight, 
@@ -79,28 +80,18 @@ export default function Home() {
     setStoreSettings(settingsService.getSettings());
   }, []);
 
-  // Filter products
-  let filteredProducts = products.filter((p) => {
-    if (activeCategory !== 'all') {
-      if (activeCategory === 'player-version' && !p.name.includes('PLAYER VERSION')) return false;
-      if (activeCategory === 'retro' && p.sport !== 'retro') return false;
-      if (activeCategory === 'formula-1' && p.league !== 'Formula 1') return false;
-      if (activeCategory === 'cricket' && p.sport !== 'cricket') return false;
-      if (activeCategory === 'nba' && p.sport !== 'nba') return false;
-      if (activeCategory === 'jackets' && p.sport !== 'jackets') return false;
-    }
-    if (selectedLeague !== 'all' && p.league !== selectedLeague) return false;
-    return true;
-  });
+  // Homepage: Show only bestseller jerseys (capped at maximum 10 products)
+  const bestsellerJerseys = products.filter((p) => p.isBestseller);
+  let displayProducts = bestsellerJerseys.length > 0 ? [...bestsellerJerseys] : [...products];
 
   // Sort
-  if (sortBy === 'bestseller') {
-    filteredProducts = [...filteredProducts].sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0));
-  } else if (sortBy === 'price-low') {
-    filteredProducts = [...filteredProducts].sort((a, b) => a.price - b.price);
+  if (sortBy === 'price-low') {
+    displayProducts.sort((a, b) => a.price - b.price);
   } else if (sortBy === 'price-high') {
-    filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
+    displayProducts.sort((a, b) => b.price - a.price);
   }
+
+  const finalDisplayProducts = displayProducts.slice(0, 10);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-[#f4c84a] selection:text-black">
@@ -146,14 +137,20 @@ export default function Home() {
               alt="Authentic Football Jerseys"
               className="object-cover w-full h-full opacity-70 group-hover:scale-105 transition-transform duration-700"
             />
-            <div className="absolute bottom-6 left-6 z-20 space-y-1">
-              <span className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest font-mono">
-                AUTHENTIC MASTER QUALITY KITS
-              </span>
-              <h3 className="text-2xl font-black font-serif text-white uppercase">
-                PERFECT FIT &amp; MATCH QUALITY
-              </h3>
-            </div>
+            {(storeSettings?.midBannerOverlayTag || storeSettings?.midBannerOverlayTitle) && (
+              <div className="absolute bottom-6 left-6 z-20 space-y-1">
+                {storeSettings?.midBannerOverlayTag && (
+                  <span className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest font-mono">
+                    {storeSettings.midBannerOverlayTag}
+                  </span>
+                )}
+                {storeSettings?.midBannerOverlayTitle && (
+                  <h3 className="text-2xl font-black font-serif text-white uppercase">
+                    {storeSettings.midBannerOverlayTitle}
+                  </h3>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="text-center lg:text-left flex flex-col items-center lg:items-start space-y-4">
@@ -184,15 +181,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Jerseys Product Showcase */}
-      <section id="shop" className="bg-black px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
+      {/* Bestseller Jerseys Product Showcase */}
+      <section id="shop" className="bg-black px-5 py-14 sm:px-8 lg:px-12 lg:py-20 border-b border-[#242424]">
         <div className="mx-auto max-w-7xl">
           
           <div className="mb-10 flex flex-col sm:flex-row items-start sm:items-end justify-between border-b border-[#242424] pb-6 gap-4">
             <div>
-              <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-[#f4c84a]">JERSEY JUNCTION EXCLUSIVE</p>
+              <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-[#f4c84a]">TOP PICKS</p>
               <h2 className="font-serif text-3xl font-bold text-white sm:text-4xl uppercase">
-                {activeCategory === 'all' ? 'Featured Jerseys' : `${activeCategory.replace('-', ' ').toUpperCase()}`}
+                Bestseller Jerseys
               </h2>
             </div>
 
@@ -202,10 +199,10 @@ export default function Home() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
+                  aria-label="Sort products"
                   className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
                 >
                   <option value="featured" className="bg-black">Featured</option>
-                  <option value="bestseller" className="bg-black">Bestseller</option>
                   <option value="price-low" className="bg-black">Price: Low to High</option>
                   <option value="price-high" className="bg-black">Price: High to Low</option>
                 </select>
@@ -217,13 +214,13 @@ export default function Home() {
             <div className="py-20 text-center text-zinc-400 flex items-center justify-center">
               <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : finalDisplayProducts.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 font-mono text-xs">
-              No products found in this category.
+              No bestseller jerseys found.
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-              {filteredProducts.map((product) => (
+              {finalDisplayProducts.map((product) => (
                 <JerseyCard
                   key={product.id}
                   product={product}
@@ -236,6 +233,18 @@ export default function Home() {
               ))}
             </div>
           )}
+
+          {/* Down Center: View All Jerseys button redirecting to /shop in next page */}
+          <div className="mt-12 sm:mt-16 flex justify-center">
+            <Link
+              href="/shop"
+              id="view-all-jerseys-btn"
+              className="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#f4c84a] via-[#e8be42] to-[#d4af37] px-8 sm:px-10 py-3.5 sm:py-4 text-xs sm:text-sm font-black tracking-widest text-black uppercase transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(244,200,74,0.5)] active:scale-95 cursor-pointer shadow-xl"
+            >
+              <span>View All Jerseys</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-black" />
+            </Link>
+          </div>
 
         </div>
       </section>

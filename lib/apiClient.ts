@@ -33,7 +33,7 @@ const getAuthToken = (): string | null => {
   return null;
 };
 
-async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+async function request<T = any>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
   const headers: Record<string, string> = {
@@ -46,13 +46,20 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutMs = endpoint.includes('/admin/all') ? 8000 : 6000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = options.signal || controller.signal;
+
   try {
     const response = await fetch(url, {
       cache: 'no-store',
       ...options,
+      signal,
       headers,
       credentials: 'omit',
     });
+    clearTimeout(timeoutId);
 
     const data = await response.json().catch(() => ({}));
 
@@ -69,10 +76,19 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
       ...data,
     };
   } catch (error: any) {
-    console.error(`API Request failed for ${url}:`, error);
+    clearTimeout(timeoutId);
+
+    // Auto-retry if network drop/error and retries remain
+    if (retries > 0 && error.name !== 'AbortError') {
+      console.warn(`[Network Notice] Connection dropped for ${endpoint}. Auto-retrying in 1s (${retries} attempts left)...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return request<T>(endpoint, options, retries - 1);
+    }
+
+    console.warn(`API Request notice for ${url}:`, error.message);
     return {
       success: false,
-      error: error.message || 'Network error while connecting to backend server',
+      error: error.name === 'AbortError' ? 'API request timed out (fast fallback used)' : (error.message || 'Network error'),
     };
   }
 }

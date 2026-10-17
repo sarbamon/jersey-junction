@@ -15,11 +15,23 @@ export const settingsService = {
     if (typeof window === 'undefined') return INITIAL_SETTINGS;
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (!stored) {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(INITIAL_SETTINGS));
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(INITIAL_SETTINGS));
+      } catch (err) {
+        console.warn('Unable to write initial settings to localStorage:', err);
+      }
       return INITIAL_SETTINGS;
     }
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Clean up any giant base64 strings that might have bloated localStorage in previous attempts
+      if (parsed.midBannerImage && typeof parsed.midBannerImage === 'string' && parsed.midBannerImage.startsWith('data:image')) {
+        parsed.midBannerImage = INITIAL_SETTINGS.midBannerImage;
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...INITIAL_SETTINGS, ...parsed }));
+        } catch (_) {}
+      }
+      return { ...INITIAL_SETTINGS, ...parsed };
     } catch {
       return INITIAL_SETTINGS;
     }
@@ -28,8 +40,28 @@ export const settingsService = {
   updateSettings: (updates: Partial<StoreSettings>): StoreSettings => {
     const current = settingsService.getSettings();
     const updated = { ...current, ...updates };
+
+    // Prevent storing massive base64 image strings directly in localStorage (which causes QuotaExceededError)
+    if (updated.midBannerImage && typeof updated.midBannerImage === 'string' && updated.midBannerImage.startsWith('data:image') && updated.midBannerImage.length > 5000) {
+      console.warn('Prevented storing raw base64 image in localStorage. Use hosted URL instead.');
+      updated.midBannerImage = current.midBannerImage || INITIAL_SETTINGS.midBannerImage;
+    }
+
     if (typeof window !== 'undefined') {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+      } catch (err: any) {
+        console.error('LocalStorage quota exceeded or failed to save settings:', err);
+        // Attempt recovery by purging old bulky demo data
+        try {
+          localStorage.removeItem('jj_admin_products');
+          localStorage.removeItem('jj_admin_orders');
+          localStorage.removeItem('jj_admin_customers');
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+        } catch (recoveryErr) {
+          console.error('Critical quota error even after cleanup:', recoveryErr);
+        }
+      }
     }
     return updated;
   },

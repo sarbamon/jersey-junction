@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, ShoppingBag, Eye, ArrowUpDown, Clock, Trash2, CheckSquare, Trash } from 'lucide-react';
+import { Search, Filter, Eye, ArrowUpDown, Clock, Trash2, CheckSquare, Trash, Truck, Printer } from 'lucide-react';
 import { StatusBadge } from '../../../components/admin/StatusBadge';
 import { orderService } from '../../../lib/services/orderService';
 import { AdminOrder, OrderStatus, PaymentStatus } from '../../../lib/types/admin';
 import { Toast } from '../../../components/admin/Toast';
+import { ICarryBookingModal } from '../../../components/admin/ICarryBookingModal';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -15,6 +16,8 @@ export default function AdminOrdersPage() {
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toastMsg, setToastMsg] = useState('');
+  const [selectedOrderForICarry, setSelectedOrderForICarry] = useState<AdminOrder | null>(null);
+  const [isICarryModalOpen, setIsICarryModalOpen] = useState(false);
 
   const loadOrders = () => {
     orderService.fetchOrdersAsync().then((fetched) => {
@@ -97,17 +100,10 @@ export default function AdminOrdersPage() {
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900/90 p-6 rounded-3xl border border-zinc-800 shadow-xl">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
-            <ShoppingBag className="w-4 h-4" />
-            <span>ORDER FULFILLMENT TELEMETRY</span>
-          </div>
+        <div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white">
-            ORDERS ({filteredOrders.length})
+            ORDERS
           </h1>
-          <p className="text-xs text-zinc-400">
-            Track order status, manage fulfillment pipelines, and update dispatch tracking.
-          </p>
         </div>
 
         {orders.length > 0 && (
@@ -328,17 +324,50 @@ export default function AdminOrdersPage() {
                       </td>
 
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2 flex-wrap sm:flex-nowrap">
+                          {/* iCarry Booking Button or AWB Badge */}
+                          {o.trackingNumber || o.shippingStatus === 'Booked' ? (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold flex items-center gap-1">
+                                <Truck className="w-3 h-3 text-emerald-400" />
+                                <span>{o.trackingNumber || 'iCarry Booked'}</span>
+                              </span>
+                              {o.labelUrl && (
+                                <a
+                                  href={o.labelUrl.startsWith('http') ? o.labelUrl : `http://localhost:5000${o.labelUrl}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                  title="Print iCarry Shipping Label"
+                                >
+                                  <Printer className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedOrderForICarry(o);
+                                setIsICarryModalOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 bg-gradient-to-r from-[#f4c84a]/20 to-amber-500/20 hover:from-[#f4c84a] hover:to-amber-500 text-amber-300 hover:text-black border border-amber-400/40 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
+                              title="Book shipment with iCarry.in"
+                            >
+                              <Truck className="w-3.5 h-3.5" />
+                              <span>Book via iCarry</span>
+                            </button>
+                          )}
+
                           <Link
                             href={`/admin/orders/${o.id.replace('#', '')}`}
-                            className="px-3 py-1.5 bg-zinc-800 hover:bg-amber-400 hover:text-black rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                            className="px-3 py-1.5 bg-zinc-800 hover:bg-amber-400 hover:text-black rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer shrink-0"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Details</span>
                           </Link>
                           <button
                             onClick={() => handleDeleteOrder(o.id)}
-                            className="p-1.5 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-lg transition-all cursor-pointer"
+                            className="p-1.5 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-lg transition-all cursor-pointer shrink-0"
                             title="Delete Order"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -353,6 +382,22 @@ export default function AdminOrdersPage() {
           </table>
         </div>
       </div>
+
+      {/* iCarry Booking Modal */}
+      {selectedOrderForICarry && (
+        <ICarryBookingModal
+          order={selectedOrderForICarry}
+          isOpen={isICarryModalOpen}
+          onClose={() => {
+            setIsICarryModalOpen(false);
+            setSelectedOrderForICarry(null);
+          }}
+          onBookingSuccess={(updatedOrder) => {
+            setToastMsg(`Shipment for ${updatedOrder.id} booked with iCarry! AWB: ${updatedOrder.trackingNumber}`);
+            loadOrders();
+          }}
+        />
+      )}
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}
 

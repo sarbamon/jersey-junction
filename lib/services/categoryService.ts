@@ -25,9 +25,15 @@ function saveLocalCategories(cats: AdminCategory[]) {
   }
 }
 
+let inFlightActiveCategoriesPromise: Promise<AdminCategory[]> | null = null;
+let memoryActiveCategories: AdminCategory[] | null = null;
+
 export const categoryService = {
   // Synchronous local fallback getter
   getCategoriesSync: (): AdminCategory[] => {
+    if (memoryActiveCategories && memoryActiveCategories.length > 0) {
+      return memoryActiveCategories;
+    }
     return getLocalCategories();
   },
 
@@ -55,27 +61,41 @@ export const categoryService = {
     return getLocalCategories();
   },
 
-  // Async get ACTIVE categories for public store
+  // Async get ACTIVE categories for public store (with deduplication & memory cache)
   getActiveCategories: async (): Promise<AdminCategory[]> => {
-    try {
-      const res = await apiClient.get('/categories');
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
-          id: c.slug || c._id || c.id,
-          name: c.name,
-          slug: c.slug,
-          tag: c.tag || 'Sport Collection',
-          productsCount: c.productsCount || 0,
-          status: c.status || 'Active',
-          image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
-          order: typeof c.order === 'number' ? c.order : idx,
-        }));
-        return mapped;
-      }
-    } catch (err) {
-      console.warn('Failed to load active categories from backend, using local storage:', err);
+    if (inFlightActiveCategoriesPromise) {
+      return inFlightActiveCategoriesPromise;
     }
-    return getLocalCategories().filter(c => c.status === 'Active');
+
+    inFlightActiveCategoriesPromise = (async () => {
+      try {
+        const res = await apiClient.get('/categories');
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
+            id: c.slug || c._id || c.id,
+            name: c.name,
+            slug: c.slug,
+            tag: c.tag || 'Sport Collection',
+            productsCount: c.productsCount || 0,
+            status: c.status || 'Active',
+            image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+            order: typeof c.order === 'number' ? c.order : idx,
+          }));
+          memoryActiveCategories = mapped;
+          saveLocalCategories(mapped);
+          return mapped;
+        }
+      } catch (err) {
+        console.warn('Failed to load active categories from backend, using local storage:', err);
+      } finally {
+        setTimeout(() => {
+          inFlightActiveCategoriesPromise = null;
+        }, 3000);
+      }
+      return getLocalCategories().filter(c => c.status === 'Active');
+    })();
+
+    return inFlightActiveCategoriesPromise;
   },
 
   addCategory: async (data: Omit<AdminCategory, 'id' | 'productsCount'>): Promise<AdminCategory> => {

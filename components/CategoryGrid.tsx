@@ -4,16 +4,18 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { categoryService } from '../lib/services/categoryService';
 import { AdminCategory } from '../lib/types/admin';
+import { INITIAL_CATEGORIES } from '../lib/mock/categories';
 
 interface CategoryGridProps {
   onSelectCategory?: (catId: string) => void;
 }
 
 export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) => {
-  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [categories, setCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
 
   useEffect(() => {
     let isMounted = true;
+    setCategories(categoryService.getCategoriesSync().filter((c) => c.status === 'Active'));
     categoryService.getActiveCategories().then((cats) => {
       if (isMounted) setCategories(cats);
     });

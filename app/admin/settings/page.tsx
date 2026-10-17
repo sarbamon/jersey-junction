@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, ShieldCheck, Truck, CreditCard, Share2, Store, Image as ImageIcon } from 'lucide-react';
+import { Settings, Save, ShieldCheck, Truck, CreditCard, Share2, Store, Image as ImageIcon, Upload, Loader2, X } from 'lucide-react';
 import { settingsService } from '../../../lib/services/settingsService';
+import { uploadService } from '../../../lib/services/uploadService';
 import { StoreSettings } from '../../../lib/types/admin';
 import { Toast } from '../../../components/admin/Toast';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [toastMsg, setToastMsg] = useState('');
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   useEffect(() => {
     setSettings(settingsService.getSettings());
@@ -18,9 +20,31 @@ export default function AdminSettingsPage() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = settingsService.updateSettings(settings);
-    setSettings(updated);
-    setToastMsg('Store settings saved successfully!');
+    try {
+      const updated = settingsService.updateSettings(settings);
+      setSettings(updated);
+      setToastMsg('Store settings saved successfully!');
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      setToastMsg(`Could not save settings: ${err.message || 'Storage error'}`);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingBanner(true);
+    try {
+      const url = await uploadService.uploadImage(file);
+      setSettings((prev) => (prev ? { ...prev, midBannerImage: url } : prev));
+      setToastMsg('Showcase banner picture uploaded successfully!');
+    } catch (err: any) {
+      setToastMsg(`Upload failed: ${err.message || 'Image upload error'}`);
+    } finally {
+      setIsUploadingBanner(false);
+      e.target.value = '';
+    }
   };
 
   return (
@@ -228,15 +252,66 @@ export default function AdminSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <div className="space-y-4">
               <div>
-                <label className="font-bold text-zinc-400 block mb-1 uppercase">Showcase Banner Picture URL</label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  value={settings.midBannerImage || ''}
-                  onChange={(e) => setSettings({ ...settings, midBannerImage: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
-                />
-                <p className="text-[10px] text-zinc-500 mt-1">Paste any image URL to change the picture shown in the Homepage showcase section.</p>
+                <label className="font-bold text-zinc-400 block mb-1.5 uppercase">
+                  Showcase Banner Picture
+                </label>
+
+                {/* Upload action buttons */}
+                <div className="flex flex-wrap items-center gap-3 mb-2.5">
+                  <label className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all border shadow ${
+                    isUploadingBanner 
+                      ? 'bg-zinc-800 text-zinc-400 border-zinc-700 cursor-not-allowed' 
+                      : 'bg-amber-400 hover:bg-amber-500 text-black border-amber-300 hover:shadow-[0_0_15px_rgba(251,191,36,0.3)]'
+                  }`}>
+                    {isUploadingBanner ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
+                        <span>Uploading to Cloudinary...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-black" />
+                        <span>Upload Image File</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploadingBanner}
+                      onChange={handleBannerUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {settings.midBannerImage && (
+                    <button
+                      type="button"
+                      onClick={() => setSettings({ ...settings, midBannerImage: '' })}
+                      className="px-3 py-2.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-xs font-bold flex items-center gap-1.5 border border-zinc-800"
+                      title="Clear picture"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Remove Picture</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Direct URL input fallback */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+                    Or Enter Image URL Directly:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://res.cloudinary.com/..."
+                    value={settings.midBannerImage || ''}
+                    onChange={(e) => setSettings({ ...settings, midBannerImage: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    Click <strong>Upload Image File</strong> to choose an image from your device, or paste any image link.
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -269,22 +344,86 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               </div>
+
+              <div className="border-t border-zinc-800/80 pt-4 space-y-3">
+                <div>
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
+                    Banner Picture Overlay Text (Bottom-Left of Jersey Photo)
+                  </span>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">
+                    Leave these empty if you do not want any text displayed over the banner photo.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">
+                      Overlay Tag / Subtitle
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AUTHENTIC MASTER QUALITY KITS (optional)"
+                      value={settings.midBannerOverlayTag || ''}
+                      onChange={(e) => setSettings({ ...settings, midBannerOverlayTag: e.target.value })}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-amber-400 font-mono text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">
+                      Overlay Title
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PERFECT FIT & MATCH QUALITY (optional)"
+                      value={settings.midBannerOverlayTitle || ''}
+                      onChange={(e) => setSettings({ ...settings, midBannerOverlayTitle: e.target.value })}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold text-xs focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Live Picture Preview Box */}
             <div className="space-y-2">
               <label className="font-bold text-zinc-400 block uppercase text-[10px]">Picture Preview:</label>
               <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-inner flex items-center justify-center">
-                <img
-                  src={settings.midBannerImage || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp'}
-                  alt="Mid Banner Preview"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-3 left-3 text-white text-xs font-serif font-bold">
-                  <span className="text-amber-400 text-[10px] block font-sans uppercase">{settings.midBannerTag || 'AUTHENTIC COLLECTION'}</span>
-                  {settings.midBannerTitle || 'REPRESENT YOUR CLUB.'}
-                </div>
+                {settings.midBannerImage ? (
+                  <img
+                    src={settings.midBannerImage}
+                    alt="Mid Banner Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-center text-zinc-600 space-y-2">
+                    <ImageIcon className="w-8 h-8 text-zinc-700" />
+                    <span className="text-xs font-bold text-zinc-500 uppercase">No image selected</span>
+                    <span className="text-[10px] text-zinc-600">Upload an image file using the button on the left</span>
+                  </div>
+                )}
+
+                {isUploadingBanner && (
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-30">
+                    <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Uploading picture...</span>
+                  </div>
+                )}
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                {(settings.midBannerOverlayTag || settings.midBannerOverlayTitle) ? (
+                  <div className="absolute bottom-3 left-3 text-white text-xs font-serif font-bold space-y-0.5 z-10 pointer-events-none">
+                    {settings.midBannerOverlayTag && (
+                      <span className="text-amber-400 text-[10px] block font-mono uppercase">{settings.midBannerOverlayTag}</span>
+                    )}
+                    {settings.midBannerOverlayTitle && (
+                      <span className="text-white text-xs block font-bold uppercase">{settings.midBannerOverlayTitle}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="absolute bottom-3 left-3 text-zinc-500 text-[10px] italic z-10 pointer-events-none">
+                    (No text overlay on image)
+                  </div>
+                )}
               </div>
             </div>
           </div>
