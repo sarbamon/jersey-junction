@@ -47,7 +47,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
   }
 
   const controller = new AbortController();
-  const timeoutMs = endpoint.includes('/admin/all') ? 8000 : 6000;
+  const timeoutMs = endpoint.includes('/admin/all') ? 20000 : 15000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const signal = options.signal || controller.signal;
 
@@ -80,15 +80,13 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
 
     // Auto-retry if network drop/error and retries remain
     if (retries > 0 && error.name !== 'AbortError') {
-      console.warn(`[Network Notice] Connection dropped for ${endpoint}. Auto-retrying in 1s (${retries} attempts left)...`);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return request<T>(endpoint, options, retries - 1);
     }
 
-    console.warn(`API Request notice for ${url}:`, error.message);
     return {
       success: false,
-      error: error.name === 'AbortError' ? 'API request timed out (fast fallback used)' : (error.message || 'Network error'),
+      error: error.name === 'AbortError' ? '' : (error.message || 'Network error'),
     };
   }
 }
