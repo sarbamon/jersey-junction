@@ -69,14 +69,10 @@ function ShopContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Immediate client cache hydration (prevents SSR mismatch while keeping 0ms speed)
-    const cached = productService.getCachedProductsSync();
-    if (cached.length > 0) {
-      setProducts(cached);
-      setIsLoading(false);
-    }
-
     let isMounted = true;
+
+    // Always fetch fresh from API (cache is only fallback if API fails)
+    setIsLoading(true);
     productService.getActiveProducts()
       .then((prods) => {
         if (isMounted) {
@@ -86,7 +82,12 @@ function ShopContent() {
       })
       .catch((err) => {
         console.error('Failed to load shop products:', err);
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          // Fallback to cache on error
+          const cached = productService.getCachedProductsSync();
+          if (cached.length > 0) setProducts(cached);
+          setIsLoading(false);
+        }
       });
 
     return () => { isMounted = false; };

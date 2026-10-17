@@ -160,19 +160,7 @@ export const productService = {
 
   // Storefront active products with SWR cache
   getActiveProducts: async (filters?: { sport?: string; search?: string; category?: string }): Promise<JerseyProduct[]> => {
-    const hasFilters = Boolean(filters?.sport || filters?.category || filters?.search);
     const cached = getStoredCache();
-
-    // If no specific filters and cache exists, return immediately and revalidate in background
-    if (!hasFilters && cached.length > 0) {
-      apiClient.get('/products').then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          const fresh = res.data.map(mapBackendToJerseyProduct);
-          saveStoredCache(fresh);
-        }
-      }).catch(() => {});
-      return cached;
-    }
 
     const params = new URLSearchParams();
     params.append('limit', '1000');
@@ -180,16 +168,22 @@ export const productService = {
     if (filters?.category) params.append('category', filters.category);
     if (filters?.search) params.append('search', filters.search);
 
+    const hasFilters = Boolean(filters?.sport || filters?.category || filters?.search);
     const query = params.toString() ? `?${params.toString()}` : '';
-    const res = await apiClient.get(`/products${query}`);
 
-    if (res.success && Array.isArray(res.data)) {
-      const mapped = res.data.map(mapBackendToJerseyProduct);
-      if (!hasFilters) {
-        saveStoredCache(mapped);
+    try {
+      const res = await apiClient.get(`/products${query}`);
+      if (res.success && Array.isArray(res.data)) {
+        const mapped = res.data.map(mapBackendToJerseyProduct);
+        if (!hasFilters) {
+          saveStoredCache(mapped);
+        }
+        return mapped;
       }
-      return mapped;
+    } catch (err) {
+      console.warn('Failed to fetch products from API, using cache:', err);
     }
+
     return cached;
   },
 
