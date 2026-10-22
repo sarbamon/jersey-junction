@@ -69,6 +69,8 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     details: item.details || [],
     availablePatches: item.availablePatches || [],
     tags: item.tags || [],
+    stock: item.stock !== undefined ? Number(item.stock) : 50,
+    status: item.status || (item.stock === 0 ? 'Out of Stock' : 'Active'),
     image: item.image || (item.images && item.images[0]) || '',
     images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []),
   };
@@ -93,6 +95,9 @@ function getStoredCache(): JerseyProduct[] {
         }
       }
     } catch {}
+    const defaults = (SEED_ADMIN_PRODUCTS || []).map(mapBackendToJerseyProduct);
+    memoryProductsCache = defaults;
+    return defaults;
   }
   return [];
 }
@@ -229,32 +234,25 @@ export const productService = {
   },
 
   getProductBySlug: async (slug: string): Promise<JerseyProduct | null> => {
-    // Check cache first for instant 0ms load
-    const cached = productService.getCachedProductBySlugSync(slug);
-    if (cached) {
-      // Revalidate in background
-      apiClient.get(`/products/${slug}`).then((res) => {
-        if (res.success && res.data) {
-          const fresh = mapBackendToJerseyProduct(res.data);
-          const currentCache = getStoredCache();
-          const idx = currentCache.findIndex(p => p.slug === slug || p.id === slug);
-          if (idx !== -1) {
-            currentCache[idx] = fresh;
-            saveStoredCache(currentCache);
-          }
+    try {
+      const res = await apiClient.get(`/products/${slug}`);
+      if (res.success && res.data) {
+        const fresh = mapBackendToJerseyProduct(res.data);
+        const currentCache = getStoredCache();
+        const idx = currentCache.findIndex(p => p.slug === slug || p.id === fresh.id || p.slug === fresh.slug);
+        if (idx !== -1) {
+          currentCache[idx] = fresh;
+          saveStoredCache(currentCache);
+        } else {
+          saveStoredCache([...currentCache, fresh]);
         }
-      }).catch(() => {});
-      return cached;
+        return fresh;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch fresh product by slug, using cache fallback:', e);
     }
 
-    const res = await apiClient.get(`/products/${slug}`);
-    if (res.success && res.data) {
-      const fresh = mapBackendToJerseyProduct(res.data);
-      const currentCache = getStoredCache();
-      saveStoredCache([...currentCache.filter(p => p.id !== fresh.id && p.slug !== fresh.slug), fresh]);
-      return fresh;
-    }
-    return null;
+    return productService.getCachedProductBySlugSync(slug);
   },
 
   addProduct: async (productData: Partial<AdminProduct>): Promise<AdminProduct> => {
@@ -312,6 +310,86 @@ export const productService = {
     const res = await apiClient.delete(`/products/${id}`);
     if (!res.success) {
       throw new Error(res.error || 'Failed to delete product from backend server');
+    }
+  },
+
+  // Deduct inventory immediately across storefront cards and admin products
+  deductStockLocally: (items: { productId?: string; id?: string; slug?: string; name?: string; size?: string; quantity: number }[]) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+
+    // 1. Update storefront cache
+    const storeProducts = [...getStoredCache()];
+    let storeChanged = false;
+
+    // 2. Update admin cache
+    const adminProducts = [...getStoredAdminCache()];
+    let adminChanged = false;
+
+    for (const itm of items) {
+      const targetId = (itm.productId || itm.id || itm.slug || '').toString().toLowerCase();
+      const targetName = (itm.name || '').trim().toLowerCase();
+      const qty = Number(itm.quantity) || 1;
+
+      // Update store item
+      const sIdx = storeProducts.findIndex(p => 
+        (p.id && p.id.toLowerCase() === targetId) || 
+        (p.slug && p.slug.toLowerCase() === targetId) ||
+        (p.name && p.name.trim().toLowerCase() === targetName)
+      );
+      if (sIdx !== -1) {
+        const prod = { ...storeProducts[sIdx] };
+        const curStock = prod.stock !== undefined ? prod.stock : 50;
+        const newStock = Math.max(0, curStock - qty);
+        prod.stock = newStock;
+        if (newStock <= 0) prod.status = 'Out of Stock';
+
+        if (prod.sizeStock && itm.size) {
+          const szStock = { ...prod.sizeStock };
+          const sKey = Object.keys(szStock).find(k => k.toUpperCase() === itm.size?.toUpperCase());
+          if (sKey) {
+            szStock[sKey] = Math.max(0, (Number(szStock[sKey]) || 0) - qty);
+            prod.sizeStock = szStock;
+          }
+        }
+        storeProducts[sIdx] = prod;
+        storeChanged = true;
+      }
+
+      // Update admin item
+      const aIdx = adminProducts.findIndex(p => 
+        (p.id && p.id.toLowerCase() === targetId) || 
+        (p.slug && p.slug.toLowerCase() === targetId) ||
+        (p.name && p.name.trim().toLowerCase() === targetName)
+      );
+      if (aIdx !== -1) {
+        const prod = { ...adminProducts[aIdx] };
+        const curStock = prod.stock !== undefined ? prod.stock : 50;
+        const newStock = Math.max(0, curStock - qty);
+        prod.stock = newStock;
+        if (newStock <= 0) prod.status = 'Out of Stock';
+
+        if (prod.sizeStock && itm.size) {
+          const szStock = { ...prod.sizeStock };
+          const sKey = Object.keys(szStock).find(k => k.toUpperCase() === itm.size?.toUpperCase());
+          if (sKey) {
+            szStock[sKey] = Math.max(0, (Number(szStock[sKey]) || 0) - qty);
+            prod.sizeStock = szStock;
+          }
+        }
+        adminProducts[aIdx] = prod;
+        adminChanged = true;
+      }
+    }
+
+    if (storeChanged) {
+      saveStoredCache(storeProducts);
+    }
+    if (adminChanged) {
+      saveStoredAdminCache(adminProducts);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
     }
   }
 };

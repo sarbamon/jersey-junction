@@ -107,7 +107,9 @@ export interface AdminCustomer {
   ordersCount: number;
   totalSpent: number;
   joinedDate: string;
-  status: 'Active' | 'VIP' | 'Blocked';
+  status: 'Active' | 'VIP' | 'Blocked' | 'Banned';
+  isBanned?: boolean;
+  banReason?: string;
 }
 
 export interface AdminCategory {
@@ -158,15 +160,29 @@ export interface AdminBanner {
   badge?: string;
 }
 
+export interface ICarryPickupLocation {
+  id: string;
+  name: string;
+  addressId: string;
+  pincode?: string;
+  isDefault?: boolean;
+}
+
 export interface StoreSettings {
   storeName: string;
   storeEmail: string;
   storePhone: string;
   storeAddress: string;
   shippingCharge: number;
+  expressShippingCharge?: number;
+  standardShippingCharge?: number;
   freeShippingThreshold: number;
   codEnabled: boolean;
   razorpayEnabled: boolean;
+  icarryPickupLocations?: ICarryPickupLocation[];
+  icarryPickupName?: string;
+  icarryPickupAddressId?: string;
+  icarryPickupPincode?: string;
   socials: {
     instagram: string;
     facebook: string;
@@ -178,4 +194,5 @@ export interface StoreSettings {
   midBannerSubtitle?: string;
   midBannerOverlayTag?: string;
   midBannerOverlayTitle?: string;
+  sizeChartImage?: string;
 }

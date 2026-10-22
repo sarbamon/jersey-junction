@@ -20,7 +20,8 @@ import {
   FileText,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Truck
 } from 'lucide-react';
 import { JerseyProduct, Currency } from '../types';
 import { CURRENCIES } from '../data/jerseys';
@@ -29,6 +30,7 @@ import { categoryService } from '../lib/services/categoryService';
 import { settingsService } from '../lib/services/settingsService';
 import { AdminCategory, StoreSettings } from '../lib/types/admin';
 import { INITIAL_CATEGORIES } from '../lib/mock/categories';
+import { TrackOrderModal } from './TrackOrderModal';
 
 interface NavbarProps {
   cartCount: number;
@@ -41,6 +43,7 @@ interface NavbarProps {
   onSelectCategory: (category: string) => void;
   products: JerseyProduct[];
   onSelectProduct: (product: JerseyProduct) => void;
+  onOpenWishlist?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -53,7 +56,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSizeGuide,
   onSelectCategory,
   products,
-  onSelectProduct
+  onSelectProduct,
+  onOpenWishlist
 }) => {
   const router = useRouter();
   const { theme, toggleTheme, currentUser, setIsAuthOpen } = useStore();
@@ -64,6 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
@@ -232,12 +237,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Terms & Conditions</span>
                     <FileText className="w-3.5 h-3.5 text-[#f4c84a]" />
                   </Link>
+
                   <button
-                    onClick={() => { onOpenSizeGuide(); setIsMoreDropdownOpen(false); }}
+                    onClick={() => { setIsTrackOrderOpen(true); setIsMoreDropdownOpen(false); }}
                     className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] flex items-center justify-between cursor-pointer"
                   >
-                    <span>Size Guide</span>
-                    <Ruler className="w-3.5 h-3.5 text-[#f4c84a]" />
+                    <span>Track Order</span>
+                    <Truck className="w-3.5 h-3.5 text-[#f4c84a]" />
                   </button>
                 </div>
               )}
@@ -292,9 +298,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Wishlist Icon */}
           <button
-            onClick={() => onSelectCategory('all')}
-            className="relative transition-opacity hover:opacity-70 text-[#f4c84a] p-1 sm:p-1.5"
+            onClick={() => {
+              if (onOpenWishlist) {
+                onOpenWishlist();
+              } else {
+                router.push('/wishlist');
+              }
+            }}
+            className="relative transition-opacity hover:opacity-70 text-[#f4c84a] p-1 sm:p-1.5 cursor-pointer"
             aria-label="Wishlist"
+            title="Wishlist"
           >
             <Heart className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
             {wishlistCount > 0 && (
@@ -424,7 +437,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* 3. ABOUT US */}
+          {/* 3. WISHLIST */}
+          <Link
+            href="/wishlist"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="w-full px-6 py-4 flex items-center justify-between font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <Heart className="w-4 h-4 text-[#f4c84a]" />
+              <span>WISHLIST</span>
+            </div>
+            {wishlistCount > 0 && (
+              <span className="bg-[#f4c84a] text-black text-[10px] font-mono font-black px-2 py-0.5 rounded-full">
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+
+          {/* 4. ABOUT US */}
           <Link
             href="/about"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -466,23 +496,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             MY ACCOUNT
           </button>
 
-          {/* 7. SIZE GUIDE (Bonus) */}
+          {/* 7. TRACK ORDER */}
           <button
             onClick={() => {
-              onOpenSizeGuide();
+              setIsTrackOrderOpen(true);
               setIsMobileMenuOpen(false);
             }}
-            className="w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-zinc-400 hover:text-[#f4c84a] hover:bg-zinc-950 transition-colors flex items-center justify-between cursor-pointer"
+            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors cursor-pointer"
           >
-            <span>SIZE GUIDE</span>
-            <Ruler className="w-4 h-4 text-[#f4c84a]" />
+            TRACK ORDER
           </button>
+
 
           </div>
         </>
       )}
 
-
+      {/* Track Order Live Modal */}
+      <TrackOrderModal
+        isOpen={isTrackOrderOpen}
+        onClose={() => setIsTrackOrderOpen(false)}
+      />
 
     </header>
   );

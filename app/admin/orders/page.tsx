@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, Eye, ArrowUpDown, Clock, Trash2, CheckSquare, Trash, Truck, Printer } from 'lucide-react';
+import { Search, Filter, Eye, ArrowUpDown, Clock, Trash2, CheckSquare, Trash, Truck } from 'lucide-react';
 import { StatusBadge } from '../../../components/admin/StatusBadge';
 import { orderService } from '../../../lib/services/orderService';
 import { AdminOrder, OrderStatus, PaymentStatus } from '../../../lib/types/admin';
 import { Toast } from '../../../components/admin/Toast';
 import { ICarryBookingModal } from '../../../components/admin/ICarryBookingModal';
+import { LiveTrackingModal } from '../../../components/admin/LiveTrackingModal';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -18,6 +19,8 @@ export default function AdminOrdersPage() {
   const [toastMsg, setToastMsg] = useState('');
   const [selectedOrderForICarry, setSelectedOrderForICarry] = useState<AdminOrder | null>(null);
   const [isICarryModalOpen, setIsICarryModalOpen] = useState(false);
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<AdminOrder | null>(null);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
 
   const loadOrders = () => {
     orderService.fetchOrdersAsync().then((fetched) => {
@@ -325,24 +328,36 @@ export default function AdminOrdersPage() {
 
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-2 flex-wrap sm:flex-nowrap">
-                          {/* iCarry Booking Button or AWB Badge */}
+                          {/* iCarry Booking Button or Live Tracking */}
                           {o.trackingNumber || o.shippingStatus === 'Booked' ? (
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold flex items-center gap-1">
-                                <Truck className="w-3 h-3 text-emerald-400" />
-                                <span>{o.trackingNumber || 'iCarry Booked'}</span>
-                              </span>
-                              {o.labelUrl && (
-                                <a
-                                  href={o.labelUrl.startsWith('http') ? o.labelUrl : `http://localhost:5000${o.labelUrl}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition-colors cursor-pointer"
-                                  title="Print iCarry Shipping Label"
-                                >
-                                  <Printer className="w-3.5 h-3.5" />
-                                </a>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForTracking(o);
+                                  setIsTrackingModalOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 shadow-sm"
+                                title="Click to track live courier shipment"
+                              >
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <span>{o.trackingNumber || 'Track Live'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForICarry(o);
+                                  setIsICarryModalOpen(true);
+                                }}
+                                className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                title="Modify / Re-book Shipment"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           ) : (
                             <button
@@ -351,10 +366,10 @@ export default function AdminOrdersPage() {
                                 setIsICarryModalOpen(true);
                               }}
                               className="px-2.5 py-1.5 bg-gradient-to-r from-[#f4c84a]/20 to-amber-500/20 hover:from-[#f4c84a] hover:to-amber-500 text-amber-300 hover:text-black border border-amber-400/40 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
-                              title="Book shipment with iCarry.in"
+                              title="Book courier shipment"
                             >
                               <Truck className="w-3.5 h-3.5" />
-                              <span>Book via iCarry</span>
+                              <span>Book Shipment</span>
                             </button>
                           )}
 
@@ -396,8 +411,22 @@ export default function AdminOrdersPage() {
             setToastMsg(`Shipment for ${updatedOrder.id} booked with iCarry! AWB: ${updatedOrder.trackingNumber}`);
             loadOrders();
           }}
+          onOpenTracking={(bookedOrder) => {
+            setSelectedOrderForTracking(bookedOrder);
+            setIsTrackingModalOpen(true);
+          }}
         />
       )}
+
+      {/* Live Tracking Modal */}
+      <LiveTrackingModal
+        order={selectedOrderForTracking}
+        isOpen={isTrackingModalOpen}
+        onClose={() => {
+          setIsTrackingModalOpen(false);
+          setSelectedOrderForTracking(null);
+        }}
+      />
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}
 

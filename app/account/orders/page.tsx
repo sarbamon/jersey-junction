@@ -7,11 +7,14 @@ import { ShoppingBag, Eye, Clock, CheckCircle2, Truck } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
 import { orderService } from '../../../lib/services/orderService';
 import { AdminOrder, OrderStatus } from '../../../lib/types/admin';
+import { LiveTrackingModal } from '../../../components/admin/LiveTrackingModal';
 
 export default function MyOrdersPage() {
   const { currentUser } = useStore();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [filter, setFilter] = useState<string>('all');
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<AdminOrder | null>(null);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -147,19 +150,49 @@ export default function MyOrdersPage() {
                   <span className="font-mono font-extrabold text-lg text-[#f4c84a]">₹{o.totalAmount}</span>
                 </div>
 
-                <Link
-                  href={`/account/orders/${o.id.replace('#', '')}`}
-                  className="px-5 py-2.5 bg-[#f4c84a] hover:bg-[#e0b438] text-black font-extrabold uppercase rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>View Order Details</span>
-                </Link>
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  {(o.trackingNumber || o.shippingStatus === 'Booked') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderForTracking(o);
+                        setIsTrackingModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-bold uppercase rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:scale-105"
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      <Truck className="w-4 h-4" />
+                      <span>Track Shipment</span>
+                    </button>
+                  )}
+
+                  <Link
+                    href={`/account/orders/${o.id.replace('#', '')}`}
+                    className="px-5 py-2.5 bg-[#f4c84a] hover:bg-[#e0b438] text-black font-extrabold uppercase rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>View Order Details</span>
+                  </Link>
+                </div>
               </div>
 
             </div>
           ))}
         </div>
       )}
+
+      {/* Live Tracking Modal for User */}
+      <LiveTrackingModal
+        order={selectedOrderForTracking}
+        isOpen={isTrackingModalOpen}
+        onClose={() => {
+          setIsTrackingModalOpen(false);
+          setSelectedOrderForTracking(null);
+        }}
+      />
 
     </div>
   );

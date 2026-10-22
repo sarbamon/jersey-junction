@@ -15,6 +15,7 @@ export interface ApiResponse<T = any> {
   count?: number;
   total?: number;
   error?: string;
+  message?: string;
   token?: string;
   user?: any;
 }

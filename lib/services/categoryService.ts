@@ -49,7 +49,7 @@ export const categoryService = {
           tag: c.tag || 'Sport Collection',
           productsCount: c.productsCount || 0,
           status: c.status || 'Active',
-          image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+          image: c.image || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg',
           order: typeof c.order === 'number' ? c.order : idx,
         }));
         saveLocalCategories(mapped);
@@ -78,7 +78,7 @@ export const categoryService = {
             tag: c.tag || 'Sport Collection',
             productsCount: c.productsCount || 0,
             status: c.status || 'Active',
-            image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+            image: c.image || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg',
             order: typeof c.order === 'number' ? c.order : idx,
           }));
           memoryActiveCategories = mapped;
@@ -196,7 +196,7 @@ export const categoryService = {
           tag: c.tag || 'Sport Collection',
           productsCount: c.productsCount || 0,
           status: c.status || 'Active',
-          image: c.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+          image: c.image || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg',
           order: typeof c.order === 'number' ? c.order : idx,
         }));
         saveLocalCategories(mapped);

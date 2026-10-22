@@ -42,7 +42,8 @@ export default function Home() {
   } = useStore();
 
   const [products, setProducts] = useState<JerseyProduct[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasMounted, setHasMounted] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedLeague] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
@@ -54,6 +55,8 @@ export default function Home() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   useEffect(() => {
+    setHasMounted(true);
+
     // Immediate client cache hydration (prevents SSR mismatch while keeping 0ms speed)
     const cached = productService.getCachedProductsSync();
     if (cached.length > 0) {
@@ -64,7 +67,7 @@ export default function Home() {
     let isMounted = true;
     productService.getActiveProducts()
       .then((prods) => {
-        if (isMounted) {
+        if (isMounted && prods && prods.length > 0) {
           setProducts(prods);
           setIsLoading(false);
         }
@@ -73,7 +76,16 @@ export default function Home() {
         console.error('Error loading products:', err);
         if (isMounted) setIsLoading(false);
       });
-    return () => { isMounted = false; };
+    const handleProductsUpdated = () => {
+      const fresh = productService.getCachedProductsSync();
+      if (fresh.length > 0) setProducts(fresh);
+    };
+    window.addEventListener('jj_products_updated', handleProductsUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('jj_products_updated', handleProductsUpdated);
+    };
   }, []);
 
   useEffect(() => {
@@ -210,9 +222,21 @@ export default function Home() {
             </div>
           </div>
 
-          {isLoading ? (
-            <div className="py-20 text-center text-zinc-400 flex items-center justify-center">
-              <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
+          {!hasMounted || (isLoading && finalDisplayProducts.length === 0) ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6 animate-pulse">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-xl border border-[#242424] bg-[#0c0c0c] p-4 flex flex-col justify-between h-[320px]">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="h-4 w-16 bg-zinc-800 rounded" />
+                    <div className="h-7 w-7 bg-zinc-800 rounded-full" />
+                  </div>
+                  <div className="h-44 w-full bg-zinc-900 rounded mb-4 flex items-center justify-center">
+                    <RefreshCw className="w-5 h-5 text-amber-400/40 animate-spin" />
+                  </div>
+                  <div className="h-4 w-3/4 bg-zinc-800 rounded mb-2" />
+                  <div className="h-4 w-1/3 bg-zinc-800 rounded" />
+                </div>
+              ))}
             </div>
           ) : finalDisplayProducts.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 font-mono text-xs">

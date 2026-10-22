@@ -1,5 +1,6 @@
 import { StoreSettings } from '../types/admin';
 import { INITIAL_SETTINGS } from '../mock/settings';
+import { icarryService } from './icarryService';
 import { INITIAL_PRODUCTS } from '../mock/products';
 import { INITIAL_ORDERS } from '../mock/orders';
 import { INITIAL_CUSTOMERS } from '../mock/customers';
@@ -7,6 +8,7 @@ import { INITIAL_CATEGORIES } from '../mock/categories';
 import { INITIAL_COUPONS } from '../mock/coupons';
 import { INITIAL_REVIEWS } from '../mock/reviews';
 import { INITIAL_BANNERS } from '../mock/banners';
+import { apiClient } from '../apiClient';
 
 const SETTINGS_KEY = 'jj_admin_settings';
 
@@ -37,6 +39,31 @@ export const settingsService = {
     }
   },
 
+  fetchSettingsAsync: async (): Promise<StoreSettings> => {
+    const local = settingsService.getSettings();
+    try {
+      const res = await apiClient.get<StoreSettings>('/settings');
+      if (res && res.success && res.data) {
+        const merged: StoreSettings = {
+          ...local,
+          ...res.data,
+          // Retain local pickup locations if backend doesn't have them
+          icarryPickupLocations: local.icarryPickupLocations || INITIAL_SETTINGS.icarryPickupLocations,
+        };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+            window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: merged }));
+          } catch (_) {}
+        }
+        return merged;
+      }
+    } catch (e) {
+      // Fallback silently to local cache
+    }
+    return local;
+  },
+
   updateSettings: (updates: Partial<StoreSettings>): StoreSettings => {
     const current = settingsService.getSettings();
     const updated = { ...current, ...updates };
@@ -50,6 +77,7 @@ export const settingsService = {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: updated }));
       } catch (err: any) {
         console.error('LocalStorage quota exceeded or failed to save settings:', err);
         // Attempt recovery by purging old bulky demo data
@@ -58,11 +86,36 @@ export const settingsService = {
           localStorage.removeItem('jj_admin_orders');
           localStorage.removeItem('jj_admin_customers');
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: updated }));
         } catch (recoveryErr) {
           console.error('Critical quota error even after cleanup:', recoveryErr);
         }
       }
     }
+
+    // Automatically sync store settings (like codEnabled, razorpayEnabled, shipping charge) to backend
+    apiClient.put('/settings', {
+      storeName: updated.storeName,
+      storeEmail: updated.storeEmail,
+      storePhone: updated.storePhone,
+      storeAddress: updated.storeAddress,
+      shippingCharge: updated.shippingCharge,
+      expressShippingCharge: updated.expressShippingCharge,
+      standardShippingCharge: updated.standardShippingCharge,
+      freeShippingThreshold: updated.freeShippingThreshold,
+      codEnabled: updated.codEnabled,
+      razorpayEnabled: updated.razorpayEnabled,
+    }).catch(() => {});
+
+    // Automatically sync iCarry pickup address ID, name, and pincode with backend
+    if (updated.icarryPickupAddressId !== undefined || updated.icarryPickupName !== undefined || updated.icarryPickupPincode !== undefined) {
+      icarryService.saveConfig({
+        pickupAddressId: updated.icarryPickupAddressId || '',
+        senderName: updated.icarryPickupName || '',
+        senderPincode: updated.icarryPickupPincode || '',
+      }).catch(() => {});
+    }
+
     return updated;
   },
 

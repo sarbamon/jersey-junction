@@ -41,7 +41,8 @@ function ShopContent() {
   } = useStore();
 
   const [products, setProducts] = useState<JerseyProduct[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasMounted, setHasMounted] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeCategory, setActiveCategory] = useState<string>(() => searchParams.get('category') || 'all');
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('search') || searchParams.get('q') || '');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
@@ -69,13 +70,18 @@ function ShopContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    setHasMounted(true);
     let isMounted = true;
 
-    // Always fetch fresh from API (cache is only fallback if API fails)
-    setIsLoading(true);
+    const cached = productService.getCachedProductsSync();
+    if (cached.length > 0) {
+      setProducts(cached);
+      setIsLoading(false);
+    }
+
     productService.getActiveProducts()
       .then((prods) => {
-        if (isMounted) {
+        if (isMounted && prods && prods.length > 0) {
           setProducts(prods);
           setIsLoading(false);
         }
@@ -83,14 +89,20 @@ function ShopContent() {
       .catch((err) => {
         console.error('Failed to load shop products:', err);
         if (isMounted) {
-          // Fallback to cache on error
-          const cached = productService.getCachedProductsSync();
-          if (cached.length > 0) setProducts(cached);
           setIsLoading(false);
         }
       });
 
-    return () => { isMounted = false; };
+    const handleProductsUpdated = () => {
+      const fresh = productService.getCachedProductsSync();
+      if (fresh.length > 0) setProducts(fresh);
+    };
+    window.addEventListener('jj_products_updated', handleProductsUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('jj_products_updated', handleProductsUpdated);
+    };
   }, []);
 
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -307,9 +319,19 @@ function ShopContent() {
         </div>
 
         {/* Product Cards Grid (Max 70 products per page) */}
-        {isLoading ? (
-          <div className="py-24 text-center text-zinc-400 flex items-center justify-center">
-            <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
+        {!hasMounted || (isLoading && filteredProducts.length === 0) ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6 mt-6 animate-pulse">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-[#242424] bg-[#0c0c0c] p-4 flex flex-col justify-between h-[320px]">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="h-4 w-16 bg-zinc-800 rounded" />
+                  <div className="h-7 w-7 bg-zinc-800 rounded-full" />
+                </div>
+                <div className="h-44 w-full bg-zinc-900 rounded mb-4" />
+                <div className="h-4 w-3/4 bg-zinc-800 rounded mb-2" />
+                <div className="h-4 w-1/3 bg-zinc-800 rounded" />
+              </div>
+            ))}
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-20 text-center text-zinc-500 font-mono text-xs space-y-3">

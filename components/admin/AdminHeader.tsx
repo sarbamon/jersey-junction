@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { 
   Menu, 
   Bell, 
-  ExternalLink, 
   LogOut, 
   ChevronDown, 
   ShieldCheck, 
@@ -16,11 +15,18 @@ import {
   Sparkles,
   CheckCheck,
   RotateCw,
-  BellOff
+  BellOff,
+  Sun,
+  Moon,
+  X
 } from 'lucide-react';
 import { GlobalSearch } from './GlobalSearch';
 import { authService } from '../../lib/services/authService';
 import { notificationService, AdminNotificationItem } from '../../lib/services/notificationService';
+import { orderService } from '../../lib/services/orderService';
+import { AdminOrder } from '../../lib/types/admin';
+import { playOrderChime } from '../../lib/utils/soundUtil';
+import { useStore } from '../../context/StoreContext';
 
 interface AdminHeaderProps {
   onOpenMobileSidebar?: () => void;
@@ -29,14 +35,50 @@ interface AdminHeaderProps {
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar }) => {
   const router = useRouter();
   const currentUser = authService.getCurrentUser();
+  const { theme, toggleTheme } = useStore();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotificationItem[]>([]);
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
+  const [latestNewOrder, setLatestNewOrder] = useState<AdminOrder | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const knownOrderIdsRef = useRef<Set<string> | null>(null);
+
+
+
+  // Check for newly placed orders and play Ding-Dong chime
+  const checkForNewOrders = async () => {
+    try {
+      const orders = await orderService.fetchOrdersAsync();
+      const validOrders = Array.isArray(orders) ? orders : [];
+      
+      if (knownOrderIdsRef.current === null) {
+        // Initial load: record existing orders
+        knownOrderIdsRef.current = new Set(validOrders.map((o) => o.id));
+      } else {
+        // Identify new incoming orders
+        const newOrders = validOrders.filter((o) => !knownOrderIdsRef.current?.has(o.id));
+        if (newOrders.length > 0) {
+          // Play Ding-Dong chime sound (always ON)!
+          playOrderChime(true);
+
+          // Show floating order alert
+          setLatestNewOrder(newOrders[0]);
+
+          // Update known orders set
+          newOrders.forEach((o) => knownOrderIdsRef.current?.add(o.id));
+
+          // Reload notifications list
+          loadRealNotifications();
+        }
+      }
+    } catch (err) {
+      console.error('Check new orders error:', err);
+    }
+  };
 
   // Load real notifications from backend orders, products, and users
   const loadRealNotifications = async () => {
@@ -53,11 +95,50 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
 
   useEffect(() => {
     loadRealNotifications();
+    checkForNewOrders();
 
-    // Poll every 30 seconds for live new orders or alerts
-    const interval = setInterval(loadRealNotifications, 30000);
-    return () => clearInterval(interval);
+    // Fast poll every 12 seconds for live orders
+    const interval = setInterval(() => {
+      checkForNewOrders();
+      loadRealNotifications();
+    }, 12000);
+
+    // Immediate cross-tab/local order event listeners
+    const handleLocalOrderPlaced = (e: any) => {
+      const order = e.detail;
+      if (order && (!knownOrderIdsRef.current || !knownOrderIdsRef.current.has(order.id))) {
+        playOrderChime(true);
+        setLatestNewOrder(order);
+        knownOrderIdsRef.current?.add(order.id);
+        loadRealNotifications();
+      }
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'jj_latest_order_timestamp' || e.key === 'jj_orders') {
+        checkForNewOrders();
+      }
+    };
+
+    window.addEventListener('jj_new_order_placed', handleLocalOrderPlaced);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('jj_new_order_placed', handleLocalOrderPlaced);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
+
+  // Auto-dismiss new order banner after 8 seconds
+  useEffect(() => {
+    if (latestNewOrder) {
+      const timer = setTimeout(() => {
+        setLatestNewOrder(null);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [latestNewOrder]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -116,15 +197,19 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
       {/* Right Header Actions */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         
-        {/* Storefront Link Button */}
-        <Link
-          href="/"
-          target="_blank"
-          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400/20 text-xs font-bold transition-all"
+        {/* Dark / Light Mode Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 text-zinc-400 hover:text-white rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all cursor-pointer flex items-center justify-center"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          aria-label="Toggle Dark / Light Mode"
         >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span>View Store</span>
-        </Link>
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-400 hover:-rotate-12 transition-transform" />
+          )}
+        </button>
 
         {/* Real Notifications Popover */}
         <div className="relative" ref={notifRef}>
@@ -287,6 +372,53 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
         </div>
 
       </div>
+
+      {/* Realtime New Order Floating Alert Banner */}
+      {latestNewOrder && (
+        <div className="fixed top-20 right-4 sm:right-8 z-[150] max-w-sm w-full bg-zinc-950 border-2 border-amber-400 rounded-2xl p-4 shadow-2xl space-y-3 animate-fade-in ring-4 ring-amber-400/20">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-400 border border-amber-400/40 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase font-black text-amber-400 tracking-wider block">
+                  🔔 New Order Received!
+                </span>
+                <h4 className="text-sm font-black text-white">{latestNewOrder.id}</h4>
+              </div>
+            </div>
+            <button
+              onClick={() => setLatestNewOrder(null)}
+              className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-900 cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="text-xs text-zinc-300 flex justify-between items-center pt-2 border-t border-zinc-900">
+            <div>
+              <span className="text-zinc-400 block text-[10px] font-mono">CUSTOMER</span>
+              <strong className="text-white">{latestNewOrder.customerName}</strong>
+            </div>
+            <div className="text-right">
+              <span className="text-zinc-400 block text-[10px] font-mono">AMOUNT</span>
+              <strong className="font-mono text-amber-400 text-sm">₹{latestNewOrder.totalAmount?.toFixed(2)}</strong>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setLatestNewOrder(null);
+              router.push(`/admin/orders/${encodeURIComponent(latestNewOrder.id)}`);
+            }}
+            className="w-full py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-black text-xs rounded-xl text-center uppercase tracking-wider cursor-pointer shadow-md transition-all"
+          >
+            Open Order Details
+          </button>
+        </div>
+      )}
 
     </header>
   );

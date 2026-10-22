@@ -10,7 +10,8 @@ import {
   UploadCloud,
   RefreshCw,
   X,
-  Star
+  Star,
+  Type
 } from 'lucide-react';
 import { categoryService } from '../../../../lib/services/categoryService';
 import { productService } from '../../../../lib/services/productService';
@@ -145,10 +146,12 @@ export default function BulkEditProductsPage() {
   // Category Filter to view & edit specific categories
   const [categoryFilter, setCategoryFilter] = useState('all');
 
-  // Apply to All controls (prices and stock only, category is never overwritten)
+  // Apply to All controls
   const [applyPrice, setApplyPrice] = useState('');
   const [applyRegPrice, setApplyRegPrice] = useState('');
   const [applySizesStock, setApplySizesStock] = useState('');
+  const [applyBestseller, setApplyBestseller] = useState<'keep' | 'yes' | 'no'>('keep');
+  const [applyCustom, setApplyCustom] = useState<'keep' | 'yes' | 'no'>('keep');
 
   const displayedProducts = products.filter((p) => {
     if (categoryFilter === 'all') return true;
@@ -158,8 +161,14 @@ export default function BulkEditProductsPage() {
   });
 
   const handleApplyToAll = () => {
-    if (applyPrice === '' && applyRegPrice === '' && !applySizesStock.trim()) {
-      setToastMsg('Please enter price or size stock to apply');
+    if (
+      applyPrice === '' &&
+      applyRegPrice === '' &&
+      !applySizesStock.trim() &&
+      applyBestseller === 'keep' &&
+      applyCustom === 'keep'
+    ) {
+      setToastMsg('Please enter price, size stock, or select best seller / custom status to apply');
       return;
     }
 
@@ -171,6 +180,10 @@ export default function BulkEditProductsPage() {
         if (applyPrice !== '') updated.price = Number(applyPrice);
         if (applyRegPrice !== '') updated.originalPrice = Number(applyRegPrice);
         if (applySizesStock.trim()) updated.sizesText = applySizesStock.trim();
+        if (applyBestseller === 'yes') updated.isBestseller = true;
+        if (applyBestseller === 'no') updated.isBestseller = false;
+        if (applyCustom === 'yes') updated.isCustomizable = true;
+        if (applyCustom === 'no') updated.isCustomizable = false;
         return updated;
       })
     );
@@ -232,7 +245,7 @@ export default function BulkEditProductsPage() {
       const uploadedUrls: string[] = [];
       for (let i = 0; i < files.length; i++) {
         setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
-        const url = await uploadService.uploadImage(files[i]);
+        const url = await uploadService.uploadImage(files[i], 'jerseyjunction_uploads');
         if (url) uploadedUrls.push(url);
       }
 
@@ -316,6 +329,8 @@ export default function BulkEditProductsPage() {
           sizes: parsedSizes as any,
           image: primaryImage,
           images: finalImages,
+          isBestseller: Boolean(p.isBestseller),
+          isCustomizable: Boolean(p.isCustomizable),
         });
       }
 
@@ -401,7 +416,7 @@ export default function BulkEditProductsPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">PRICE (₹)</label>
             <input
@@ -434,6 +449,37 @@ export default function BulkEditProductsPage() {
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
             />
           </div>
+
+          <div>
+            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">
+              SHOW IN BEST SELLER
+            </label>
+            <select
+              value={applyBestseller}
+              onChange={(e) => setApplyBestseller(e.target.value as any)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-amber-400 font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+            >
+              <option value="keep" className="bg-zinc-900 text-zinc-400">Keep Existing</option>
+              <option value="yes" className="bg-zinc-900 text-amber-400">★ Show in Best Seller (Yes)</option>
+              <option value="no" className="bg-zinc-900 text-zinc-300">Hide from Best Seller (No)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px] flex items-center gap-1.5">
+              <Type className="w-3.5 h-3.5 text-amber-400" />
+              <span>ENABLE CUSTOM PRINT</span>
+            </label>
+            <select
+              value={applyCustom}
+              onChange={(e) => setApplyCustom(e.target.value as any)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-amber-400 font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+            >
+              <option value="keep" className="bg-zinc-900 text-zinc-400">Keep Existing</option>
+              <option value="yes" className="bg-zinc-900 text-amber-400">✨ Enable Custom (Yes)</option>
+              <option value="no" className="bg-zinc-900 text-zinc-300">Disable Custom (No)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -444,17 +490,19 @@ export default function BulkEditProductsPage() {
             <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] tracking-wider border-b border-zinc-800">
               <tr>
                 <th className="py-4 px-3 w-10 text-center font-bold">#</th>
-                <th className="py-4 px-4 font-bold min-w-[240px]">PRODUCT TITLE &amp; SKU</th>
-                <th className="py-4 px-3 font-bold min-w-[110px]">PRICE (₹)</th>
-                <th className="py-4 px-3 font-bold min-w-[110px]">REG. PRICE (₹)</th>
-                <th className="py-4 px-4 font-bold min-w-[240px]">SIZES &amp; STOCK INVENTORY</th>
-                <th className="py-4 px-4 font-bold min-w-[260px]">PHOTOS (MULTI-UPLOAD)</th>
+                <th className="py-4 px-4 font-bold min-w-[220px]">PRODUCT TITLE &amp; SKU</th>
+                <th className="py-4 px-3 font-bold min-w-[100px]">PRICE (₹)</th>
+                <th className="py-4 px-3 font-bold min-w-[100px]">REG. PRICE (₹)</th>
+                <th className="py-4 px-3 font-bold text-center min-w-[130px]">BEST SELLER</th>
+                <th className="py-4 px-3 font-bold text-center min-w-[130px]">CUSTOM PRINT</th>
+                <th className="py-4 px-4 font-bold min-w-[220px]">SIZES &amp; STOCK INVENTORY</th>
+                <th className="py-4 px-4 font-bold min-w-[240px]">PHOTOS (MULTI-UPLOAD)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 font-medium">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center text-zinc-400 text-xs font-mono">
+                  <td colSpan={8} className="py-16 text-center text-zinc-400 text-xs font-mono">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
@@ -462,7 +510,7 @@ export default function BulkEditProductsPage() {
                 </tr>
               ) : displayedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-500 text-xs font-mono">
+                  <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs font-mono">
                     No products found in this category filter.
                   </td>
                 </tr>
@@ -516,6 +564,39 @@ export default function BulkEditProductsPage() {
                           onChange={(e) => updateProductRow(p.id, 'originalPrice', Number(e.target.value))}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-2 text-zinc-400 font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
                         />
+                      </td>
+
+                      {/* Show in Best Seller Toggle */}
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => updateProductRow(p.id, 'isBestseller', !p.isBestseller)}
+                          className={`inline-flex items-center justify-center px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                            p.isBestseller
+                              ? 'bg-amber-400 text-black border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+                              : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700'
+                          }`}
+                          title={p.isBestseller ? 'Featured in Best Sellers (Click to remove)' : 'Click to feature in Best Sellers'}
+                        >
+                          <span>{p.isBestseller ? 'YES' : 'NO'}</span>
+                        </button>
+                      </td>
+
+                      {/* Enable Custom Print Toggle */}
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => updateProductRow(p.id, 'isCustomizable', !p.isCustomizable)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                            p.isCustomizable
+                              ? 'bg-amber-400 text-black border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+                              : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700'
+                          }`}
+                          title={p.isCustomizable ? 'Custom print enabled (Name & Number) - Click to disable' : 'Click to enable custom name & number printing'}
+                        >
+                          <Type className={`w-3.5 h-3.5 ${p.isCustomizable ? 'text-black' : 'text-zinc-500'}`} />
+                          <span>{p.isCustomizable ? 'YES' : 'NO'}</span>
+                        </button>
                       </td>
 
                       {/* Sizes & Stock Inventory */}

@@ -113,6 +113,14 @@ export const orderService = {
       console.error('Failed to persist order to backend API:', err);
     }
 
+    // Notify admin listeners across tabs / windows
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('jj_new_order_placed', { detail: newOrder }));
+        localStorage.setItem('jj_latest_order_timestamp', String(Date.now()));
+      } catch (e) {}
+    }
+
     return newOrder;
   },
 

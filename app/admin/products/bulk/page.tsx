@@ -216,7 +216,7 @@ export default function BulkAddProductsPage() {
       const uploadedUrls: string[] = [];
       for (let i = 0; i < files.length; i++) {
         setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
-        const url = await uploadService.uploadImage(files[i]);
+        const url = await uploadService.uploadImage(files[i], 'jerseyjunction_uploads');
         if (url) uploadedUrls.push(url);
       }
 

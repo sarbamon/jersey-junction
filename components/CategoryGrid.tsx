@@ -43,7 +43,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
             >
               {/* Background thumbnail image */}
               <img
-                src={cat.image || '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg'}
+                src={cat.image || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg'}
                 alt={cat.name}
                 className="absolute inset-0 h-full w-full object-cover object-center opacity-40 transition duration-500 group-hover:scale-110 group-hover:opacity-60"
               />

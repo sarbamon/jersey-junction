@@ -28,6 +28,9 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
   const [viewMode, setViewMode] = useState<'back' | 'front'>('back');
   const [isHovered, setIsHovered] = useState(false);
 
+  const isOutOfStock = product.status === 'Out of Stock' || (product.stock !== undefined && product.stock <= 0);
+  const isLowStock = !isOutOfStock && product.stock !== undefined && product.stock > 0 && product.stock <= 5;
+
   const priceConverted = Math.round(product.price * activeCurrency.rate);
   const origPriceConverted = product.originalPrice 
     ? Math.round(product.originalPrice * activeCurrency.rate) 
@@ -36,6 +39,7 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
   const handleQuickAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
     addToCart(
       product,
       product.availableSizes[0] || 'L',
@@ -48,7 +52,9 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
 
   return (
     <div
-      className="group flex flex-col rounded-xl border border-[#242424] dark:border-[#242424] light:border-slate-200 bg-[#0c0c0c] dark:bg-[#0c0c0c] light:bg-white p-3 sm:p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#f4c84a]/60 hover:shadow-md text-white dark:text-white light:text-slate-900 font-sans justify-between"
+      className={`group flex flex-col rounded-xl border border-[#242424] dark:border-[#242424] light:border-slate-200 bg-[#0c0c0c] dark:bg-[#0c0c0c] light:bg-white p-3 sm:p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#f4c84a]/60 hover:shadow-md text-white dark:text-white light:text-slate-900 font-sans justify-between ${
+        isOutOfStock ? 'opacity-85' : ''
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -58,6 +64,15 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
           <div className="border border-[#f4c84a] px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#f4c84a] rounded-sm bg-[#f4c84a]/10">
             {product.sport === 'soccer' ? (product.name.toLowerCase().includes('set') ? 'SET' : 'FOOTBALL') : product.sport.toUpperCase()}
           </div>
+          {isOutOfStock ? (
+            <div className="border border-red-500/60 px-2 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-red-400 rounded-sm bg-red-500/15">
+              OUT OF STOCK
+            </div>
+          ) : isLowStock ? (
+            <div className="border border-amber-500/50 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-amber-400 rounded-sm bg-amber-500/10">
+              {product.stock} LEFT
+            </div>
+          ) : null}
           {product.isCustomizable && (
             <div className="border border-[#f4c84a]/40 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-[#f4c84a] rounded-sm bg-[#f4c84a]/10">
               CUSTOM
@@ -140,11 +155,16 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={handleQuickAddToCart}
-              className="flex-1 sm:flex-none text-center justify-center px-2.5 py-1.5 bg-[#f4c84a] hover:bg-[#ffd96a] text-black font-extrabold text-[10px] sm:text-xs rounded uppercase tracking-wider flex items-center gap-1 transition-transform hover:scale-105 shadow-sm cursor-pointer"
-              title="Add to Cart"
+              disabled={isOutOfStock}
+              className={`flex-1 sm:flex-none text-center justify-center px-2.5 py-1.5 font-extrabold text-[10px] sm:text-xs rounded uppercase tracking-wider flex items-center gap-1 transition-all ${
+                isOutOfStock
+                  ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-75'
+                  : 'bg-[#f4c84a] hover:bg-[#ffd96a] text-black shadow-sm cursor-pointer hover:scale-105'
+              }`}
+              title={isOutOfStock ? 'Product is currently Out of Stock' : 'Add to Cart'}
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>ADD TO CART</span>
+              <span>{isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</span>
             </button>
           </div>
         </div>

@@ -15,7 +15,7 @@ export default function AdminBannersPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   // Banner Form State: Only Photo, Button Text, and Target Link
-  const [imageUrl, setImageUrl] = useState('/hero/colin-meg-R8ayF9Qwu5Y-unsplash.webp');
+  const [imageUrl, setImageUrl] = useState('https://res.cloudinary.com/mcsohx4p/image/upload/v1792689794/jerseyjunction_uploads/tx9zw5vb3hmshcf8n4n5.webp');
   const [buttonText, setButtonText] = useState('SHOP THE DROPS');
   const [buttonLink, setButtonLink] = useState('/shop');
 
@@ -42,7 +42,7 @@ export default function AdminBannersPage() {
   }, []);
 
   const resetForm = () => {
-    setImageUrl('/hero/colin-meg-R8ayF9Qwu5Y-unsplash.webp');
+    setImageUrl('https://res.cloudinary.com/mcsohx4p/image/upload/v1792689794/jerseyjunction_uploads/tx9zw5vb3hmshcf8n4n5.webp');
     setButtonText('SHOP THE DROPS');
     setButtonLink('/shop');
     setEditTarget(null);
@@ -102,7 +102,7 @@ export default function AdminBannersPage() {
 
     setIsUploading(true);
     try {
-      const url = await uploadService.uploadImage(file);
+      const url = await uploadService.uploadImage(file, 'jerseyjunction_uploads');
       setImageUrl(url);
       setToastMsg('Banner image uploaded successfully!');
     } catch (err: any) {

@@ -12,61 +12,61 @@ export const CATEGORIES = [
   {
     id: 'player-version',
     name: 'Player Version',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.17 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689803/jerseyjunction_uploads/yznaq5f6ciiy3unby7e8.jpg',
     tag: 'Athletic Slim Fit'
   },
   {
     id: 'fan-version',
     name: 'Fan Version',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.39 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689804/jerseyjunction_uploads/tu9yhwz7tuelbg3rmp5d.jpg',
     tag: 'Standard Fit'
   },
   {
     id: 'set',
     name: 'Full Sets (Kit + Shorts)',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.00 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg',
     tag: 'Complete Uniform'
   },
   {
     id: 'retro',
     name: 'Retro Classics',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.41 PM (1).jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689806/jerseyjunction_uploads/gu3eqryxbjnu6bcgrupp.jpg',
     tag: 'Vintage Legends'
   },
   {
     id: 'clearance',
     name: 'Clearance Sale',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.40 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689805/jerseyjunction_uploads/buxrxemtqhn3vihftstp.jpg',
     tag: 'Up to 50% Off'
   },
   {
     id: 'formula-1',
     name: 'Formula 1 Racing',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.43 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689810/jerseyjunction_uploads/qibqowhddhw0abmdlree.jpg',
     tag: 'F1 Teamwear'
   },
   {
     id: 'cricket',
     name: 'Cricket Kits',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.44 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689811/jerseyjunction_uploads/vzr49rvgdqupcrqctsaz.jpg',
     tag: 'National & IPL'
   },
   {
     id: 'nba',
     name: 'NBA Basketball',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.42 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689809/jerseyjunction_uploads/bjybfb47ifcbj9k0fwnw.jpg',
     tag: 'Swingman Jerseys'
   },
   {
     id: 'jackets',
     name: 'Windbreakers & Jackets',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.43 PM.jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689810/jerseyjunction_uploads/qibqowhddhw0abmdlree.jpg',
     tag: 'Outerwear'
   },
   {
     id: 'polo',
     name: 'Team Polos',
-    image: '/jersey/WhatsApp Image 2026-09-08 at 11.44.45 PM (1).jpeg',
+    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689812/jerseyjunction_uploads/qzw1qjiyxvdqrrtji7n2.jpg',
     tag: 'Casual Sport'
   }
 ];

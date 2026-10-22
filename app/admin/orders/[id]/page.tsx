@@ -3,19 +3,21 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, ShoppingBag, Truck, CreditCard, User, MapPin, CheckCircle2, Clock, Printer, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Truck, CreditCard, User, MapPin, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
 import { orderService } from '../../../../lib/services/orderService';
 import { AdminOrder, OrderStatus, PaymentStatus } from '../../../../lib/types/admin';
 import { StatusBadge } from '../../../../components/admin/StatusBadge';
 import { OrderTimeline } from '../../../../components/admin/OrderTimeline';
 import { Toast } from '../../../../components/admin/Toast';
 import { ICarryBookingModal } from '../../../../components/admin/ICarryBookingModal';
+import { LiveTrackingModal } from '../../../../components/admin/LiveTrackingModal';
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [order, setOrder] = useState<AdminOrder | null>(null);
   const [toastMsg, setToastMsg] = useState('');
   const [isICarryModalOpen, setIsICarryModalOpen] = useState(false);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -74,24 +76,30 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Status Changer & iCarry Shipment Controls */}
         <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          {/* Book via iCarry or Print Label */}
+          {/* Book via iCarry or Track Live */}
           {order.trackingNumber || order.shippingStatus === 'Booked' ? (
             <div className="flex items-center gap-2">
-              <div className="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-emerald-400" />
-                <span>iCarry: {order.trackingNumber}</span>
-              </div>
-              {order.labelUrl && (
-                <a
-                  href={order.labelUrl.startsWith('http') ? order.labelUrl : `http://localhost:5000${order.labelUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-[#f4c84a] text-black font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md hover:scale-105 transition-all cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print Label</span>
-                </a>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsTrackingModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-emerald-500/25 transition-all shadow-sm"
+                title="View live scans and milestones"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Track Live: {order.trackingNumber}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsICarryModalOpen(true)}
+                className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+                title="Modify / Re-book Shipment"
+              >
+                <Truck className="w-4 h-4" />
+              </button>
             </div>
           ) : (
             <button
@@ -99,7 +107,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg hover:scale-105 transition-all cursor-pointer"
             >
               <Truck className="w-4 h-4" />
-              <span>Book via iCarry</span>
+              <span>Book Shipment</span>
             </button>
           )}
 
@@ -351,17 +359,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 <div className="pt-2 flex flex-col gap-2">
-                  {order.labelUrl && (
-                    <a
-                      href={order.labelUrl.startsWith('http') ? order.labelUrl : `http://localhost:5000${order.labelUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#f4c84a] to-amber-500 text-black font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 shadow-md hover:scale-105 transition-all cursor-pointer font-sans"
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span>Print Shipping Label</span>
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsTrackingModalOpen(true)}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#f4c84a] to-amber-500 text-black font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 shadow-md hover:scale-105 transition-all cursor-pointer font-sans"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Track Live Shipment</span>
+                  </button>
 
                   <button
                     onClick={() => setIsICarryModalOpen(true)}
@@ -374,7 +379,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             ) : (
               <div className="space-y-3 font-sans">
                 <p className="text-zinc-400 text-xs leading-relaxed">
-                  Generate courier waybills, request rider pickup, and print official shipping labels with iCarry.in API integration.
+                  Generate courier waybills, calculate delivery rates, and schedule carrier pickups.
                 </p>
 
                 <button
@@ -382,7 +387,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-500 text-black font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 shadow-lg hover:scale-105 transition-all cursor-pointer"
                 >
                   <Truck className="w-4 h-4" />
-                  <span>Book via iCarry.in</span>
+                  <span>Book Shipment</span>
                 </button>
               </div>
             )}
@@ -401,6 +406,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           setOrder(updatedOrder);
           setToastMsg(`Shipment booked with iCarry! AWB: ${updatedOrder.trackingNumber}`);
         }}
+        onOpenTracking={() => setIsTrackingModalOpen(true)}
+      />
+
+      {/* Live Tracking Modal */}
+      <LiveTrackingModal
+        order={order}
+        isOpen={isTrackingModalOpen}
+        onClose={() => setIsTrackingModalOpen(false)}
       />
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}

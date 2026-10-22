@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, User, Mail, Phone, MapPin, ShoppingBag, DollarSign, Calendar, Eye } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, ShoppingBag, DollarSign, Calendar, Eye, Ban, ShieldCheck, KeyRound, X, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { customerService } from '../../../../lib/services/customerService';
 import { orderService } from '../../../../lib/services/orderService';
 import { AdminCustomer, AdminOrder } from '../../../../lib/types/admin';
@@ -12,6 +12,15 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const [customer, setCustomer] = useState<AdminCustomer | null>(null);
   const [customerOrders, setCustomerOrders] = useState<AdminOrder[]>([]);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToastMsg({ type, text });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -31,6 +40,51 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     return () => { isMounted = false; };
   }, [id]);
 
+  const handleToggleBan = async () => {
+    if (!customer) return;
+    const isCurrentlyBanned = customer.isBanned || customer.status === 'Banned';
+    let reason = '';
+    
+    if (!isCurrentlyBanned) {
+      const inputReason = window.prompt(`Enter a reason for banning customer "${customer.name}":`, 'Suspicious activity / Terms violation');
+      if (inputReason === null) return;
+      reason = inputReason || 'Suspicious activity / Terms violation';
+    } else {
+      if (!window.confirm(`Are you sure you want to UNBAN customer "${customer.name}"?`)) {
+        return;
+      }
+    }
+
+    setActionLoading(true);
+    const res = await customerService.banCustomer(customer.id, !isCurrentlyBanned, reason);
+    if (res.success) {
+      setCustomer(prev => prev ? { ...prev, isBanned: !isCurrentlyBanned, status: !isCurrentlyBanned ? 'Banned' : 'Active', banReason: reason } : null);
+      showToast('success', res.message || `Customer status updated`);
+    } else {
+      showToast('error', res.message || 'Failed to update status');
+    }
+    setActionLoading(false);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!customer) return;
+    if (!newPasswordInput || newPasswordInput.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
+
+    setActionLoading(true);
+    const res = await customerService.adminResetPassword(customer.id, newPasswordInput);
+    if (res.success) {
+      showToast('success', `Password successfully updated for ${customer.name}`);
+      setShowResetModal(false);
+      setNewPasswordInput('');
+    } else {
+      showToast('error', res.message || 'Failed to update password');
+    }
+    setActionLoading(false);
+  };
+
   if (!customer) {
     return (
       <div className="p-12 text-center text-zinc-400 font-mono text-xs space-y-4">
@@ -42,11 +96,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
+  const isBanned = customer.isBanned || customer.status === 'Banned';
+
   return (
-    <div className="space-y-8 font-sans">
+    <div className="space-y-8 font-sans relative">
       
       {/* Top Header */}
-      <div className="flex items-center justify-between bg-zinc-900/90 p-6 rounded-3xl border border-zinc-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900/90 p-6 rounded-3xl border border-zinc-800 shadow-xl">
         <div className="flex items-center gap-3">
           <Link href="/admin/customers" className="p-2.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 rounded-2xl border border-zinc-800 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -60,15 +116,54 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <h1 className="text-xl font-black font-serif uppercase tracking-tight text-white">
                   {customer.name}
                 </h1>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                  customer.status === 'VIP' ? 'bg-amber-400/10 text-amber-400 border-amber-400/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                  isBanned 
+                    ? 'bg-red-500/10 text-red-400 border-red-500/30' 
+                    : customer.status === 'VIP' 
+                      ? 'bg-amber-400/10 text-amber-400 border-amber-400/30' 
+                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                 }`}>
-                  {customer.status}
+                  {isBanned ? '● Banned' : customer.status}
                 </span>
               </div>
               <p className="text-xs text-zinc-400 font-mono">Customer ID: {customer.id}</p>
             </div>
           </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button
+            type="button"
+            onClick={() => { setShowResetModal(true); setNewPasswordInput(''); }}
+            className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Reset Password</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleBan}
+            disabled={actionLoading}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${
+              isBanned
+                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
+            }`}
+          >
+            {isBanned ? (
+              <>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Unban Customer</span>
+              </>
+            ) : (
+              <>
+                <Ban className="w-3.5 h-3.5" />
+                <span>Ban Customer</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -179,6 +274,100 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         </div>
 
       </div>
+
+      {/* Reset Password Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                <KeyRound className="w-4 h-4" />
+                <span>Reset Customer Password</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResetModal(false);
+                  setNewPasswordInput('');
+                }}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="text-zinc-400">
+                Setting new password for: <strong className="text-white">{customer.name}</strong> ({customer.email})
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">
+                  New Password *
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="Enter min 6 chars or click Auto"
+                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = Math.random().toString(36).substring(2, 9) + '123';
+                      setNewPasswordInput(rand);
+                    }}
+                    className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs cursor-pointer flex items-center gap-1 shrink-0"
+                    title="Generate secure random password"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Auto</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResetModal(false);
+                  setNewPasswordInput('');
+                }}
+                className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading || !newPasswordInput || newPasswordInput.length < 6}
+                onClick={handleConfirmResetPassword}
+                className="flex-1 py-2.5 bg-amber-400 hover:bg-amber-500 text-black font-extrabold rounded-xl text-xs cursor-pointer transition-all disabled:opacity-50"
+              >
+                {actionLoading ? 'Updating...' : 'Save New Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMsg && (
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl border shadow-2xl flex items-center gap-3 text-xs font-semibold animate-in fade-in slide-in-from-bottom-5 ${
+          toastMsg.type === 'success' 
+            ? 'bg-zinc-900/95 border-emerald-500/40 text-emerald-300' 
+            : 'bg-zinc-900/95 border-red-500/40 text-red-300'
+        }`}>
+          {toastMsg.type === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span>{toastMsg.text}</span>
+        </div>
+      )}
 
     </div>
   );

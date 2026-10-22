@@ -11,7 +11,7 @@ const API_URL = getNormalizedApiUrl();
 
 export const uploadService = {
   // Upload base64 image or file to Cloudinary via backend API
-  uploadImage: async (fileOrBase64: File | string): Promise<string> => {
+  uploadImage: async (fileOrBase64: File | string, folder: string = 'jerseyjunction_uploads'): Promise<string> => {
     let base64Image = '';
 
     if (typeof fileOrBase64 === 'string') {
@@ -28,7 +28,7 @@ export const uploadService = {
     const res = await fetch(`${API_URL}/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64Image }),
+      body: JSON.stringify({ image: base64Image, folder }),
     });
 
     const contentType = res.headers.get('content-type') || '';

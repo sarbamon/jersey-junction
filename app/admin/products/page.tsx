@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type } from 'lucide-react';
 import { ConfirmModal } from '../../../components/admin/ConfirmModal';
 import { Toast } from '../../../components/admin/Toast';
 import { productService } from '../../../lib/services/productService';
@@ -58,6 +58,16 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     loadData();
+
+    const handleProductsUpdated = () => {
+      const fresh = productService.getAdminProductsSync();
+      if (fresh.length > 0) setProducts(fresh);
+      loadData(false);
+    };
+    window.addEventListener('jj_products_updated', handleProductsUpdated);
+    return () => {
+      window.removeEventListener('jj_products_updated', handleProductsUpdated);
+    };
   }, []);
 
   const filteredProducts = products.filter((p) => {
@@ -156,6 +166,29 @@ export default function AdminProductsPage() {
       setSelectedIds([]);
     } catch (err: any) {
       setToastMessage(`Failed to update products: ${err.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleBulkSetBestseller = async (isBestseller: boolean) => {
+    if (selectedIds.length === 0) return;
+    setIsUpdatingStatus(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          productService.updateProduct(id, { isBestseller })
+        )
+      );
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedIds.includes(p.id) ? { ...p, isBestseller } : p
+        )
+      );
+      setToastMessage(`${isBestseller ? 'Added' : 'Removed'} ${selectedIds.length} product(s) ${isBestseller ? 'to' : 'from'} Best Sellers!`);
+      setSelectedIds([]);
+    } catch (err: any) {
+      setToastMessage(`Failed to update best seller status: ${err.message}`);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -273,6 +306,24 @@ export default function AdminProductsPage() {
             </button>
 
             <button
+              onClick={() => handleBulkSetBestseller(true)}
+              disabled={isUpdatingStatus}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-md disabled:opacity-50"
+              title="Show selected products in Best Seller section on Homepage"
+            >
+              <span>Best Seller: ON ({selectedIds.length})</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkSetBestseller(false)}
+              disabled={isUpdatingStatus}
+              className="px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 rounded-lg flex items-center justify-center transition-all cursor-pointer disabled:opacity-50"
+              title="Hide selected products from Best Seller section"
+            >
+              <span>Best Seller: OFF ({selectedIds.length})</span>
+            </button>
+
+            <button
               onClick={handleBulkOutOfStock}
               disabled={isUpdatingStatus}
               className="px-3.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-zinc-700 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
@@ -364,7 +415,20 @@ export default function AdminProductsPage() {
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="font-bold text-white max-w-xs truncate">{p.name}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-white max-w-xs truncate">{p.name}</span>
+                          {p.isBestseller && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[9px] font-black uppercase tracking-wider shrink-0" title="Featured in Best Sellers on Homepage">
+                              <span>Bestseller</span>
+                            </span>
+                          )}
+                          {p.isCustomizable && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-400/10 border border-sky-400/30 text-sky-400 text-[9px] font-black uppercase tracking-wider shrink-0" title="Custom Name & Number enabled">
+                              <Type className="w-2.5 h-2.5" />
+                              <span>Customizable</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4">

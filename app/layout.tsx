@@ -27,12 +27,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="preload" as="image" href="/hero/colin-meg-R8ayF9Qwu5Y-unsplash.webp" />
-        <link rel="preload" as="image" href="/hero/cristian-tarzi-uBgmduO_ZBg-unsplash.webp" />
-        <link rel="preload" as="image" href="/hero/simon-reza-Yfv7JszxYyw-unsplash.webp" />
-        <link rel="preload" as="image" href="/hero/bibesh-manandhar-e-OfH1yh_hs-unsplash.webp" />
-        <link rel="preload" as="image" href="/hero/michael-kyule-Lhd0RRDTTOo-unsplash.webp" />
-        <link rel="preload" as="image" href="/hero/vladislav-glukhotko-HPDtJ0V_cNI-unsplash.webp" />
+        <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689794/jerseyjunction_uploads/tx9zw5vb3hmshcf8n4n5.webp" />
+        <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689795/jerseyjunction_uploads/hkww7ejkvw9cnebz1ldf.webp" />
+        <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689798/jerseyjunction_uploads/zzwmhua2u8pf9j0rek7a.webp" />
+        <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689793/jerseyjunction_uploads/pab7otujl2b5comodnrq.webp" />
+        <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689797/jerseyjunction_uploads/prhjnmffrxbpcpe3lbmm.webp" />
+        <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689799/jerseyjunction_uploads/dsmns1cd8bdxbqlpiyj9.webp" />
       </head>
       <body className="min-h-full flex flex-col bg-black text-white selection:bg-[#f4c84a] selection:text-black">
         <StoreProvider>

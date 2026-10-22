@@ -11,7 +11,9 @@ import { Footer } from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
 import { orderService } from '../../lib/services/orderService';
 import { paymentService } from '../../lib/services/paymentService';
-import { AdminOrder } from '../../lib/types/admin';
+import { productService } from '../../lib/services/productService';
+import { AdminOrder, StoreSettings } from '../../lib/types/admin';
+import { settingsService } from '../../lib/services/settingsService';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { OrderConfirmedAnimation } from '../../components/OrderConfirmedAnimation';
@@ -37,8 +39,17 @@ export default function CheckoutPage() {
   } = useStore();
 
   const [step, setStep] = useState<1 | 2>(1);
+
+  // Auto-reset to Step 1 if cart is empty
+  useEffect(() => {
+    if (cartItems.length === 0 && step === 2) {
+      setStep(1);
+    }
+  }, [cartItems.length, step]);
   const [paymentMethod, setPaymentMethod] = useState<'Razorpay' | 'COD'>('Razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCodEnabled, setIsCodEnabled] = useState<boolean>(true);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => settingsService.getSettings());
 
   const [formData, setFormData] = useState({
     fullName: currentUser?.name || '',
@@ -71,10 +82,44 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  // Synchronize store settings (Cash On Delivery & Delivery Pricing)
+  useEffect(() => {
+    const current = settingsService.getSettings();
+    setStoreSettings(current);
+    setIsCodEnabled(current.codEnabled);
+    if (!current.codEnabled) {
+      setPaymentMethod('Razorpay');
+    }
+
+    settingsService.fetchSettingsAsync().then((latest) => {
+      setStoreSettings(latest);
+      setIsCodEnabled(latest.codEnabled);
+      if (!latest.codEnabled) {
+        setPaymentMethod('Razorpay');
+      }
+    });
+
+    const handleSettingsUpdate = (e: any) => {
+      const updated = e.detail || settingsService.getSettings();
+      setStoreSettings(updated);
+      setIsCodEnabled(updated.codEnabled);
+      if (!updated.codEnabled) {
+        setPaymentMethod('Razorpay');
+      }
+    };
+
+    window.addEventListener('jj_store_settings_updated', handleSettingsUpdate);
+    return () => {
+      window.removeEventListener('jj_store_settings_updated', handleSettingsUpdate);
+    };
+  }, []);
+
   // Require login on checkout page
   useEffect(() => {
     if (!currentUser) {
       setIsAuthOpen(true);
+    } else {
+      setIsAuthOpen(false);
     }
   }, [currentUser, setIsAuthOpen]);
 
@@ -196,7 +241,9 @@ export default function CheckoutPage() {
 
   // Base item prices stored in INR
   const rawSubtotalINR = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
-  const shippingCostINR = formData.shippingMethod === 'express' ? 250 : 0;
+  const expressPrice = typeof storeSettings?.expressShippingCharge === 'number' ? storeSettings.expressShippingCharge : 250;
+  const standardPrice = typeof storeSettings?.standardShippingCharge === 'number' ? storeSettings.standardShippingCharge : 0;
+  const shippingCostINR = cartItems.length === 0 ? 0 : (formData.shippingMethod === 'express' ? expressPrice : standardPrice);
   const grandTotalINR = rawSubtotalINR + shippingCostINR;
 
   const rawSubtotalConverted = (rawSubtotalINR * activeCurrency.rate).toFixed(2);
@@ -204,6 +251,18 @@ export default function CheckoutPage() {
   const grandTotalConverted = (grandTotalINR * activeCurrency.rate).toFixed(2);
 
   const triggerSuccess = (newId: string) => {
+    try {
+      productService.deductStockLocally(
+        cartItems.map((item) => ({
+          productId: item.product.id || item.product.slug,
+          slug: item.product.slug,
+          name: item.product.name,
+          size: item.size,
+          quantity: item.quantity,
+        }))
+      );
+    } catch (e) {}
+
     clearCart();
     setIsCompleted(true);
     try {
@@ -466,10 +525,19 @@ export default function CheckoutPage() {
       setIsAuthOpen(true);
       return;
     }
-    if (paymentMethod === 'Razorpay') {
-      handleRazorpayPayment();
-    } else {
+    if (cartItems.length === 0) {
+      alert('Your cart is empty. Please add jerseys to your cart before proceeding with payment.');
+      return;
+    }
+    if (paymentMethod === 'COD') {
+      if (!isCodEnabled) {
+        alert('Cash on Delivery is currently disabled by the store. Please proceed with Online Payment.');
+        setPaymentMethod('Razorpay');
+        return;
+      }
       handleCodPayment();
+    } else {
+      handleRazorpayPayment();
     }
   };
 
@@ -556,6 +624,10 @@ export default function CheckoutPage() {
                       e.preventDefault(); 
                       if (!currentUser) {
                         setIsAuthOpen(true);
+                        return;
+                      }
+                      if (cartItems.length === 0) {
+                        alert('Your cart is empty. Please add items before proceeding.');
                         return;
                       }
                       persistAddress();
@@ -702,11 +774,6 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Address is automatically saved to your profile for future one-click checkout.</span>
-                    </div>
-
                     {/* Shipping Options */}
                     <div className="space-y-2 pt-2">
                       <label className="text-xs font-bold text-gray-400 uppercase block">Delivery Method</label>
@@ -720,10 +787,12 @@ export default function CheckoutPage() {
                           }`}
                         >
                           <div>
-                            <div className="font-bold text-white">Express Courier (3-5 Days)</div>
+                            <div className="font-bold text-white">Express Courier</div>
                             <div className="text-[10px] text-gray-400 font-mono">Tracked Dispatch</div>
                           </div>
-                          <span className="font-mono font-bold text-[#f4c84a]">+{activeCurrency.symbol}{(250 * activeCurrency.rate).toFixed(0)}</span>
+                          <span className="font-mono font-bold text-[#f4c84a]">
+                            {expressPrice > 0 ? `+${activeCurrency.symbol}${(expressPrice * activeCurrency.rate).toFixed(0)}` : 'FREE'}
+                          </span>
                         </div>
 
                         <div
@@ -735,10 +804,12 @@ export default function CheckoutPage() {
                           }`}
                         >
                           <div>
-                            <div className="font-bold text-white">Standard Postal (7-10 Days)</div>
+                            <div className="font-bold text-white">Standard Postal</div>
                             <div className="text-[10px] text-gray-400 font-mono">Postal Service</div>
                           </div>
-                          <span className="font-bold text-emerald-400">FREE</span>
+                          <span className={`font-mono font-bold ${standardPrice === 0 ? 'text-emerald-400' : 'text-[#f4c84a]'}`}>
+                            {standardPrice === 0 ? 'FREE' : `+${activeCurrency.symbol}${(standardPrice * activeCurrency.rate).toFixed(0)}`}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -747,10 +818,11 @@ export default function CheckoutPage() {
 
                   <button
                     type="submit"
-                    className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all mt-6"
+                    disabled={cartItems.length === 0}
+                    className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all mt-6 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    <span>PROCEED TO PAYMENT ({activeCurrency.symbol}{grandTotalConverted})</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>{cartItems.length === 0 ? 'CART IS EMPTY' : `PROCEED TO PAYMENT (${activeCurrency.symbol}${grandTotalConverted})`}</span>
+                    {cartItems.length > 0 && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </form>
                 </>
@@ -787,67 +859,59 @@ export default function CheckoutPage() {
                       {/* Option 1: Razorpay */}
                       <div
                         onClick={() => setPaymentMethod('Razorpay')}
-                        className={`p-5 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 ${
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
                           paymentMethod === 'Razorpay'
                             ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-white shadow-lg'
                             : 'bg-[#111] border-[#242424] text-gray-400 hover:border-[#444]'
                         }`}
                       >
-                        <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                          paymentMethod === 'Razorpay' ? 'border-[#f4c84a] bg-[#f4c84a]' : 'border-gray-600'
-                        }`}>
-                          {paymentMethod === 'Razorpay' && <div className="w-2 h-2 rounded-full bg-black" />}
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                            paymentMethod === 'Razorpay' ? 'border-[#f4c84a] bg-[#f4c84a]' : 'border-gray-600'
+                          }`}>
+                            {paymentMethod === 'Razorpay' && <div className="w-2 h-2 rounded-full bg-black" />}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-white">
+                              Razorpay Secure Checkout
+                            </span>
+                            <span className="text-[10px] font-mono bg-[#f4c84a] text-black font-extrabold px-2 py-0.5 rounded uppercase">
+                              Recommended
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex-1 space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm text-white flex items-center gap-2">
-                              Razorpay Secure Checkout
-                              <span className="text-[10px] font-mono bg-[#f4c84a] text-black font-extrabold px-2 py-0.5 rounded uppercase">
-                                Recommended
-                              </span>
-                            </span>
-                            <span className="text-xs font-mono font-bold text-[#f4c84a]">INSTANT DISPATCH</span>
-                          </div>
-                          <p className="text-xs text-gray-400">
-                            Pay via <strong>UPI (GPay, PhonePe, Paytm)</strong>, Credit/Debit Cards, NetBanking, or Wallet.
-                          </p>
-                          <div className="flex items-center gap-3 pt-2 text-[10px] text-gray-400 font-mono">
-                            <span className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#333]">UPI / QR</span>
-                            <span className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#333]">Visa / MasterCard</span>
-                            <span className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#333]">NetBanking</span>
-                            <span className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#333]">Paytm / Mobikwik</span>
-                          </div>
-                        </div>
+                        <span className="text-xs font-mono font-bold text-[#f4c84a]">INSTANT DISPATCH</span>
                       </div>
 
-                      {/* Option 2: COD */}
-                      <div
-                        onClick={() => setPaymentMethod('COD')}
-                        className={`p-5 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 ${
-                          paymentMethod === 'COD'
-                            ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-white shadow-lg'
-                            : 'bg-[#111] border-[#242424] text-gray-400 hover:border-[#444]'
-                        }`}
-                      >
-                        <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                          paymentMethod === 'COD' ? 'border-[#f4c84a] bg-[#f4c84a]' : 'border-gray-600'
-                        }`}>
-                          {paymentMethod === 'COD' && <div className="w-2 h-2 rounded-full bg-black" />}
-                        </div>
+                      {/* Option 2: COD (Only when enabled) */}
+                      {isCodEnabled && (
+                        <div
+                          onClick={() => setPaymentMethod('COD')}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                            paymentMethod === 'COD'
+                              ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-white shadow-lg'
+                              : 'bg-[#111] border-[#242424] text-gray-400 hover:border-[#444]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                              paymentMethod === 'COD' ? 'border-[#f4c84a] bg-[#f4c84a]' : 'border-gray-600'
+                            }`}>
+                              {paymentMethod === 'COD' && <div className="w-2 h-2 rounded-full bg-black" />}
+                            </div>
 
-                        <div className="flex-1 space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm text-white flex items-center gap-2">
+                            <span className="font-bold text-sm text-white">
                               Cash on Delivery (COD)
                             </span>
-                            <span className="text-xs font-mono text-gray-400">PAY AT DOORSTEP</span>
                           </div>
-                          <p className="text-xs text-gray-400">
-                            Pay cash when your jersey shipment arrives at your delivery address.
-                          </p>
+
+                          <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            AVAILABLE
+                          </span>
                         </div>
-                      </div>
+                      )}
 
                     </div>
                   </div>
@@ -862,11 +926,13 @@ export default function CheckoutPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={isProcessing}
-                      className="flex-1 py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl cursor-pointer transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      disabled={isProcessing || cartItems.length === 0}
+                      className="flex-1 py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isProcessing ? (
                         <span>INITIATING RAZORPAY...</span>
+                      ) : cartItems.length === 0 ? (
+                        <span>CART IS EMPTY</span>
                       ) : (
                         <span>
                           {paymentMethod === 'Razorpay'
@@ -874,7 +940,7 @@ export default function CheckoutPage() {
                             : `PLACE COD ORDER (${activeCurrency.symbol}${grandTotalConverted})`}
                         </span>
                       )}
-                      {!isProcessing && <ArrowRight className="w-4 h-4" />}
+                      {!isProcessing && cartItems.length > 0 && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>
                 </form>
@@ -889,8 +955,16 @@ export default function CheckoutPage() {
               </h3>
 
               {cartItems.length === 0 ? (
-                <div className="text-center py-8 text-xs text-gray-500">
-                  Your cart is empty. Please add items before checking out.
+                <div className="text-center py-8 space-y-3">
+                  <p className="text-xs text-gray-500">
+                    Your cart is empty. Please add items before checking out.
+                  </p>
+                  <Link
+                    href="/shop"
+                    className="inline-block px-5 py-2.5 bg-[#1a1a1a] hover:bg-[#252525] text-[#f4c84a] border border-[#f4c84a]/30 font-bold text-xs uppercase tracking-wider rounded-xl transition-all"
+                  >
+                    Browse Jerseys
+                  </Link>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">

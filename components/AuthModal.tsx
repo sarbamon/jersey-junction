@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2, Phone, Eye, EyeOff } from 'lucide-react';
+import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2, Phone, Eye, EyeOff, CheckCircle2, KeyRound } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../lib/services/authService';
+import { customerService } from '../lib/services/customerService';
 
 declare global {
   interface Window {
@@ -37,7 +38,7 @@ export const AuthModal: React.FC = () => {
   const router = useRouter();
   const { isAuthOpen, setIsAuthOpen, loginUser, currentUser, logoutUser } = useStore();
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -45,11 +46,11 @@ export const AuthModal: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
-  const googleBtnRef = useRef<HTMLDivElement>(null);
 
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '690427721204-ku71qit1vt4a7pjnfcn13beqbquj2bpg.apps.googleusercontent.com';
 
   // Load Google Identity Services script
   useEffect(() => {
@@ -74,52 +75,6 @@ export const AuthModal: React.FC = () => {
     };
   }, []);
 
-  // Initialize official Google Sign-In button if Client ID exists
-  useEffect(() => {
-    if (!gsiLoaded || !googleClientId || !isAuthOpen) return;
-
-    try {
-      if (window.google?.accounts?.id && googleBtnRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response: any) => {
-            if (response.credential) {
-              setIsLoading(true);
-              setError('');
-              try {
-                const authUser = await authService.googleAuth({ credential: response.credential });
-                loginUser({
-                  name: authUser.name,
-                  email: authUser.email,
-                  role: authUser.role,
-                  phone: ''
-                });
-                handleClose();
-              } catch (err: any) {
-                setError(err.message || 'Google authentication failed.');
-              } finally {
-                setIsLoading(false);
-              }
-            }
-          }
-        });
-
-        // Clear container and render button
-        googleBtnRef.current.innerHTML = '';
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
-          theme: 'filled_black',
-          size: 'large',
-          width: 340,
-          text: 'signin_with',
-          shape: 'rectangular',
-          logo_alignment: 'left'
-        });
-      }
-    } catch (e) {
-      console.error('Google button init error:', e);
-    }
-  }, [gsiLoaded, googleClientId, isAuthOpen, mode]);
-
   // Prevent background body scroll when auth modal is open
   useEffect(() => {
     if (isAuthOpen) {
@@ -133,14 +88,55 @@ export const AuthModal: React.FC = () => {
     };
   }, [isAuthOpen]);
 
-  if (!isAuthOpen) return null;
+  // If user is already logged in, automatically close auth modal
+  useEffect(() => {
+    if (currentUser && isAuthOpen) {
+      setIsAuthOpen(false);
+    }
+  }, [currentUser, isAuthOpen, setIsAuthOpen]);
+
+  if (!isAuthOpen || currentUser) return null;
 
   const handleClose = () => {
     setIsAuthOpen(false);
     setError('');
+    setSuccessMsg('');
     setIsLoading(false);
     setShowPassword(false);
     setAgreeTerms(false);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Please provide your registered email and a new password.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await customerService.resetPasswordCustomer(email.trim(), password);
+      if (res.success) {
+        setSuccessMsg(res.message || 'Password reset successfully! Returning to sign in...');
+        setTimeout(() => {
+          setMode('login');
+          setSuccessMsg('');
+        }, 2200);
+      } else {
+        setError(res.message || 'Failed to reset password. Please check your email.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error occurred while resetting password.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Trigger Google Official OAuth Popup Window
@@ -280,106 +276,76 @@ export const AuthModal: React.FC = () => {
             <UserRound className="w-6 h-6" />
           </div>
           <h2 className="font-serif text-2xl font-black uppercase text-white tracking-tight">
-            {currentUser
-              ? 'MY ACCOUNT'
-              : mode === 'signup'
-                ? 'CREATE AN ACCOUNT'
+            {mode === 'signup'
+              ? 'CREATE AN ACCOUNT'
+              : mode === 'forgot'
+                ? 'RESET PASSWORD'
                 : 'CUSTOMER LOGIN'}
           </h2>
-          {currentUser && (
-            <p className="text-xs text-zinc-400 font-medium">
-              Logged in as {currentUser.name}
-            </p>
-          )}
         </div>
 
-        {/* If user is already logged in */}
-        {currentUser ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-zinc-900/80 rounded-2xl border border-zinc-800 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-black font-extrabold flex items-center justify-center text-lg shadow-md border-2 border-amber-300 font-mono uppercase">
-                  {currentUser.name ? currentUser.name.trim().charAt(0).toUpperCase() : 'U'}
-                </div>
-                <div>
-                  <div className="font-bold text-sm text-white">{currentUser.name}</div>
-                  <div className="text-xs text-zinc-400">{currentUser.email}</div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-xs">
-                <span className="text-zinc-500 uppercase font-bold text-[10px]">Account Type:</span>
-                <span className="font-mono font-bold text-amber-400 uppercase bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
-                  Customer
+        {/* Mode Switcher Tabs */}
+            {mode === 'forgot' ? (
+              <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800 text-xs font-bold">
+                <span className="text-amber-400 font-mono text-[11px] px-2 flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Password Recovery
                 </span>
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
+                  className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-[11px] cursor-pointer"
+                >
+                  Back to Sign In
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
+                <button
+                  onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); setShowPassword(false); setAgreeTerms(false); }}
+                  className={`flex-1 py-2 rounded-lg transition-all ${mode === 'login' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => { setMode('signup'); setError(''); setSuccessMsg(''); setShowPassword(false); setAgreeTerms(false); }}
+                  className={`flex-1 py-2 rounded-lg transition-all ${mode === 'signup' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
 
-            <button
-              onClick={() => { handleClose(); router.push('/account'); }}
-              className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-black font-extrabold text-xs sm:text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>GO TO ACCOUNT DASHBOARD</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* Official Google OAuth Sign-In Button (hidden in forgot mode) */}
+            {mode !== 'forgot' && (
+              <>
+                {/* Google Sign-In Button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignInClick}
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-3 cursor-pointer shadow-md group hover:border-zinc-700 text-xs disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  ) : (
+                    <GoogleIcon />
+                  )}
+                  <span>{mode === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}</span>
+                </button>
 
-            <button
-              onClick={() => { logoutUser(); handleClose(); }}
-              className="w-full py-3 bg-zinc-900 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-800 font-bold text-xs rounded-xl transition-all cursor-pointer"
-            >
-              LOG OUT
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Mode Switcher Tabs */}
-            <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
-              <button
-                onClick={() => { setMode('login'); setError(''); setShowPassword(false); setAgreeTerms(false); }}
-                className={`flex-1 py-2 rounded-lg transition-all ${mode === 'login' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => { setMode('signup'); setError(''); setShowPassword(false); setAgreeTerms(false); }}
-                className={`flex-1 py-2 rounded-lg transition-all ${mode === 'signup' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-              >
-                Sign Up
-              </button>
-            </div>
 
-            {/* Official Google OAuth Sign-In Button */}
-            <div className="space-y-2">
-              {/* Container where Google SDK renders official button */}
-              {googleClientId && (
-                <div ref={googleBtnRef} className="flex justify-center w-full min-h-[44px]" />
-              )}
-
-              {/* Standard custom Google OAuth button that triggers popup */}
-              <button
-                type="button"
-                onClick={handleGoogleSignInClick}
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-3 cursor-pointer shadow-md group hover:border-zinc-700 text-xs disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                ) : (
-                  <GoogleIcon />
-                )}
-                <span>{mode === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}</span>
-              </button>
-            </div>
-
-            {/* OR Divider */}
-            <div className="flex items-center gap-3 my-1">
-              <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
-              <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider">OR WITH EMAIL</span>
-              <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
-            </div>
+                {/* OR Divider */}
+                <div className="flex items-center gap-3 my-1">
+                  <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
+                  <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider">OR WITH EMAIL</span>
+                  <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
+                </div>
+              </>
+            )}
 
             {/* Form Fields for Email & Password */}
-            <form onSubmit={mode === 'signup' ? handleUserSignUp : handleUserLogin} className="space-y-4 text-xs">
+            <form onSubmit={mode === 'signup' ? handleUserSignUp : mode === 'forgot' ? handleResetPassword : handleUserLogin} className="space-y-4 text-xs">
 
               {mode === 'signup' && (
                 <>
@@ -433,9 +399,20 @@ export const AuthModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-bold text-zinc-400 block mb-1 uppercase">
-                  Password *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-zinc-400 uppercase">
+                    {mode === 'forgot' ? 'New Password (min 6 chars) *' : 'Password *'}
+                  </label>
+                  {mode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => { setMode('forgot'); setError(''); setSuccessMsg(''); }}
+                      className="text-amber-400 hover:text-amber-300 text-[11px] font-semibold hover:underline cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
                   <input
@@ -494,6 +471,13 @@ export const AuthModal: React.FC = () => {
                 </div>
               )}
 
+              {successMsg && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -503,16 +487,15 @@ export const AuthModal: React.FC = () => {
                   <Loader2 className="w-5 h-5 animate-spin text-black" />
                 ) : (
                   <>
-                    <span>{mode === 'signup' ? 'CREATE ACCOUNT' : 'SIGN IN'}</span>
+                    <span>{mode === 'signup' ? 'CREATE ACCOUNT' : mode === 'forgot' ? 'RESET PASSWORD' : 'SIGN IN'}</span>
                     <ArrowRight className="w-4 h-4 text-black" />
                   </>
                 )}
               </button>
             </form>
-          </>
-        )}
 
       </div>
     </div>
   );
 };
+

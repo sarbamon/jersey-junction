@@ -79,18 +79,35 @@ export default function ProductDetailPage({ params }: PageProps) {
     }
 
     let isMounted = true;
-    productService.getProductBySlug(slug)
-      .then((found) => {
-        if (isMounted) {
-          if (found) setProduct(found);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load product by slug:', err);
-        if (isMounted) setIsLoading(false);
-      });
-    return () => { isMounted = false; };
+    const fetchFresh = () => {
+      productService.getProductBySlug(slug)
+        .then((found) => {
+          if (isMounted && found) {
+            setProduct(found);
+            setIsLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load product by slug:', err);
+          if (isMounted) setIsLoading(false);
+        });
+    };
+
+    fetchFresh();
+
+    const handleUpdated = () => {
+      const freshCached = productService.getCachedProductBySlugSync(slug);
+      if (freshCached && isMounted) {
+        setProduct(freshCached);
+      }
+      fetchFresh();
+    };
+
+    window.addEventListener('jj_products_updated', handleUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('jj_products_updated', handleUpdated);
+    };
   }, [slug]);
 
   if (isLoading) {

@@ -68,7 +68,9 @@ export const customerService = {
             ordersCount: u.ordersCount || 0,
             totalSpent: u.totalSpent || 0,
             joinedDate: u.createdAt ? u.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
-            status: u.status || 'Active',
+            status: u.isBanned || u.status === 'Banned' ? 'Banned' : (u.status || 'Active'),
+            isBanned: Boolean(u.isBanned || u.status === 'Banned'),
+            banReason: u.banReason || '',
           }));
         if (typeof window !== 'undefined') {
           localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(realUsers));
@@ -84,5 +86,50 @@ export const customerService = {
   getCustomerById: async (id: string): Promise<AdminCustomer | undefined> => {
     const customers = await customerService.getCustomers();
     return customers.find(c => c.id === id || (c as any)._id === id);
+  },
+
+  banCustomer: async (id: string, isBanned: boolean, reason?: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await apiClient.put(`/auth/users/${id}/ban`, { isBanned, reason });
+      if (res.success) {
+        if (typeof window !== 'undefined') {
+          const local = getLocalCustomers().map(c => 
+            (c.id === id || (c as any)._id === id)
+              ? { ...c, isBanned, status: (isBanned ? 'Banned' : 'Active') as any, banReason: reason || '' }
+              : c
+          );
+          localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(local));
+        }
+        return { success: true, message: res.message };
+      }
+      return { success: false, message: res.error || 'Failed to update ban status' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Error updating ban status' };
+    }
+  },
+
+  adminResetPassword: async (id: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await apiClient.put(`/auth/users/${id}/reset-password`, { newPassword });
+      if (res.success) {
+        return { success: true, message: res.message || 'Password reset successfully' };
+      }
+      return { success: false, message: res.error || 'Failed to reset password' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Error resetting password' };
+    }
+  },
+
+  resetPasswordCustomer: async (email: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await apiClient.post('/auth/reset-password', { email, newPassword });
+      if (res.success) {
+        return { success: true, message: res.message || 'Password reset successfully' };
+      }
+      return { success: false, message: res.error || 'Failed to reset password' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Error resetting password' };
+    }
   }
 };
+

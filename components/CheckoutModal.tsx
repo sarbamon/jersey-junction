@@ -6,7 +6,9 @@ import { X, Check, Lock, ArrowRight, ShieldCheck, Shield, MapPin, User } from 'l
 import { CartItem, Currency } from '../types';
 import { orderService } from '../lib/services/orderService';
 import { paymentService } from '../lib/services/paymentService';
+import { productService } from '../lib/services/productService';
 import { AdminOrder } from '../lib/types/admin';
+import { settingsService } from '../lib/services/settingsService';
 import { useStore } from '../context/StoreContext';
 import { OrderConfirmedAnimation } from './OrderConfirmedAnimation';
 
@@ -35,6 +37,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [step, setStep] = useState<1 | 2>(1);
   const [paymentMethod, setPaymentMethod] = useState<'Razorpay' | 'COD'>('Razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCodEnabled, setIsCodEnabled] = useState<boolean>(true);
 
   const [formData, setFormData] = useState({
     fullName: currentUser?.name || '',
@@ -62,6 +65,36 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }
+    };
+  }, [isOpen]);
+
+  // Synchronize store settings (Cash On Delivery on/off)
+  useEffect(() => {
+    if (!isOpen) return;
+    const current = settingsService.getSettings();
+    setIsCodEnabled(current.codEnabled);
+    if (!current.codEnabled) {
+      setPaymentMethod('Razorpay');
+    }
+
+    settingsService.fetchSettingsAsync().then((latest) => {
+      setIsCodEnabled(latest.codEnabled);
+      if (!latest.codEnabled) {
+        setPaymentMethod('Razorpay');
+      }
+    });
+
+    const handleSettingsUpdate = (e: any) => {
+      const updated = e.detail || settingsService.getSettings();
+      setIsCodEnabled(updated.codEnabled);
+      if (!updated.codEnabled) {
+        setPaymentMethod('Razorpay');
+      }
+    };
+
+    window.addEventListener('jj_store_settings_updated', handleSettingsUpdate);
+    return () => {
+      window.removeEventListener('jj_store_settings_updated', handleSettingsUpdate);
     };
   }, [isOpen]);
 
@@ -186,7 +219,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // Base item prices stored in INR
   const rawSubtotalINR = items.reduce((acc, item) => acc + item.totalPrice, 0);
-  const shippingCostINR = formData.shippingMethod === 'express' ? 250 : 0;
+  const storeSettings = settingsService.getSettings();
+  const expressPrice = typeof storeSettings?.expressShippingCharge === 'number' ? storeSettings.expressShippingCharge : 250;
+  const standardPrice = typeof storeSettings?.standardShippingCharge === 'number' ? storeSettings.standardShippingCharge : 0;
+  const shippingCostINR = items.length === 0 ? 0 : (formData.shippingMethod === 'express' ? expressPrice : standardPrice);
   const grandTotalINR = rawSubtotalINR + shippingCostINR;
 
   const rawSubtotalConverted = (rawSubtotalINR * activeCurrency.rate).toFixed(2);
@@ -194,6 +230,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const grandTotalConverted = (grandTotalINR * activeCurrency.rate).toFixed(2);
 
   const triggerSuccess = (newId: string) => {
+    try {
+      productService.deductStockLocally(
+        items.map((item) => ({
+          productId: item.product.id || item.product.slug,
+          slug: item.product.slug,
+          name: item.product.name,
+          size: item.size,
+          quantity: item.quantity,
+        }))
+      );
+    } catch (e) {}
+
     clearCart();
     setIsCompleted(true);
     try {
@@ -451,10 +499,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (paymentMethod === 'Razorpay') {
-      handleRazorpayPayment();
-    } else {
+    if (paymentMethod === 'COD') {
+      if (!isCodEnabled) {
+        alert('Cash on Delivery is currently disabled by the store. Please proceed with Online Payment.');
+        setPaymentMethod('Razorpay');
+        return;
+      }
       handleCodPayment();
+    } else {
+      handleRazorpayPayment();
     }
   };
 
@@ -671,10 +724,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       }`}
                     >
                       <div>
-                        <div className="font-bold text-white">Express Delivery (3-5 Days)</div>
+                        <div className="font-bold text-white">Express Delivery</div>
                         <div className="text-[10px] text-zinc-400 font-mono">Tracked Courier</div>
                       </div>
-                      <span className="font-black text-amber-400 font-mono">+{activeCurrency.symbol}{(250 * activeCurrency.rate).toFixed(0)}</span>
+                      <span className="font-black text-amber-400 font-mono">
+                        {expressPrice > 0 ? `+${activeCurrency.symbol}${(expressPrice * activeCurrency.rate).toFixed(0)}` : 'FREE'}
+                      </span>
                     </div>
 
                     <div
@@ -686,25 +741,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       }`}
                     >
                       <div>
-                        <div className="font-bold text-white">Standard Delivery (7-10 Days)</div>
+                        <div className="font-bold text-white">Standard Delivery</div>
                         <div className="text-[10px] text-zinc-400 font-mono">Postal Service</div>
                       </div>
-                      <span className="font-black text-emerald-400">FREE</span>
+                      <span className={`font-black font-mono ${standardPrice === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {standardPrice === 0 ? 'FREE' : `+${activeCurrency.symbol}${(standardPrice * activeCurrency.rate).toFixed(0)}`}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Address automatically saved for one-click checkout.</span>
-                </div>
-
                 <button
                   type="submit"
-                  className="w-full py-4 bg-amber-400 hover:bg-amber-500 text-zinc-950 font-black text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 cursor-pointer"
+                  disabled={items.length === 0}
+                  className="w-full py-4 bg-amber-400 hover:bg-amber-500 text-zinc-950 font-black text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <span>CONTINUE TO PAYMENT</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>{items.length === 0 ? 'CART IS EMPTY' : 'CONTINUE TO PAYMENT'}</span>
+                  {items.length > 0 && <ArrowRight className="w-4 h-4" />}
                 </button>
               </form>
               </>
@@ -729,41 +782,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="space-y-3">
                   <div
                     onClick={() => setPaymentMethod('Razorpay')}
-                    className={`p-4 rounded-xl border cursor-pointer flex items-start gap-3 transition-all ${
+                    className={`p-3.5 rounded-xl border cursor-pointer flex items-center justify-between gap-3 transition-all ${
                       paymentMethod === 'Razorpay'
                         ? 'bg-amber-500/10 border-amber-400 text-white'
                         : 'bg-zinc-800 border-zinc-700 text-zinc-400'
                     }`}
                   >
-                    <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${
-                      paymentMethod === 'Razorpay' ? 'border-amber-400 bg-amber-400' : 'border-zinc-500'
-                    }`}>
-                      {paymentMethod === 'Razorpay' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-950" />}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                        paymentMethod === 'Razorpay' ? 'border-amber-400 bg-amber-400' : 'border-zinc-500'
+                      }`}>
+                        {paymentMethod === 'Razorpay' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-950" />}
+                      </div>
+                      <span className="font-bold text-xs text-white">Online Payment (Razorpay)</span>
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-white">Online Payment (UPI, Cards, NetBanking, Wallets)</div>
-                      <div className="text-[11px] text-zinc-400">Pay securely via Razorpay payment gateway.</div>
-                    </div>
+                    <span className="text-[10px] font-mono bg-amber-400 text-black font-extrabold px-2 py-0.5 rounded uppercase">
+                      Recommended
+                    </span>
                   </div>
 
-                  <div
-                    onClick={() => setPaymentMethod('COD')}
-                    className={`p-4 rounded-xl border cursor-pointer flex items-start gap-3 transition-all ${
-                      paymentMethod === 'COD'
-                        ? 'bg-amber-500/10 border-amber-400 text-white'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-400'
-                    }`}
-                  >
-                    <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${
-                      paymentMethod === 'COD' ? 'border-amber-400 bg-amber-400' : 'border-zinc-500'
-                    }`}>
-                      {paymentMethod === 'COD' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-950" />}
+                  {isCodEnabled && (
+                    <div
+                      onClick={() => setPaymentMethod('COD')}
+                      className={`p-3.5 rounded-xl border cursor-pointer flex items-center justify-between gap-3 transition-all ${
+                        paymentMethod === 'COD'
+                          ? 'bg-amber-500/10 border-amber-400 text-white shadow-lg'
+                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                          paymentMethod === 'COD' ? 'border-amber-400 bg-amber-400' : 'border-zinc-500'
+                        }`}>
+                          {paymentMethod === 'COD' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-950" />}
+                        </div>
+                        <span className="font-bold text-xs text-white">Cash on Delivery (COD)</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        AVAILABLE
+                      </span>
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-white">Cash on Delivery (COD)</div>
-                      <div className="text-[11px] text-zinc-400">Pay cash directly when courier arrives.</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-zinc-800 flex justify-between items-center">
@@ -784,10 +843,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </button>
                     <button
                       type="submit"
-                      disabled={isProcessing}
-                      className="px-8 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-zinc-950 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg cursor-pointer disabled:opacity-50"
+                      disabled={isProcessing || items.length === 0}
+                      className="px-8 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-zinc-950 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {isProcessing ? 'INITIATING RAZORPAY...' : `PAY ${activeCurrency.symbol}${grandTotalConverted} NOW`}
+                      {isProcessing
+                        ? 'INITIATING RAZORPAY...'
+                        : items.length === 0
+                        ? 'CART IS EMPTY'
+                        : `PAY ${activeCurrency.symbol}${grandTotalConverted} NOW`}
                     </button>
                   </div>
                 </div>

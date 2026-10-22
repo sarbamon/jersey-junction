@@ -59,6 +59,8 @@ export interface JerseyProduct {
   details: string[];
   availablePatches: PatchOption[];
   tags: string[];
+  stock?: number;
+  status?: string;
   image?: string;
   images?: string[];
 }

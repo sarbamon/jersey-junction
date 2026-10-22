@@ -49,6 +49,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setTheme] = useState<Theme>('dark');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const isLoadedRef = React.useRef(false);
 
   // Load theme, user, and data from localStorage
   useEffect(() => {
@@ -66,6 +67,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
       if (savedUser) setCurrentUser(JSON.parse(savedUser));
+      isLoadedRef.current = true;
 
       // Verify token with backend database
       authService.fetchMe().then((me) => {
@@ -80,11 +82,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }).catch(() => {});
     } catch (e) {
       console.log('Context init error', e);
+      isLoadedRef.current = true;
     }
   }, []);
 
   const loginUser = (user: UserProfile) => {
     setCurrentUser(user);
+    setIsAuthOpen(false);
     try {
       localStorage.setItem('jj_user', JSON.stringify(user));
     } catch (e) {}
@@ -112,6 +116,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Save cart & wishlist changes
   useEffect(() => {
+    if (!isLoadedRef.current) return;
     try {
       localStorage.setItem('jj_cart', JSON.stringify(cartItems));
       localStorage.setItem('jj_wishlist', JSON.stringify(wishlist));

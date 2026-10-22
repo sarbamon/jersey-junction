@@ -2,17 +2,21 @@ import { apiClient } from '../apiClient';
 
 export interface ICarryConfig {
   apiToken: string;
+  apiKey?: string;
+  apiUsername?: string;
+  hasCredentials?: boolean;
   hasToken?: boolean;
   maskedToken?: string;
+  credentialsSource?: string;
   pickupAddressId: string;
   isLiveMode: boolean;
-  senderName: string;
-  senderPhone: string;
-  senderEmail: string;
-  senderAddress: string;
-  senderCity: string;
-  senderState: string;
-  senderPincode: string;
+  senderName?: string;
+  senderPhone?: string;
+  senderEmail?: string;
+  senderAddress?: string;
+  senderCity?: string;
+  senderState?: string;
+  senderPincode?: string;
   defaultWeight: number;
   defaultLength: number;
   defaultBreadth: number;
@@ -32,6 +36,7 @@ export interface CourierEstimate {
 export interface BookShipmentParams {
   orderId: string;
   courierName: string;
+  courierId?: string;
   weight: number;
   dimensions?: {
     length: number;
@@ -39,6 +44,18 @@ export interface BookShipmentParams {
     height: number;
   };
   pickupAddress?: Partial<ICarryConfig>;
+  pickupAddressId?: string;
+  invoiceValue?: number;
+  parcelContents?: string;
+  mode?: string;
+  consignee?: {
+    name?: string;
+    phone?: string;
+    addressLine?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
   customNote?: string;
 }
 
@@ -63,10 +80,16 @@ export interface TrackingMilestone {
 export interface TrackingResult {
   orderId: string;
   trackingNumber: string;
+  shipmentId?: string;
   courier: string;
   shippingStatus: string;
   orderStatus: string;
   destination: string;
+  edd?: string;
+  pickedDateTime?: string;
+  deliveredDateTime?: string;
+  externalTrackingUrl?: string;
+  rawDetails?: Array<{ datetime: string; location: string | null; notes: string }>;
   history: TrackingMilestone[];
 }
 
@@ -95,64 +118,62 @@ export const icarryService = {
     }
   },
 
-  // Get shipping rates and couriers for an order
+  // Get shipping rates and couriers for an order directly from iCarry
   getEstimates: async (
     originPincode: string,
     destinationPincode: string,
-    weight = 0.4
-  ): Promise<CourierEstimate[]> => {
+    weight = 500,
+    dimensions = { length: 25, breadth: 20, height: 3 },
+    pickupAddressId?: string,
+    mode?: string,
+    invoiceValue?: number,
+    isCOD?: boolean
+  ): Promise<{ success: boolean; couriers: CourierEstimate[]; message?: string }> => {
     try {
-      const res = await apiClient.post<{ couriers: CourierEstimate[] }>('/icarry/estimate', {
+      const res = await apiClient.post<{ couriers: CourierEstimate[]; isLive?: boolean }>('/icarry/estimate', {
         originPincode,
         destinationPincode,
         weight,
+        dimensions,
+        pickupAddressId,
+        mode,
+        invoiceValue: invoiceValue || 1000,
+        parcelType: isCOD ? 'C' : 'P',
+        isCOD: Boolean(isCOD),
       });
-      if (res.success && res.data && Array.isArray((res.data as any).couriers)) {
-        return (res.data as any).couriers;
+      const couriersList = (res as any).couriers || (res.data as any)?.couriers || [];
+      if (res.success && Array.isArray(couriersList) && couriersList.length > 0) {
+        return {
+          success: true,
+          couriers: couriersList,
+        };
       }
-    } catch (err) {
-      console.warn('Failed to fetch courier estimates:', err);
+      return {
+        success: false,
+        couriers: [],
+        message: res.error || res.message || 'No delivery partners returned by iCarry for this route.',
+      };
+    } catch (err: any) {
+      console.warn('Failed to fetch courier estimates from iCarry:', err);
+      return {
+        success: false,
+        couriers: [],
+        message: err.message || 'Could not connect to iCarry to fetch delivery partners.',
+      };
     }
+  },
 
-    // High quality fallback rates for immediate responsiveness
-    return [
-      {
-        id: 'delhivery_surface',
-        name: 'Delhivery Surface',
-        mode: 'Surface',
-        rate: 42,
-        estimatedDays: '2 - 3 Days',
-        recommended: true,
-      },
-      {
-        id: 'delhivery_air',
-        name: 'Delhivery Air Express',
-        mode: 'Air',
-        rate: 68,
-        estimatedDays: '1 - 2 Days',
-      },
-      {
-        id: 'bluedart_air',
-        name: 'BlueDart Priority Air',
-        mode: 'Air',
-        rate: 85,
-        estimatedDays: '1 - 2 Days',
-      },
-      {
-        id: 'dtdc_surface',
-        name: 'DTDC Courier Service',
-        mode: 'Surface',
-        rate: 45,
-        estimatedDays: '3 - 4 Days',
-      },
-      {
-        id: 'xpressbees_surface',
-        name: 'XpressBees Domestic',
-        mode: 'Surface',
-        rate: 39,
-        estimatedDays: '3 - 5 Days',
-      },
-    ];
+  // Fetch registered pickup addresses from iCarry account
+  getPickupAddresses: async (): Promise<any[]> => {
+    try {
+      const res = await apiClient.get<{ addresses: any[] }>('/icarry/pickup-addresses');
+      if (res.success && res.data && Array.isArray((res.data as any).addresses)) {
+        return (res.data as any).addresses;
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   },
 
   // Book shipment with iCarry
