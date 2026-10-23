@@ -172,10 +172,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       scrollToShop('all');
                       setIsShopDropdownOpen(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center cursor-pointer"
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex items-center cursor-pointer"
                   >
                     <span>All Jerseys</span>
-                    <span className="text-[10px] text-gray-500 font-mono">Catalog</span>
                   </button>
                   {adminCategories.map((cat) => {
                     const catKey = cat.slug || cat.id;
@@ -186,10 +185,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                           scrollToShop(catKey);
                           setIsShopDropdownOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex justify-between items-center cursor-pointer"
+                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex items-center cursor-pointer"
                       >
                         <span>{cat.name}</span>
-                        {cat.tag && <span className="text-[10px] text-gray-500 font-mono">{cat.tag}</span>}
                       </button>
                     );
                   })}
@@ -413,10 +411,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     scrollToShop('all');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full px-10 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-[#f4c84a] hover:bg-black/50 transition-colors flex items-center justify-between"
+                  className="w-full px-10 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-[#f4c84a] hover:bg-black/50 transition-colors flex items-center"
                 >
                   <span>All Jerseys</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Catalog</span>
                 </button>
                 {adminCategories.map((cat) => (
                   <button
@@ -425,12 +422,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       scrollToShop(cat.slug || cat.id);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full px-10 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-[#f4c84a] hover:bg-black/50 transition-colors flex items-center justify-between"
+                    className="w-full px-10 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-300 hover:text-[#f4c84a] hover:bg-black/50 transition-colors flex items-center"
                   >
                     <span>{cat.name}</span>
-                    {cat.tag && (
-                      <span className="text-[10px] text-zinc-500 font-mono uppercase">{cat.tag}</span>
-                    )}
                   </button>
                 ))}
               </div>

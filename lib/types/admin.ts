@@ -94,6 +94,8 @@ export interface AdminOrder {
   bookedAt?: string;
   packageWeight?: number;
   packageDimensions?: string;
+  shippingMethod?: 'standard' | 'express' | string;
+  couponCode?: string;
 }
 
 export interface AdminCustomer {

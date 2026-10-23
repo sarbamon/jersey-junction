@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Tag, Sparkles } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Tag, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { JerseyViewerSVG } from './JerseyViewerSVG';
 import { useStore } from '../context/StoreContext';
@@ -16,7 +16,7 @@ interface CartDrawerProps {
   activeCurrency: Currency;
   onOpenCheckout: () => void;
   discountPercentage: number;
-  onApplyCoupon: (code: string) => boolean;
+  onApplyCoupon?: (code: string) => any;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -27,13 +27,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   activeCurrency,
   onOpenCheckout,
-  discountPercentage,
-  onApplyCoupon
+  discountPercentage: propDiscountPercentage,
 }) => {
   const router = useRouter();
-  const { currentUser, setIsAuthOpen } = useStore();
+  const { 
+    currentUser, 
+    setIsAuthOpen,
+    discountPercentage, 
+    applyCoupon, 
+    appliedCouponCode, 
+    appliedCouponMsg, 
+    removeCoupon 
+  } = useStore();
+
+  // Coupon State
   const [couponCode, setCouponCode] = useState('');
-  const [couponMsg, setCouponMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   // Close on Escape key press
   React.useEffect(() => {
@@ -49,7 +59,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   if (!isOpen) return null;
 
   const rawSubtotalUSD = items.reduce((acc, item) => acc + item.totalPrice, 0);
-  const discountUSD = (rawSubtotalUSD * discountPercentage) / 100;
+  const activeDiscount = discountPercentage || propDiscountPercentage || 0;
+  const discountUSD = (rawSubtotalUSD * activeDiscount) / 100;
   const finalSubtotalUSD = Math.max(0, rawSubtotalUSD - discountUSD);
 
   const freeShippingThresholdUSD = 75;
@@ -58,14 +69,25 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const subtotalConverted = (finalSubtotalUSD * activeCurrency.rate).toFixed(2);
 
-  const handleCouponSubmit = (e: React.FormEvent) => {
+  const handleCouponSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!couponCode.trim()) return;
-    const success = onApplyCoupon(couponCode.trim());
-    if (success) {
-      setCouponMsg({ text: 'Coupon SPOT10 Applied! 10% OFF Savings', isError: false });
-    } else {
-      setCouponMsg({ text: 'Invalid coupon code. Try SPOT10', isError: true });
+    const code = couponCode.trim();
+    if (!code) return;
+
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const res = await applyCoupon(code);
+      if (!res.success) {
+        setCouponError(res.message);
+      } else {
+        setCouponCode('');
+        setCouponError(null);
+      }
+    } catch (err: any) {
+      setCouponError(err.message || 'Failed to apply coupon');
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -204,28 +226,52 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {items.length > 0 && (
             <div className="p-6 bg-slate-100 dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 space-y-4">
               
-              {/* Coupon code input */}
-              <form onSubmit={handleCouponSubmit} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Promo code (SPOT10)"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  className="flex-1 bg-white dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white uppercase focus:outline-none focus:border-amber-500"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-slate-800 dark:bg-zinc-800 hover:bg-slate-700 dark:hover:bg-zinc-700 text-xs font-bold text-white rounded-xl"
-                >
-                  Apply
-                </button>
-              </form>
-
-              {couponMsg && (
-                <div className={`text-xs font-semibold ${couponMsg.isError ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                  {couponMsg.text}
+              {/* Coupon Section */}
+              {appliedCouponCode ? (
+                <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2.5 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>COUPON &ldquo;{appliedCouponCode}&rdquo; APPLIED ({activeDiscount}% OFF)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-red-500 hover:text-red-600 dark:hover:text-red-400 font-bold text-xs underline cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <form onSubmit={handleCouponSubmit} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter coupon code"
+                      value={couponCode}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value.toUpperCase());
+                        setCouponError(null);
+                      }}
+                      className="flex-1 bg-white dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white uppercase focus:outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isApplyingCoupon || !couponCode.trim()}
+                      className="px-4 py-2 bg-slate-800 dark:bg-zinc-800 hover:bg-slate-700 dark:hover:bg-zinc-700 disabled:opacity-50 text-xs font-bold text-white rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      {isApplyingCoupon && <Loader2 className="w-3 h-3 animate-spin" />}
+                      <span>{isApplyingCoupon ? 'Checking...' : 'Apply'}</span>
+                    </button>
+                  </form>
+                  {couponError && (
+                    <div className="text-xs font-semibold text-red-500 flex items-center gap-1 px-1">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      <span>{couponError}</span>
+                    </div>
+                  )}
                 </div>
               )}
+
 
               {/* Price totals */}
               <div className="space-y-1.5 text-xs text-slate-700 dark:text-zinc-300">

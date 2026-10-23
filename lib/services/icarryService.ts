@@ -224,4 +224,36 @@ export const icarryService = {
     }
     return null;
   },
+
+  // Check pincode serviceability
+  checkPincode: async (pincode: string): Promise<{
+    success: boolean;
+    available: boolean;
+    pincode?: string;
+    estimatedDays?: string;
+    couriers?: string[];
+    codAvailable?: boolean;
+    message?: string;
+  }> => {
+    try {
+      const res = await apiClient.post<any>('/icarry/check-pincode', { pincode });
+      if (res && typeof (res as any).available === 'boolean') {
+        return res as any;
+      }
+      if (res.success && res.data) {
+        return res.data;
+      }
+      return {
+        success: false,
+        available: false,
+        message: res.error || res.message || 'Unable to check pincode at this time',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        available: false,
+        message: err.message || 'Error checking delivery pincode',
+      };
+    }
+  },
 };

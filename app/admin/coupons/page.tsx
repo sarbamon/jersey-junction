@@ -25,19 +25,25 @@ export default function AdminCouponsPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminCoupon | null>(null);
   const [toastMsg, setToastMsg] = useState('');
 
-  const loadData = () => {
+  const loadData = async () => {
     setCoupons(couponService.getCoupons());
+    try {
+      const fresh = await couponService.fetchCoupons();
+      if (Array.isArray(fresh)) setCoupons(fresh);
+    } catch (e) {
+      console.warn('Failed to fetch coupons:', e);
+    }
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
 
-    couponService.addCoupon({
+    await couponService.addCoupon({
       code: code.toUpperCase().trim(),
       discountType,
       discountValue: Number(discountValue),
@@ -51,22 +57,22 @@ export default function AdminCouponsPage() {
     setCode('');
     setIsAddOpen(false);
     setToastMsg(`Coupon code "${code.toUpperCase()}" created!`);
-    loadData();
+    await loadData();
   };
 
-  const handleToggleStatus = (c: AdminCoupon) => {
+  const handleToggleStatus = async (c: AdminCoupon) => {
     const nextStatus = c.status === 'Active' ? 'Disabled' : 'Active';
-    couponService.updateCoupon(c.id, { status: nextStatus });
+    await couponService.updateCoupon(c.id, { status: nextStatus });
     setToastMsg(`Coupon ${c.code} status changed to ${nextStatus}`);
-    loadData();
+    await loadData();
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      couponService.deleteCoupon(deleteTarget.id);
+      await couponService.deleteCoupon(deleteTarget.id);
       setToastMsg(`Coupon "${deleteTarget.code}" deleted.`);
       setDeleteTarget(null);
-      loadData();
+      await loadData();
     }
   };
 

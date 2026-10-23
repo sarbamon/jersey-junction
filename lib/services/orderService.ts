@@ -100,28 +100,28 @@ export const orderService = {
   },
 
   addOrder: async (newOrder: AdminOrder): Promise<AdminOrder> => {
+    // Post to backend MongoDB API authoritatively
+    const res = await apiClient.post<AdminOrder>('/orders', newOrder);
+    if (!res.success) {
+      throw new Error(res.message || res.error || 'Failed to place order on server');
+    }
+
+    const savedOrder = res.data || newOrder;
     const orders = orderService.getOrders();
-    const updated = [newOrder, ...orders.filter((o) => o.id !== newOrder.id)];
+    const updated = [savedOrder, ...orders.filter((o) => o.id !== savedOrder.id)];
     
     // Safely update local storage cache without quota crashes
     safeStoreOrders(updated);
 
-    // Post to backend MongoDB API
-    try {
-      await apiClient.post('/orders', newOrder);
-    } catch (err) {
-      console.error('Failed to persist order to backend API:', err);
-    }
-
     // Notify admin listeners across tabs / windows
     if (typeof window !== 'undefined') {
       try {
-        window.dispatchEvent(new CustomEvent('jj_new_order_placed', { detail: newOrder }));
+        window.dispatchEvent(new CustomEvent('jj_new_order_placed', { detail: savedOrder }));
         localStorage.setItem('jj_latest_order_timestamp', String(Date.now()));
       } catch (e) {}
     }
 
-    return newOrder;
+    return savedOrder;
   },
 
   updateOrderStatus: (id: string, newStatus: OrderStatus): AdminOrder => {

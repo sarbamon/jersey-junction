@@ -308,13 +308,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         ],
       };
 
-      // Pre-creates order in MongoDB & links Razorpay notes (Backend-to-Backend protection)
-      const rzpOrder = await paymentService.createRazorpayOrder(grandTotalINR, 'INR', pendingOrderData);
+      // Pre-creates order in MongoDB & calculates authoritative total on backend
+      const rzpOrder = await paymentService.createRazorpayOrder(grandTotalINR, 'INR', {
+        ...pendingOrderData,
+        shippingMethod: formData.shippingMethod,
+      });
       const activeOrderId = rzpOrder.internalOrderId || newId;
       setOrderId(activeOrderId);
 
       const options = {
-        key: razorpayKey,
+        key: rzpOrder.keyId || razorpayKey,
         amount: rzpOrder.amount || grandTotalINR * 100,
         currency: rzpOrder.currency || 'INR',
         name: 'Jersey Junction',
@@ -329,37 +332,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           color: '#f4c84a',
         },
         handler: async function (response: any) {
-          // Backend verification
-          if (response.razorpay_signature) {
-            await paymentService.verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-          }
-
-          const confirmedOrder: AdminOrder = {
-            ...pendingOrderData,
-            id: activeOrderId,
-            paymentStatus: 'Paid',
-            orderStatus: 'Confirmed',
-            timeline: [
-              {
-                status: 'Confirmed',
-                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                note: `Paid via Razorpay (Payment ID: ${response.razorpay_payment_id || 'RZP_SUCCESS'})`
-              }
-            ]
-          };
-
           try {
-            await orderService.addOrder(confirmedOrder);
-          } catch (err) {
-            console.error('Error saving order:', err);
-          }
+            // Cryptographic backend signature verification
+            if (response.razorpay_signature) {
+              await paymentService.verifyPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+            }
 
-          setIsProcessing(false);
-          triggerSuccess(activeOrderId);
+            setIsProcessing(false);
+            triggerSuccess(activeOrderId);
+          } catch (verifyErr: any) {
+            console.error('Payment verification failed:', verifyErr);
+            alert(`Payment verification failed: ${verifyErr.message || 'Signature mismatch'}`);
+            setIsProcessing(false);
+          }
         },
         modal: {
           ondismiss: function () {
@@ -371,65 +360,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       if (typeof window !== 'undefined' && window.Razorpay) {
         const rzp = new window.Razorpay(options);
         rzp.on('payment.failed', function (response: any) {
-          alert(`Payment failed: ${response.error.description || 'Transaction declined'}`);
+          alert(`Payment failed: ${response.error?.description || 'Transaction declined'}`);
           setIsProcessing(false);
         });
         rzp.open();
       } else {
-        // Fallback simulation
-        const newIdNum = Math.floor(1000 + Math.random() * 9000);
-        const newId = `#JJ${newIdNum}`;
-        setOrderId(newId);
-
-        const createdOrder: AdminOrder = {
-          id: newId,
-          customerName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          shippingAddress: {
-            name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            addressLine: formData.address,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.zip,
-            country: formData.country,
-          },
-          items: items.map(item => ({
-            productId: item.product.id || item.product.slug,
-            name: item.product.name,
-            size: item.size,
-            version: item.version,
-            customName: item.customName,
-            customNumber: item.customNumber,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            image: item.product.image
-          })),
-          subtotal: rawSubtotalINR,
-          shippingFee: shippingCostINR,
-          discountAmount: 0,
-          totalAmount: grandTotalINR,
-          paymentMethod: 'Razorpay',
-          paymentStatus: 'Paid',
-          orderStatus: 'Confirmed',
-          date: new Date().toISOString().split('T')[0],
-          timeline: [
-            {
-              status: 'Confirmed',
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              note: 'Order placed & payment verified successfully via Razorpay'
-            }
-          ]
-        };
-
-        await orderService.addOrder(createdOrder);
+        alert('Payment gateway could not be loaded. Please ensure third-party scripts are not blocked by an ad-blocker and refresh.');
         setIsProcessing(false);
-        triggerSuccess(newId);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Razorpay initiation error:', err);
+      alert(err.message || 'Unable to initiate payment. Please verify your cart.');
       setIsProcessing(false);
     }
   };
@@ -474,6 +415,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       shippingFee: shippingCostINR,
       discountAmount: 0,
       totalAmount: grandTotalINR,
+      shippingMethod: formData.shippingMethod,
       paymentMethod: 'COD',
       paymentStatus: 'Pending',
       orderStatus: 'Confirmed',
@@ -489,12 +431,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     try {
       await orderService.addOrder(createdOrder);
-    } catch (err) {
+      triggerSuccess(newId);
+    } catch (err: any) {
       console.error('Error saving order:', err);
+      alert(err.message || 'Failed to place COD order. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
-
-    setIsProcessing(false);
-    triggerSuccess(newId);
   };
 
   const handleSubmitStep2 = (e: React.FormEvent) => {

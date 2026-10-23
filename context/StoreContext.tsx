@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { JerseyProduct, CartItem, Currency, VersionType, PatchOption, UserProfile } from '../types';
 import { CURRENCIES, PRODUCTS } from '../data/jerseys';
 import { authService } from '../lib/services/authService';
+import { couponService } from '../lib/services/couponService';
 
 export type Theme = 'dark' | 'light';
 
@@ -21,6 +22,9 @@ interface StoreContextType {
   toggleTheme: () => void;
   discountPercentage: number;
   setDiscountPercentage: (discount: number) => void;
+  appliedCouponCode: string | null;
+  appliedCouponMsg: string;
+  removeCoupon: () => void;
   setActiveCurrency: (currency: Currency) => void;
   setIsCartOpen: (open: boolean) => void;
   addToCart: (
@@ -35,7 +39,7 @@ interface StoreContextType {
   removeFromCart: (cartItemId: string) => void;
   clearCart: () => void;
   toggleWishlist: (product: JerseyProduct) => void;
-  applyCoupon: (code: string) => boolean;
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -46,6 +50,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wishlist, setWishlist] = useState<JerseyProduct[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(0);
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+  const [appliedCouponMsg, setAppliedCouponMsg] = useState<string>('');
   const [theme, setTheme] = useState<Theme>('dark');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -67,6 +73,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
       if (savedUser) setCurrentUser(JSON.parse(savedUser));
+
+      // Purge any legacy demo coupons from localStorage
+      const savedCoupons = localStorage.getItem('jj_admin_coupons');
+      if (savedCoupons && (savedCoupons.includes('SPOT10') || savedCoupons.includes('JUNCTION10'))) {
+        localStorage.removeItem('jj_admin_coupons');
+      }
+
       isLoadedRef.current = true;
 
       // Verify token with backend database
@@ -189,6 +202,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const clearCart = () => {
     setCartItems([]);
+    removeCoupon();
   };
 
   const toggleWishlist = (product: JerseyProduct) => {
@@ -199,12 +213,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  const applyCoupon = (code: string) => {
-    if (code.toUpperCase() === 'SPOT10' || code.toUpperCase() === 'JUNCTION10') {
-      setDiscountPercentage(10);
-      return true;
+  const removeCoupon = () => {
+    setAppliedCouponCode(null);
+    setDiscountPercentage(0);
+    setAppliedCouponMsg('');
+  };
+
+  const applyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
+    const rawSubtotal = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
+    const result = await couponService.validateCoupon(code, rawSubtotal);
+
+    if (result.valid) {
+      setAppliedCouponCode(code.trim().toUpperCase());
+      setDiscountPercentage(result.discountPercentage);
+      setAppliedCouponMsg(result.message);
+      return { success: true, message: result.message };
+    } else {
+      setAppliedCouponCode(null);
+      setDiscountPercentage(0);
+      setAppliedCouponMsg(result.message);
+      return { success: false, message: result.message };
     }
-    return false;
   };
 
   return (
@@ -223,6 +252,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleTheme,
         discountPercentage,
         setDiscountPercentage,
+        appliedCouponCode,
+        appliedCouponMsg,
+        removeCoupon,
         setActiveCurrency,
         setIsCartOpen,
         addToCart,

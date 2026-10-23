@@ -14,12 +14,19 @@ import {
   RefreshCw,
   Type,
   Hash,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  CheckCircle2,
+  Loader2,
+  Truck,
+  Zap,
+  Share2
 } from 'lucide-react';
 import { JerseyViewerSVG } from '../../../components/JerseyViewerSVG';
 import { JerseyProduct, VersionType, PatchOption } from '../../../types';
 import { REVIEWS } from '../../../data/jerseys';
 import { productService } from '../../../lib/services/productService';
+import { icarryService } from '../../../lib/services/icarryService';
 import { Navbar } from '../../../components/Navbar';
 import { Footer } from '../../../components/Footer';
 import { CartDrawer } from '../../../components/CartDrawer';
@@ -49,7 +56,9 @@ export default function ProductDetailPage({ params }: PageProps) {
     setIsCartOpen,
     discountPercentage,
     applyCoupon,
-    setActiveCurrency
+    setActiveCurrency,
+    currentUser,
+    setIsAuthOpen
   } = useStore();
 
   const [product, setProduct] = useState<JerseyProduct | null>(null);
@@ -69,6 +78,86 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // Delivery Pincode Checker State
+  const [pincodeInput, setPincodeInput] = useState('');
+  const [isCheckingPincode, setIsCheckingPincode] = useState(false);
+  const [pincodeResult, setPincodeResult] = useState<{
+    checked: boolean;
+    available: boolean;
+    pincode?: string;
+    estimatedDays?: string;
+    couriers?: string[];
+    codAvailable?: boolean;
+    message?: string;
+  } | null>(null);
+
+  const handleCheckPincode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const pin = pincodeInput.trim();
+    if (!pin || pin.length !== 6) return;
+
+    setIsCheckingPincode(true);
+    setPincodeResult(null);
+    try {
+      const res = await icarryService.checkPincode(pin);
+      setPincodeResult({
+        checked: true,
+        available: Boolean(res.available),
+        pincode: pin,
+        message: res.available
+          ? `Delivery Available to ${pin}`
+          : `Delivery Unavailable to ${pin}`
+      });
+    } catch (err: any) {
+      setPincodeResult({
+        checked: true,
+        available: false,
+        pincode: pin,
+        message: `Delivery Unavailable to ${pin}`
+      });
+    } finally {
+      setIsCheckingPincode(false);
+    }
+  };
+
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (!product) return;
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const shareData = {
+      title: product.name,
+      text: `Check out the ${product.name} on Jersey Junction!`,
+      url: url,
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2200);
+      }
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2200);
+    }
+  };
 
   useEffect(() => {
     // Immediate client cache hydration (prevents SSR mismatch while keeping 0ms speed)
@@ -153,6 +242,30 @@ export default function ProductDetailPage({ params }: PageProps) {
       []
     );
     setIsCartOpen(true);
+  };
+
+  const handleBuyNow = () => {
+    if (product.isCustomizable && wantCustomPrint && !customName.trim()) {
+      setCustomError('Please enter a name for the back print, or select Blank Back.');
+      return;
+    }
+    setCustomError('');
+
+    addToCart(
+      product,
+      selectedSize,
+      selectedVersion,
+      (product.isCustomizable && wantCustomPrint) ? customName.trim().toUpperCase() : '',
+      (product.isCustomizable && wantCustomPrint) ? customNumber.trim() : '',
+      []
+    );
+    setIsCartOpen(false);
+
+    if (currentUser) {
+      router.push('/checkout');
+    } else {
+      setIsAuthOpen(true);
+    }
   };
 
   return (
@@ -309,17 +422,36 @@ export default function ProductDetailPage({ params }: PageProps) {
                   {product.name}
                 </h1>
 
-                <button
-                  onClick={() => toggleWishlist(product)}
-                  className={`p-3 rounded-full border transition-all ${
-                    isWishlisted 
-                      ? 'bg-[#f4c84a] text-black border-[#f4c84a]' 
-                      : 'bg-[#111] text-gray-400 border-[#333] hover:text-white'
-                  }`}
-                  aria-label="Wishlist"
-                >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-black' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="p-3 rounded-full border bg-[#111] text-gray-400 border-[#333] hover:text-[#f4c84a] hover:border-[#f4c84a] transition-all cursor-pointer relative"
+                    aria-label="Share"
+                    title="Share product link"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    {isCopied && (
+                      <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-[#f4c84a] text-black text-[10px] font-bold font-mono shadow-md whitespace-nowrap z-30">
+                        Copied!
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleWishlist(product)}
+                    className={`p-3 rounded-full border transition-all cursor-pointer ${
+                      isWishlisted 
+                        ? 'bg-[#f4c84a] text-black border-[#f4c84a]' 
+                        : 'bg-[#111] text-gray-400 border-[#333] hover:text-white'
+                    }`}
+                    aria-label="Wishlist"
+                    title="Wishlist"
+                  >
+                    <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-black' : ''}`} />
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-3 text-xs">
@@ -500,14 +632,82 @@ export default function ProductDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Add to Cart CTA Button */}
-            <button
-              onClick={handleAddToCart}
-              className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all mt-6 cursor-pointer"
-            >
-              <ShoppingBag className="w-5 h-5 text-black" />
-              <span>ADD TO BAG ({activeCurrency.symbol}{finalUnitPriceConverted})</span>
-            </button>
+            {/* CTA Buttons: Add to Bag & Buy Now */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-[#f4c84a] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg flex items-center justify-center hover:scale-[1.01] transition-all cursor-pointer"
+              >
+                <span>ADD TO BAG</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center hover:scale-[1.01] transition-all cursor-pointer"
+              >
+                <span>BUY NOW</span>
+              </button>
+            </div>
+
+            {/* Delivery Pincode Checker */}
+            <div className="mt-5 p-4 rounded-2xl bg-[#111111] border border-[#242424] space-y-3">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[#f4c84a]" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                  Check Delivery
+                </span>
+              </div>
+
+              <form onSubmit={handleCheckPincode} className="flex gap-2">
+                <div className="relative flex-1">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="Enter 6-digit Pincode"
+                    value={pincodeInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setPincodeInput(val);
+                      if (pincodeResult) setPincodeResult(null);
+                    }}
+                    className="w-full bg-[#181818] border border-[#2e2e2e] focus:border-[#f4c84a] text-white pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider placeholder:text-zinc-500 focus:outline-none transition-colors"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isCheckingPincode || pincodeInput.trim().length !== 6}
+                  className="px-5 py-2.5 bg-[#f4c84a] hover:bg-[#ffe17d] disabled:opacity-40 disabled:hover:bg-[#f4c84a] text-black text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider shrink-0"
+                >
+                  {isCheckingPincode ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    'Check'
+                  )}
+                </button>
+              </form>
+
+              {pincodeResult && (
+                <div
+                  className={`text-xs p-3 rounded-xl border flex items-center gap-2.5 transition-all ${
+                    pincodeResult.available
+                      ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                      : 'bg-red-950/20 border-red-500/30 text-red-300'
+                  }`}
+                >
+                  {pincodeResult.available ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  )}
+                  <span className="font-bold text-white text-xs">
+                    {pincodeResult.message}
+                  </span>
+                </div>
+              )}
+            </div>
 
           </div>
 
