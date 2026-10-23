@@ -168,6 +168,19 @@ export const categoryService = {
     }
   },
 
+  deleteCategoriesBulk: async (ids: string[]): Promise<void> => {
+    if (!ids || ids.length === 0) return;
+    const local = getLocalCategories();
+    const filtered = local.filter(c => !ids.includes(c.id) && !ids.includes(c.slug));
+    saveLocalCategories(filtered);
+
+    try {
+      await apiClient.post('/categories/bulk-delete', { ids });
+    } catch (err) {
+      console.error('Failed to bulk delete categories on backend:', err);
+    }
+  },
+
   // Reorder categories
   reorderCategories: async (orderedIds: string[]): Promise<AdminCategory[]> => {
     const local = getLocalCategories();

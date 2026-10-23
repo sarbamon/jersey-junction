@@ -81,12 +81,15 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (confirm(`Delete ${selectedIds.length} selected order(s)? This cannot be undone.`)) {
-      selectedIds.forEach(id => orderService.deleteOrder(id));
-      setToastMsg(`Deleted ${selectedIds.length} order(s) successfully`);
+      const toDelete = [...selectedIds];
+      const cleanSet = new Set(toDelete.map(id => id.toLowerCase().replace('#', '')));
+      setOrders(prev => prev.filter(o => !cleanSet.has((o.id || '').toLowerCase().replace('#', ''))));
       setSelectedIds([]);
+      await orderService.deleteOrdersBulk(toDelete);
+      setToastMsg(`Deleted ${toDelete.length} order(s) successfully`);
       loadOrders();
     }
   };

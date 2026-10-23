@@ -242,6 +242,22 @@ export const orderService = {
     });
   },
 
+  deleteOrdersBulk: async (ids: string[]): Promise<void> => {
+    if (!ids || ids.length === 0) return;
+    const cleanIds = new Set(ids.map(i => i.toLowerCase().replace('#', '')));
+    const orders = orderService.getOrders();
+    const updated = orders.filter(
+      (o) => !cleanIds.has((o.id || '').toLowerCase().replace('#', ''))
+    );
+    safeStoreOrders(updated);
+
+    try {
+      await apiClient.post('/orders/bulk-delete', { ids });
+    } catch (err) {
+      console.error('Failed to bulk delete orders on backend:', err);
+    }
+  },
+
   deleteAllOrders: (): void => {
     try {
       if (typeof window !== 'undefined') {

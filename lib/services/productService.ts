@@ -83,13 +83,13 @@ let memoryAdminProductsCache: AdminProduct[] | null = null;
 const ADMIN_CACHE_KEY = 'jj_admin_products_cache';
 
 function getStoredCache(): JerseyProduct[] {
-  if (memoryProductsCache && memoryProductsCache.length > 0) return memoryProductsCache;
+  if (memoryProductsCache !== null) return memoryProductsCache;
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(CACHE_KEY);
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           memoryProductsCache = parsed;
           return parsed;
         }
@@ -103,7 +103,7 @@ function getStoredCache(): JerseyProduct[] {
 }
 
 function saveStoredCache(products: JerseyProduct[]) {
-  if (!products || products.length === 0) return;
+  if (!products) return;
   memoryProductsCache = products;
   if (typeof window !== 'undefined') {
     try {
@@ -113,13 +113,13 @@ function saveStoredCache(products: JerseyProduct[]) {
 }
 
 function getStoredAdminCache(): AdminProduct[] {
-  if (memoryAdminProductsCache && memoryAdminProductsCache.length > 0) return memoryAdminProductsCache;
+  if (memoryAdminProductsCache !== null) return memoryAdminProductsCache;
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(ADMIN_CACHE_KEY);
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           memoryAdminProductsCache = parsed;
           return parsed;
         }
@@ -132,7 +132,7 @@ function getStoredAdminCache(): AdminProduct[] {
 }
 
 function saveStoredAdminCache(products: AdminProduct[]) {
-  if (!products || products.length === 0) return;
+  if (!products) return;
   memoryAdminProductsCache = products;
   if (typeof window !== 'undefined') {
     try {
@@ -196,7 +196,7 @@ export const productService = {
   getAdminProducts: async (): Promise<AdminProduct[]> => {
     try {
       const res = await apiClient.get('/products/admin/all');
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         const mapped = res.data.map(mapBackendToAdminProduct);
         saveStoredAdminCache(mapped);
         return mapped;
@@ -307,9 +307,50 @@ export const productService = {
   },
 
   deleteProduct: async (id: string): Promise<void> => {
-    const res = await apiClient.delete(`/products/${id}`);
-    if (!res.success) {
-      throw new Error(res.error || 'Failed to delete product from backend server');
+    const lower = (id || '').toLowerCase();
+    const adminCached = getStoredAdminCache().filter(
+      p => (p.id || '').toLowerCase() !== lower && (p.slug || '').toLowerCase() !== lower
+    );
+    saveStoredAdminCache(adminCached);
+
+    const storeCached = getStoredCache().filter(
+      p => (p.id || '').toLowerCase() !== lower && (p.slug || '').toLowerCase() !== lower
+    );
+    saveStoredCache(storeCached);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
+    }
+
+    try {
+      await apiClient.delete(`/products/${id}`);
+    } catch (err) {
+      console.error('Failed to delete product on backend:', err);
+    }
+  },
+
+  deleteProductsBulk: async (ids: string[]): Promise<void> => {
+    if (!ids || ids.length === 0) return;
+
+    const lowerIds = ids.map(i => (i || '').toLowerCase());
+    const adminCached = getStoredAdminCache().filter(
+      p => !lowerIds.includes((p.id || '').toLowerCase()) && !lowerIds.includes((p.slug || '').toLowerCase())
+    );
+    saveStoredAdminCache(adminCached);
+
+    const storeCached = getStoredCache().filter(
+      p => !lowerIds.includes((p.id || '').toLowerCase()) && !lowerIds.includes((p.slug || '').toLowerCase())
+    );
+    saveStoredCache(storeCached);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
+    }
+
+    try {
+      await apiClient.post('/products/bulk-delete', { ids });
+    } catch (err) {
+      console.error('Failed to bulk delete products on backend:', err);
     }
   },
 

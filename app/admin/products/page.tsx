@@ -44,8 +44,8 @@ export default function AdminProductsPage() {
         productService.getAdminProducts(),
         Promise.resolve(categoryService.getCategories()),
       ]);
-      if (prods.length > 0) setProducts(prods);
-      if (cats.length > 0) setCategories(cats);
+      if (Array.isArray(prods)) setProducts(prods);
+      if (Array.isArray(cats) && cats.length > 0) setCategories(cats);
     } catch (err: any) {
       if (products.length === 0) {
         setError(err.message || 'Failed to load products from database server.');
@@ -61,7 +61,7 @@ export default function AdminProductsPage() {
 
     const handleProductsUpdated = () => {
       const fresh = productService.getAdminProductsSync();
-      if (fresh.length > 0) setProducts(fresh);
+      if (Array.isArray(fresh)) setProducts(fresh);
       loadData(false);
     };
     window.addEventListener('jj_products_updated', handleProductsUpdated);
@@ -107,13 +107,15 @@ export default function AdminProductsPage() {
     if (selectedIds.length === 0) return;
     if (confirm(`Are you sure you want to delete ${selectedIds.length} selected product(s)?`)) {
       setIsDeleting(true);
+      const toDelete = [...selectedIds];
+      setProducts(prev => prev.filter(p => !toDelete.includes(p.id)));
+      setSelectedIds([]);
       try {
-        await Promise.all(selectedIds.map(id => productService.deleteProduct(id)));
-        setToastMessage(`Successfully deleted ${selectedIds.length} product(s).`);
-        setSelectedIds([]);
+        await productService.deleteProductsBulk(toDelete);
+        setToastMessage(`Successfully deleted ${toDelete.length} product(s).`);
         await loadData();
       } catch (err: any) {
-        setToastMessage(`Error deleting selected products: ${err.message}`);
+        setToastMessage(`Error deleting selected products: ${err.message || 'Failed'}`);
       } finally {
         setIsDeleting(false);
       }
@@ -123,11 +125,13 @@ export default function AdminProductsPage() {
   const handleDeleteConfirm = async () => {
     if (deleteTarget) {
       setIsDeleting(true);
+      const target = deleteTarget;
+      setProducts(prev => prev.filter(p => p.id !== target.id));
+      setSelectedIds(prev => prev.filter(id => id !== target.id));
+      setDeleteTarget(null);
       try {
-        await productService.deleteProduct(deleteTarget.id);
-        setToastMessage(`Product "${deleteTarget.name}" deleted successfully.`);
-        setDeleteTarget(null);
-        setSelectedIds(selectedIds.filter(id => id !== deleteTarget.id));
+        await productService.deleteProduct(target.id);
+        setToastMessage(`Product "${target.name}" deleted successfully.`);
         await loadData();
       } catch (err: any) {
         setToastMessage(`Error deleting product: ${err.message || 'Failed to delete'}`);

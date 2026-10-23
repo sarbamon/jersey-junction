@@ -187,11 +187,13 @@ export default function AdminCategoriesPage() {
   const handleBulkDeleteConfirm = async () => {
     if (selectedIds.length === 0) return;
     setIsDeleting(true);
+    const toDelete = [...selectedIds];
+    setCategories((prev) => prev.filter((c) => !toDelete.includes(c.id) && !toDelete.includes(c.slug)));
+    setSelectedIds([]);
+    setIsBulkDeleteModalOpen(false);
     try {
-      await Promise.all(selectedIds.map((id) => categoryService.deleteCategory(id)));
-      setToastMsg(`Successfully deleted ${selectedIds.length} categories.`);
-      setSelectedIds([]);
-      setIsBulkDeleteModalOpen(false);
+      await categoryService.deleteCategoriesBulk(toDelete);
+      setToastMsg(`Successfully deleted ${toDelete.length} categories.`);
       await loadData();
     } catch (err: any) {
       setToastMsg(`Error deleting categories: ${err.message || 'Failed'}`);
