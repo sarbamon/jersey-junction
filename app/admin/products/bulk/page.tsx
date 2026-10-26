@@ -288,14 +288,13 @@ export default function BulkAddProductsPage() {
 
     setIsSubmitting(true);
     try {
-      for (const r of validRows) {
-        const generatedSlug =
-          r.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)+/g, '') +
-          '-' +
-          Date.now().toString().slice(-4);
+      for (let i = 0; i < validRows.length; i++) {
+        const r = validRows[i];
+        const cleanSlugBase = r.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '') || 'jersey';
+        const generatedSlug = `${cleanSlugBase}-${Date.now()}-${i}-${Math.floor(100 + Math.random() * 900)}`;
         const generatedSku = `JJ-${r.name.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
 
         const { sizeStock, totalStock, sizes: parsedSizes } = parseSizesAndStock(r.sizes);
