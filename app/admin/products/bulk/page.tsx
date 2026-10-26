@@ -282,7 +282,7 @@ export default function BulkAddProductsPage() {
 
     const missingPhotoRows = validRows.filter((r) => !r.images || r.images.length === 0);
     if (missingPhotoRows.length > 0) {
-      setToastMsg(`Photo upload is compulsory! "${missingPhotoRows[0].name}" has no photos uploaded. Please upload at least one photo.`);
+      setToastMsg(`"${missingPhotoRows[0].name}" has no photos uploaded. Please upload at least one photo.`);
       return;
     }
 

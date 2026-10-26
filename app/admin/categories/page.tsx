@@ -127,7 +127,7 @@ export default function AdminCategoriesPage() {
       return;
     }
     if (!image || !image.trim()) {
-      setToastMsg('Category photo is compulsory! Please upload a photo before creating.');
+      setToastMsg('Please upload a category photo before creating.');
       return;
     }
 
@@ -155,7 +155,7 @@ export default function AdminCategoriesPage() {
       return;
     }
     if (!editTarget.image || !editTarget.image.trim()) {
-      setToastMsg('Category photo is compulsory! Please upload a photo.');
+      setToastMsg('Please upload a category photo.');
       return;
     }
 
@@ -270,7 +270,7 @@ export default function AdminCategoriesPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="font-bold text-zinc-400 block uppercase">
-                  Category Photo <span className="text-red-400 font-bold normal-case">* Compulsory</span>
+                  Category Photo <span className="text-red-400 font-bold">*</span>
                 </label>
                 {!image && (
                   <span className="text-[10px] text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30">
@@ -354,7 +354,7 @@ export default function AdminCategoriesPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="font-bold text-zinc-400 block uppercase">
-                  Category Photo <span className="text-red-400 font-bold normal-case">* Compulsory</span>
+                  Category Photo <span className="text-red-400 font-bold">*</span>
                 </label>
                 {!editTarget.image && (
                   <span className="text-[10px] text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30">

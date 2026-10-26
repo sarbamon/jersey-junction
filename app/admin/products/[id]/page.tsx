@@ -231,7 +231,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       const primaryImage = image || (finalImages[0] || '');
 
       if (!primaryImage || !primaryImage.trim() || finalImages.length === 0) {
-        setToastMsg('Product photo is compulsory! A product must have at least one photo.');
+        setToastMsg('Please upload at least one product photo.');
         setIsSaving(false);
         return;
       }
@@ -456,11 +456,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {/* Product Photos Gallery Card */}
             <div className={`bg-zinc-900/90 border rounded-3xl p-6 shadow-xl space-y-4 text-xs ${images.length === 0 ? 'border-amber-400/40 ring-1 ring-amber-400/20' : 'border-zinc-800'}`}>
               <h2 className="text-sm font-extrabold font-serif uppercase tracking-wider text-amber-400 border-b border-zinc-800 pb-3 flex justify-between items-center">
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-1">
                   <span>Product Photos Gallery</span>
-                  <span className="text-[10px] text-red-400 font-bold uppercase bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full">
-                    * Compulsory
-                  </span>
+                  <span className="text-red-400 font-bold text-sm leading-none">*</span>
                 </span>
                 <span className="text-[10px] text-amber-400 font-mono font-bold">
                   {images.length > 0 ? `${images.length} Photo${images.length > 1 ? 's' : ''}` : 'Required'}
@@ -469,7 +467,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
               {images.length === 0 && (
                 <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-2 text-red-400 text-xs font-bold">
-                  <span>⚠️ Photo upload is compulsory: A product must have at least one photo.</span>
+                  <span>⚠️ A product must have at least one photo.</span>
                 </div>
               )}
 

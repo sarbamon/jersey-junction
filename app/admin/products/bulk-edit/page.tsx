@@ -312,7 +312,7 @@ export default function BulkEditProductsPage() {
       return finalImages.length === 0;
     });
     if (missingPhotoProds.length > 0) {
-      setToastMsg(`Photo is compulsory! "${missingPhotoProds[0].name}" has no photos. Please upload at least one photo.`);
+      setToastMsg(`"${missingPhotoProds[0].name}" has no photos. Please upload at least one photo.`);
       return;
     }
 
