@@ -122,7 +122,14 @@ export default function AdminCategoriesPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setToastMsg('Please enter a category title.');
+      return;
+    }
+    if (!image || !image.trim()) {
+      setToastMsg('Category photo is compulsory! Please upload a photo before creating.');
+      return;
+    }
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     await categoryService.addCategory({
@@ -130,7 +137,7 @@ export default function AdminCategoriesPage() {
       slug,
       tag: 'Collection',
       status: 'Active',
-      image: image || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg'
+      image: image.trim()
     });
 
     setName('');
@@ -143,10 +150,18 @@ export default function AdminCategoriesPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTarget) return;
+    if (!editTarget.name.trim()) {
+      setToastMsg('Category title cannot be empty.');
+      return;
+    }
+    if (!editTarget.image || !editTarget.image.trim()) {
+      setToastMsg('Category photo is compulsory! Please upload a photo.');
+      return;
+    }
 
     await categoryService.updateCategory(editTarget.id, {
       name: editTarget.name.trim(),
-      image: editTarget.image,
+      image: editTarget.image.trim(),
       tag: editTarget.tag || 'Collection',
       status: 'Active'
     });
@@ -253,13 +268,22 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Category Photo</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-zinc-400 block uppercase">
+                  Category Photo <span className="text-red-400 font-bold normal-case">* Compulsory</span>
+                </label>
+                {!image && (
+                  <span className="text-[10px] text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30">
+                    Upload required
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0 flex items-center justify-center">
+                <div className={`w-12 h-12 rounded-xl bg-zinc-950 border overflow-hidden relative shrink-0 flex items-center justify-center ${!image ? 'border-amber-400/60 ring-1 ring-amber-400/30' : 'border-zinc-800'}`}>
                   {image ? (
                     <img src={image} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <ImageIcon className="w-5 h-5 text-zinc-600" />
+                    <ImageIcon className="w-5 h-5 text-amber-400/60" />
                   )}
                 </div>
 
@@ -328,13 +352,22 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div>
-              <label className="font-bold text-zinc-400 block mb-1 uppercase">Category Photo</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-zinc-400 block uppercase">
+                  Category Photo <span className="text-red-400 font-bold normal-case">* Compulsory</span>
+                </label>
+                {!editTarget.image && (
+                  <span className="text-[10px] text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30">
+                    Upload required
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0 flex items-center justify-center">
+                <div className={`w-12 h-12 rounded-xl bg-zinc-950 border overflow-hidden relative shrink-0 flex items-center justify-center ${!editTarget.image ? 'border-amber-400/60 ring-1 ring-amber-400/30' : 'border-zinc-800'}`}>
                   {editTarget.image ? (
                     <img src={editTarget.image} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <ImageIcon className="w-5 h-5 text-zinc-600" />
+                    <ImageIcon className="w-5 h-5 text-amber-400/60" />
                   )}
                 </div>
 

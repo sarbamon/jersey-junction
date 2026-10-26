@@ -15,9 +15,9 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // If already authenticated, redirect to /admin
+    // If already authenticated, redirect to appropriate section
     if (authService.isAuthenticated()) {
-      router.push('/admin');
+      router.push(authService.getFirstAllowedRoute());
     }
   }, [router]);
 
@@ -27,8 +27,12 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      await authService.login(email, password);
-      router.push('/admin');
+      const loggedUser = await authService.login(email, password);
+      if (loggedUser.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push(authService.getFirstAllowedRoute());
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid login credentials');
       setIsLoading(false);

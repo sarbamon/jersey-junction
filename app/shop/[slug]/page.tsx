@@ -309,8 +309,8 @@ export default function ProductDetailPage({ params }: PageProps) {
               {(() => {
                 const allImages = (Array.isArray(product.images) && product.images.length > 0)
                   ? product.images
-                  : (product.image ? [product.image] : []);
-                const currentDisplayImage = allImages[selectedImageIndex] || product.image;
+                  : (product.image ? [product.image] : ['/placeholder-jersey.svg']);
+                const currentDisplayImage = allImages[selectedImageIndex] || product.image || '/placeholder-jersey.svg';
 
                 return (
                   <>

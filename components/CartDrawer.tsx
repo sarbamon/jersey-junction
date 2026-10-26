@@ -31,6 +31,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const router = useRouter();
   const { 
+    isServerDown,
     currentUser, 
     setIsAuthOpen,
     discountPercentage, 
@@ -306,7 +307,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
               {/* Checkout Button */}
               <button
+                disabled={isServerDown}
                 onClick={() => {
+                  if (isServerDown) return;
                   if (!currentUser) {
                     onClose();
                     setIsAuthOpen(true);
@@ -316,10 +319,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   if (onOpenCheckout) onOpenCheckout();
                   router.push('/checkout');
                 }}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm uppercase tracking-widest rounded-xl shadow-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all cursor-pointer"
+                className={`w-full py-4 text-slate-950 font-black text-sm uppercase tracking-widest rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all ${
+                  isServerDown
+                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60'
+                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 hover:scale-[1.01] cursor-pointer'
+                }`}
               >
-                <span>{currentUser ? 'PROCEED TO CHECKOUT' : 'SIGN IN TO CHECKOUT'}</span>
-                <ArrowRight className="w-4 h-4 text-slate-950" />
+                <span>
+                  {isServerDown
+                    ? 'CHECKOUT CURRENTLY DISABLED'
+                    : currentUser
+                    ? 'PROCEED TO CHECKOUT'
+                    : 'SIGN IN TO CHECKOUT'}
+                </span>
+                {!isServerDown && <ArrowRight className="w-4 h-4 text-slate-950" />}
               </button>
             </div>
           )}

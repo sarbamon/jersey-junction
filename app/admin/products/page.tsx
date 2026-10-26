@@ -411,9 +411,7 @@ export default function AdminProductsPage() {
                           {p.image ? (
                             <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-zinc-600 text-[10px] uppercase">
-                              No Img
-                            </div>
+                            <img src="/placeholder-jersey.svg" alt="Placeholder" className="w-full h-full object-cover opacity-60" />
                           )}
                         </div>
                       </td>

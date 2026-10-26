@@ -5,10 +5,12 @@ import { JerseyProduct, CartItem, Currency, VersionType, PatchOption, UserProfil
 import { CURRENCIES, PRODUCTS } from '../data/jerseys';
 import { authService } from '../lib/services/authService';
 import { couponService } from '../lib/services/couponService';
+import { serverStatusService } from '../lib/services/serverStatusService';
 
 export type Theme = 'dark' | 'light';
 
 interface StoreContextType {
+  isServerDown: boolean;
   cartItems: CartItem[];
   wishlist: JerseyProduct[];
   activeCurrency: Currency;
@@ -55,7 +57,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setTheme] = useState<Theme>('dark');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isServerDown, setIsServerDown] = useState(false);
   const isLoadedRef = React.useRef(false);
+
+  // Subscribe to server status (detect if server goes down or recovers)
+  useEffect(() => {
+    const unsub = serverStatusService.subscribe((down) => {
+      setIsServerDown(down);
+    });
+    serverStatusService.checkHealth();
+    return () => unsub();
+  }, []);
 
   // Load theme, user, and data from localStorage
   useEffect(() => {
@@ -144,6 +156,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     customNumber: string,
     patches: PatchOption[]
   ) => {
+    if (isServerDown) {
+      return;
+    }
     const patchesPrice = patches.reduce((sum, p) => sum + p.price, 0);
     const versionExtra = version.includes('Player') ? 150 : 0;
     const printExtra = customName ? 100 : 0;
@@ -239,6 +254,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider
       value={{
+        isServerDown,
         cartItems,
         wishlist,
         activeCurrency,

@@ -127,6 +127,18 @@ export const Footer: React.FC<FooterProps> = ({
                     Privacy Policy
                   </button>
                 </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('jj:open-tutorial'));
+                      }
+                    }}
+                    className="text-[#f4c84a] hover:text-amber-300 font-bold transition-colors duration-200 text-left flex items-center gap-1.5 cursor-pointer pt-1"
+                  >
+                    <span>💡 How to Order (Quick Demo)</span>
+                  </button>
+                </li>
               </ul>
             </div>
 

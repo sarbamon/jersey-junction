@@ -98,6 +98,6 @@ export interface Review {
 export interface UserProfile {
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'employee';
   phone?: string;
 }

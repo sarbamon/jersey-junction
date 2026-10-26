@@ -102,9 +102,12 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
         <div className="w-full flex justify-center items-center transform group-hover:scale-105 transition-transform duration-300">
           {product.image ? (
             <img
-              src={product.image}
+              src={product.image || '/placeholder-jersey.svg'}
               alt={product.name}
               className="h-36 sm:h-44 w-full object-contain drop-shadow-xl rounded"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/placeholder-jersey.svg';
+              }}
             />
           ) : (
             <JerseyViewerSVG

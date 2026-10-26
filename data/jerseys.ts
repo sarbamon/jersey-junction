@@ -24,7 +24,7 @@ export const CATEGORIES = [
   {
     id: 'set',
     name: 'Full Sets (Kit + Shorts)',
-    image: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1792689801/jerseyjunction_uploads/q6fb9r25vwafcwkfhdca.jpg',
+    image: '/placeholder-category.svg',
     tag: 'Complete Uniform'
   },
   {

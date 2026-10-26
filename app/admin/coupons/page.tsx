@@ -22,6 +22,16 @@ export default function AdminCouponsPage() {
   const [status, setStatus] = useState<'Active' | 'Expired' | 'Disabled'>('Active');
 
   const [editTarget, setEditTarget] = useState<AdminCoupon | null>(null);
+  const [editCode, setEditCode] = useState('');
+  const [editDiscountType, setDiscountTypeEdit] = useState<'percentage' | 'fixed'>('percentage');
+  const [editDiscountValue, setDiscountValueEdit] = useState(10);
+  const [editMinOrder, setMinOrderEdit] = useState(499);
+  const [editMaxDiscount, setMaxDiscountEdit] = useState(200);
+  const [editExpiryDate, setExpiryDateEdit] = useState('');
+  const [editUsageLimit, setUsageLimitEdit] = useState(500);
+  const [editStatus, setStatusEdit] = useState<'Active' | 'Expired' | 'Disabled'>('Active');
+  const [isSaving, setIsSaving] = useState(false);
+
   const [deleteTarget, setDeleteTarget] = useState<AdminCoupon | null>(null);
   const [toastMsg, setToastMsg] = useState('');
 
@@ -58,6 +68,45 @@ export default function AdminCouponsPage() {
     setIsAddOpen(false);
     setToastMsg(`Coupon code "${code.toUpperCase()}" created!`);
     await loadData();
+  };
+
+  const openEditModal = (c: AdminCoupon) => {
+    setEditTarget(c);
+    setEditCode(c.code);
+    setDiscountTypeEdit(c.discountType);
+    setDiscountValueEdit(c.discountValue);
+    setMinOrderEdit(c.minOrder);
+    setMaxDiscountEdit(c.maxDiscount || 0);
+    setExpiryDateEdit(c.expiryDate || '');
+    setUsageLimitEdit(c.usageLimit || 100);
+    setStatusEdit(c.status);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget || !editCode.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await couponService.updateCoupon(editTarget.id, {
+        code: editCode.toUpperCase().trim(),
+        discountType: editDiscountType,
+        discountValue: Number(editDiscountValue),
+        minOrder: Number(editMinOrder),
+        maxDiscount: Number(editMaxDiscount),
+        expiryDate: editExpiryDate,
+        usageLimit: Number(editUsageLimit),
+        status: editStatus,
+      });
+
+      setToastMsg(`Coupon "${editCode.toUpperCase()}" updated successfully!`);
+      setEditTarget(null);
+      await loadData();
+    } catch (err: any) {
+      setToastMsg(`Failed to update coupon: ${err.message || 'Error'}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleToggleStatus = async (c: AdminCoupon) => {
@@ -254,13 +303,22 @@ export default function AdminCouponsPage() {
                   </td>
 
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => setDeleteTarget(c)}
-                      className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                      title="Delete Coupon"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => openEditModal(c)}
+                        className="p-2 text-zinc-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-xl transition-all cursor-pointer"
+                        title="Edit Coupon"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(c)}
+                        className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
+                        title="Delete Coupon"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -268,6 +326,139 @@ export default function AdminCouponsPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Coupon Modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-serif font-black uppercase text-white">
+                  Edit Coupon ({editTarget.code})
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditTarget(null)}
+                className="text-zinc-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Coupon Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-amber-400 font-mono font-bold uppercase focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Discount Type</label>
+                  <select
+                    value={editDiscountType}
+                    onChange={(e) => setDiscountTypeEdit(e.target.value as any)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Discount Value *</label>
+                  <input
+                    type="number"
+                    required
+                    value={editDiscountValue}
+                    onChange={(e) => setDiscountValueEdit(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Min Order Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={editMinOrder}
+                    onChange={(e) => setMinOrderEdit(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Max Discount Cap (₹)</label>
+                  <input
+                    type="number"
+                    value={editMaxDiscount}
+                    onChange={(e) => setMaxDiscountEdit(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={editExpiryDate}
+                    onChange={(e) => setExpiryDateEdit(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-white font-mono focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-zinc-400 block mb-1 uppercase">Usage Limit</label>
+                  <input
+                    type="number"
+                    value={editUsageLimit}
+                    onChange={(e) => setUsageLimitEdit(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-zinc-400 block mb-1 uppercase">Status</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setStatusEdit(e.target.value as any)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Disabled">Disabled</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditTarget(null)}
+                  className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-black font-extrabold uppercase rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={!!deleteTarget}

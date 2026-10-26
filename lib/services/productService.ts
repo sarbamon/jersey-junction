@@ -23,8 +23,8 @@ export function mapBackendToAdminProduct(item: any): AdminProduct {
     brand: item.brand || 'Jersey Junction',
     sizes: item.sizes || item.availableSizes || ['S', 'M', 'L', 'XL', '2XL'],
     colors: Array.isArray(item.colors) ? item.colors : (item.colors ? [item.colors.primary, item.colors.secondary].filter(Boolean) : []),
-    image: item.image || (item.images && item.images[0]) || '',
-    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []),
+    image: item.image || (item.images && item.images[0]) || '/placeholder-jersey.svg',
+    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : ['/placeholder-jersey.svg']),
     isFeatured: Boolean(item.isFeatured),
     isBestseller: Boolean(item.isBestseller),
     isCustomizable: Boolean(item.isCustomizable),
@@ -71,8 +71,8 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     tags: item.tags || [],
     stock: item.stock !== undefined ? Number(item.stock) : 50,
     status: item.status || (item.stock === 0 ? 'Out of Stock' : 'Active'),
-    image: item.image || (item.images && item.images[0]) || '',
-    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : []),
+    image: item.image || (item.images && item.images[0]) || '/placeholder-jersey.svg',
+    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : ['/placeholder-jersey.svg']),
   };
 }
 

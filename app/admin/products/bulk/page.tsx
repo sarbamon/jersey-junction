@@ -280,6 +280,12 @@ export default function BulkAddProductsPage() {
       return;
     }
 
+    const missingPhotoRows = validRows.filter((r) => !r.images || r.images.length === 0);
+    if (missingPhotoRows.length > 0) {
+      setToastMsg(`Photo upload is compulsory! "${missingPhotoRows[0].name}" has no photos uploaded. Please upload at least one photo.`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       for (const r of validRows) {
@@ -503,7 +509,7 @@ export default function BulkAddProductsPage() {
                 <th className="py-4 px-3 font-bold min-w-[100px]">PRICE (₹) *</th>
                 <th className="py-4 px-3 font-bold min-w-[100px]">REG. PRICE (₹)</th>
                 <th className="py-4 px-4 font-bold min-w-[230px]">SIZES &amp; STOCK INVENTORY</th>
-                <th className="py-4 px-4 font-bold min-w-[260px]">PHOTOS (MULTI-UPLOAD)</th>
+                <th className="py-4 px-4 font-bold min-w-[260px] text-amber-400">PHOTOS (MULTI-UPLOAD) *</th>
                 <th className="py-4 px-3 font-bold text-right w-20">ACTIONS</th>
               </tr>
             </thead>

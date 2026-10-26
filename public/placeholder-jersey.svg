@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c0d10"/>
+      <stop offset="50%" stop-color="#14161d"/>
+      <stop offset="100%" stop-color="#07080a"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe27a"/>
+      <stop offset="50%" stop-color="#f4c84a"/>
+      <stop offset="100%" stop-color="#c9971a"/>
+    </linearGradient>
+    <linearGradient id="jerseyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e222d"/>
+      <stop offset="100%" stop-color="#111318"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#f4c84a" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#f4c84a" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="800" fill="url(#bgGrad)"/>
+  <circle cx="400" cy="380" r="320" fill="url(#glow)"/>
+
+  <!-- Subtle Sport Grid / Lines -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="1.5">
+    <line x1="100" y1="0" x2="100" y2="800"/>
+    <line x1="200" y1="0" x2="200" y2="800"/>
+    <line x1="300" y1="0" x2="300" y2="800"/>
+    <line x1="400" y1="0" x2="400" y2="800"/>
+    <line x1="500" y1="0" x2="500" y2="800"/>
+    <line x1="600" y1="0" x2="600" y2="800"/>
+    <line x1="700" y1="0" x2="700" y2="800"/>
+    <line x1="0" y1="200" x2="800" y2="200"/>
+    <line x1="0" y1="400" x2="800" y2="400"/>
+    <line x1="0" y1="600" x2="800" y2="600"/>
+  </g>
+
+  <!-- Jersey Silhouette Container -->
+  <g filter="url(#shadow)">
+    <!-- Main Jersey Body & Sleeves Shape -->
+    <path d="M 330 180 
+             C 360 210, 440 210, 470 180 
+             L 570 230 
+             L 630 350 
+             L 540 395 
+             L 520 330 
+             L 520 570 
+             C 520 585, 505 595, 490 595 
+             L 310 595 
+             C 295 595, 280 585, 280 570 
+             L 280 330 
+             L 260 395 
+             L 170 350 
+             L 230 230 
+             Z" 
+          fill="url(#jerseyGrad)" 
+          stroke="#2a303e" 
+          stroke-width="3"/>
+
+    <!-- Collar Accent (Gold) -->
+    <path d="M 330 180 C 360 215, 440 215, 470 180 C 450 230, 350 230, 330 180 Z" 
+          fill="url(#goldGrad)"/>
+
+    <!-- Sleeve Trim Accents -->
+    <path d="M 630 350 L 540 395 L 548 375 L 618 335 Z" fill="url(#goldGrad)"/>
+    <path d="M 170 350 L 260 395 L 252 375 L 182 335 Z" fill="url(#goldGrad)"/>
+
+    <!-- Subtle Athletic Panel Lines -->
+    <path d="M 320 280 L 320 560" stroke="#f4c84a" stroke-opacity="0.25" stroke-width="2" stroke-dasharray="6,4"/>
+    <path d="M 480 280 L 480 560" stroke="#f4c84a" stroke-opacity="0.25" stroke-width="2" stroke-dasharray="6,4"/>
+
+    <!-- Center Crest Shield -->
+    <g transform="translate(400, 310)">
+      <!-- Shield Outer -->
+      <path d="M 0 -35 L 28 -20 L 28 10 C 28 30, 0 45, 0 45 C 0 45, -28 30, -28 10 L -28 -20 Z" 
+            fill="#0f1117" 
+            stroke="url(#goldGrad)" 
+            stroke-width="2.5"/>
+      <!-- Star on Crest -->
+      <polygon points="0,-16 4,-6 14,-6 6,1 9,11 0,5 -9,11 -6,1 -14,-6 -4,-6" 
+               fill="url(#goldGrad)"/>
+      <text x="0" y="24" 
+            font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+            font-size="12" 
+            font-weight="900" 
+            fill="#ffffff" 
+            letter-spacing="1.5" 
+            text-anchor="middle">JJ</text>
+    </g>
+
+    <!-- Center Chest Sponsor Badge -->
+    <g transform="translate(400, 420)">
+      <rect x="-90" y="-18" width="180" height="36" rx="6" fill="#141720" stroke="#252a37" stroke-width="1.5"/>
+      <text x="0" y="6" 
+            font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+            font-size="13" 
+            font-weight="900" 
+            fill="url(#goldGrad)" 
+            letter-spacing="3" 
+            text-anchor="middle">JERSEY JUNCTION</text>
+    </g>
+  </g>
+
+  <!-- Bottom Branding Banner -->
+  <g transform="translate(400, 680)">
+    <text x="0" y="0" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+          font-size="16" 
+          font-weight="900" 
+          fill="#f4c84a" 
+          letter-spacing="6" 
+          text-anchor="middle">AUTHENTIC COLLECTION</text>
+    <text x="0" y="24" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+          font-size="12" 
+          font-weight="600" 
+          fill="#6b7280" 
+          letter-spacing="2" 
+          text-anchor="middle">PREMIUM QUALITY SPORTSWEAR</text>
+  </g>
+</svg>

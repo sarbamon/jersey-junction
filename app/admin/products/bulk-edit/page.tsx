@@ -307,6 +307,15 @@ export default function BulkEditProductsPage() {
   };
 
   const handleSaveAll = async () => {
+    const missingPhotoProds = products.filter((p) => {
+      const finalImages = p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+      return finalImages.length === 0;
+    });
+    if (missingPhotoProds.length > 0) {
+      setToastMsg(`Photo is compulsory! "${missingPhotoProds[0].name}" has no photos. Please upload at least one photo.`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       for (const p of products) {

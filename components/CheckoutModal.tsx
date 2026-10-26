@@ -33,7 +33,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   activeCurrency,
   onOrderSuccess
 }) => {
-  const { currentUser, clearCart, setIsAuthOpen } = useStore();
+  const { currentUser, clearCart, setIsAuthOpen, isServerDown } = useStore();
   const [step, setStep] = useState<1 | 2>(1);
   const [paymentMethod, setPaymentMethod] = useState<'Razorpay' | 'COD'>('Razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -442,6 +442,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isServerDown) {
+      alert('Uh oh! Store server is temporarily offline. Purchasing is currently disabled.');
+      return;
+    }
     if (paymentMethod === 'COD') {
       if (!isCodEnabled) {
         alert('Cash on Delivery is currently disabled by the store. Please proceed with Online Payment.');
@@ -786,10 +790,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </button>
                     <button
                       type="submit"
-                      disabled={isProcessing || items.length === 0}
+                      disabled={isProcessing || items.length === 0 || isServerDown}
                       className="px-8 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-zinc-950 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {isProcessing
+                      {isServerDown
+                        ? 'SERVER OFFLINE — DISABLED'
+                        : isProcessing
                         ? 'INITIATING RAZORPAY...'
                         : items.length === 0
                         ? 'CART IS EMPTY'

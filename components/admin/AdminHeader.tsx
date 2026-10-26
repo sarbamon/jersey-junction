@@ -18,7 +18,8 @@ import {
   BellOff,
   Sun,
   Moon,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import { GlobalSearch } from './GlobalSearch';
 import { authService } from '../../lib/services/authService';
@@ -339,7 +340,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
               <span className="text-xs font-bold text-white leading-none">
                 {currentUser?.name || 'Master Admin'}
               </span>
-              <span className="text-[9px] font-mono text-amber-400 leading-tight">Superuser</span>
+              <span className="text-[9px] font-mono text-amber-400 leading-tight">
+                {currentUser?.role === 'admin' ? 'Administrator' : (currentUser?.employeeTitle || 'Employee')}
+              </span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-400 ml-1" />
           </button>
@@ -348,17 +351,33 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
             <div className="absolute right-0 top-full mt-2 w-56 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl z-50 p-2 space-y-1">
               <div className="p-3 bg-zinc-900/80 rounded-xl space-y-1">
                 <div className="text-xs font-bold text-white">{currentUser?.name || 'Master Administrator'}</div>
-                <div className="text-[10px] text-zinc-400 font-mono">{currentUser?.email || 'admin@jerseyspot.com'}</div>
+                <div className="text-[10px] text-zinc-400 font-mono truncate">{currentUser?.email || 'admin@jerseyspot.com'}</div>
+                <div className="text-[9px] font-bold text-amber-400 font-mono uppercase">
+                  {currentUser?.role === 'admin' ? 'Administrator' : (currentUser?.employeeTitle || 'Employee')}
+                </div>
               </div>
 
-              <Link
-                href="/admin/settings"
-                onClick={() => setIsProfileOpen(false)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-300 hover:text-amber-400 hover:bg-zinc-900 rounded-xl transition-colors"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>Store Settings</span>
-              </Link>
+              {currentUser?.role === 'admin' && (
+                <Link
+                  href="/admin/employees"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-300 hover:text-white hover:bg-zinc-900 rounded-xl transition-colors"
+                >
+                  <Users className="w-4 h-4 text-amber-400" />
+                  <span>Employees</span>
+                </Link>
+              )}
+
+              {(currentUser?.role === 'admin' || authService.hasPermission('settings')) && (
+                <Link
+                  href="/admin/settings"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-300 hover:text-amber-400 hover:bg-zinc-900 rounded-xl transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>Store Settings</span>
+                </Link>
+              )}
 
               <button
                 onClick={handleLogout}
