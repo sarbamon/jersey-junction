@@ -22,6 +22,7 @@ export interface AdminProduct {
   isFeatured: boolean;
   isBestseller: boolean;
   isCustomizable?: boolean;
+  customizationPrice?: number;
   status: ProductStatus;
   createdDate: string;
   totalSold: number;
@@ -181,6 +182,7 @@ export interface StoreSettings {
   freeShippingThreshold: number;
   codEnabled: boolean;
   razorpayEnabled: boolean;
+  customJerseyPrice?: number;
   icarryPickupLocations?: ICarryPickupLocation[];
   icarryPickupName?: string;
   icarryPickupAddressId?: string;

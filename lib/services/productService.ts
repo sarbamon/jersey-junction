@@ -28,6 +28,7 @@ export function mapBackendToAdminProduct(item: any): AdminProduct {
     isFeatured: Boolean(item.isFeatured),
     isBestseller: Boolean(item.isBestseller),
     isCustomizable: Boolean(item.isCustomizable),
+    customizationPrice: item.customizationPrice !== undefined ? Number(item.customizationPrice) : undefined,
     status: item.status || 'Active',
     createdDate: item.createdDate || item.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
     totalSold: item.totalSold || 0,
@@ -55,6 +56,7 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     isBestseller: Boolean(item.isBestseller),
     isHot: Boolean(item.isHot),
     isCustomizable: Boolean(item.isCustomizable),
+    customizationPrice: item.customizationPrice !== undefined ? Number(item.customizationPrice) : undefined,
     colors: typeof item.colors === 'object' && item.colors !== null && !Array.isArray(item.colors) 
       ? item.colors 
       : { primary: '#000000', secondary: '#ffffff', accent: '#f4c84a', text: '#ffffff' },

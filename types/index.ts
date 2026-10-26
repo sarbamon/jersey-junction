@@ -42,6 +42,7 @@ export interface JerseyProduct {
   isBestseller?: boolean;
   isHot?: boolean;
   isCustomizable?: boolean;
+  customizationPrice?: number;
   colors: {
     primary: string;
     secondary: string;

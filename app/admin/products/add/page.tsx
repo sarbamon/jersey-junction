@@ -53,6 +53,7 @@ export default function AddProductPage() {
   const [isFeatured, setIsFeatured] = useState(true);
   const [isBestseller, setIsBestseller] = useState(false);
   const [isCustomizable, setIsCustomizable] = useState(false);
+  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(150);
   const [status, setStatus] = useState<'Active' | 'Out of Stock'>('Active');
 
   const [toastMsg, setToastMsg] = useState('');
@@ -184,6 +185,7 @@ export default function AddProductPage() {
         isFeatured,
         isBestseller,
         isCustomizable,
+        customizationPrice: customizationPrice === '' ? 150 : Number(customizationPrice),
         status
       });
 
@@ -543,18 +545,40 @@ export default function AddProductPage() {
                 <span className="font-bold text-white uppercase text-xs">Best Seller Badge</span>
               </label>
 
-              <label className="flex items-start gap-3 cursor-pointer pt-2 border-t border-zinc-800">
-                <input
-                  type="checkbox"
-                  checked={isCustomizable}
-                  onChange={(e) => setIsCustomizable(e.target.checked)}
-                  className="w-4 h-4 rounded accent-amber-400 cursor-pointer mt-0.5"
-                />
-                <div>
-                  <span className="font-bold text-white uppercase text-xs block">Custom Name &amp; Number</span>
-                  <span className="text-[10px] text-zinc-400 block">Allow customers to customize the back with their name &amp; number (+₹100)</span>
-                </div>
-              </label>
+              <div className="pt-2 border-t border-zinc-800 space-y-2">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isCustomizable}
+                    onChange={(e) => setIsCustomizable(e.target.checked)}
+                    className="w-4 h-4 rounded accent-amber-400 cursor-pointer mt-0.5"
+                  />
+                  <div>
+                    <span className="font-bold text-white uppercase text-xs block">Custom Name &amp; Number</span>
+                    <span className="text-[10px] text-zinc-400 block">Allow customers to customize the back with their name &amp; number</span>
+                  </div>
+                </label>
+
+                {isCustomizable && (
+                  <div className="pl-7 pt-1 space-y-1">
+                    <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+                      Custom Printing Price (₹)
+                    </label>
+                    <div className="relative max-w-[160px]">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono font-bold text-xs">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={customizationPrice}
+                        onChange={(e) => setCustomizationPrice(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                        placeholder="150"
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-1.5 text-white font-mono text-xs font-bold focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <span className="text-[9px] text-zinc-500 block">Default is ₹150 (or store setting).</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

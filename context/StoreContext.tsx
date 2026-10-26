@@ -6,6 +6,7 @@ import { CURRENCIES, PRODUCTS } from '../data/jerseys';
 import { authService } from '../lib/services/authService';
 import { couponService } from '../lib/services/couponService';
 import { serverStatusService } from '../lib/services/serverStatusService';
+import { settingsService } from '../lib/services/settingsService';
 
 export type Theme = 'dark' | 'light';
 
@@ -161,7 +162,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     const patchesPrice = patches.reduce((sum, p) => sum + p.price, 0);
     const versionExtra = version.includes('Player') ? 150 : 0;
-    const printExtra = customName ? 100 : 0;
+    const hasCustomPrint = Boolean(customName?.trim() || customNumber?.trim());
+    const storeSettings = settingsService.getSettings();
+    const customFee = (typeof product.customizationPrice === 'number' && product.customizationPrice >= 0)
+      ? product.customizationPrice
+      : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : 150);
+    const printExtra = hasCustomPrint ? customFee : 0;
 
     const unitPrice = product.price + patchesPrice + versionExtra + printExtra;
     const cartItemId = `${product.id}-${size}-${version}-${customName}-${customNumber}-${patches.map((p) => p.id).join('-')}`;

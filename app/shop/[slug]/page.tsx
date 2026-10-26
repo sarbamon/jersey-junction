@@ -27,6 +27,7 @@ import { JerseyProduct, VersionType, PatchOption } from '../../../types';
 import { REVIEWS } from '../../../data/jerseys';
 import { productService } from '../../../lib/services/productService';
 import { icarryService } from '../../../lib/services/icarryService';
+import { settingsService } from '../../../lib/services/settingsService';
 import { Navbar } from '../../../components/Navbar';
 import { Footer } from '../../../components/Footer';
 import { CartDrawer } from '../../../components/CartDrawer';
@@ -219,8 +220,14 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   }
 
+  const storeSettings = settingsService.getSettings();
+  const customFee = (typeof product.customizationPrice === 'number' && product.customizationPrice >= 0)
+    ? product.customizationPrice
+    : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : 150);
+  const customFeeConverted = Math.round(customFee * activeCurrency.rate);
+
   const patchesExtra = selectedPatches.reduce((acc, p) => acc + p.price, 0);
-  const printExtra = (product.isCustomizable && wantCustomPrint) ? 100 : 0;
+  const printExtra = (product.isCustomizable && wantCustomPrint) ? customFee : 0;
 
   const finalUnitPrice = product.price + patchesExtra + printExtra;
   const finalUnitPriceConverted = Math.round(finalUnitPrice * activeCurrency.rate);
@@ -532,7 +539,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     </span>
                   </div>
                   <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#f4c84a]/10 text-[#f4c84a] border border-[#f4c84a]/30">
-                    +₹100
+                    +{activeCurrency.symbol}{customFeeConverted}
                   </span>
                 </div>
 
@@ -563,7 +570,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   >
                     <span>Custom Name &amp; No.</span>
                     <span className={`text-[10px] font-mono px-1 py-0.5 rounded font-bold ${wantCustomPrint ? 'bg-black/20 text-black' : 'bg-[#f4c84a]/20 text-[#f4c84a]'}`}>
-                      +₹100
+                      +{activeCurrency.symbol}{customFeeConverted}
                     </span>
                   </button>
                 </div>

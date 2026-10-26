@@ -5,14 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import confettiFn from 'canvas-confetti';
-import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin, User } from 'lucide-react';
+import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin, User, Tag, Ticket, X, AlertCircle, Loader2, Sparkles, Percent } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
 import { orderService } from '../../lib/services/orderService';
 import { paymentService } from '../../lib/services/paymentService';
 import { productService } from '../../lib/services/productService';
-import { AdminOrder, StoreSettings } from '../../lib/types/admin';
+import { couponService } from '../../lib/services/couponService';
+import { AdminOrder, StoreSettings, AdminCoupon } from '../../lib/types/admin';
 import { settingsService } from '../../lib/services/settingsService';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
@@ -38,9 +39,19 @@ export default function CheckoutPage() {
     setIsCartOpen,
     setIsAuthOpen,
     appliedCouponCode,
+    discountPercentage,
+    appliedCouponMsg,
+    applyCoupon,
+    removeCoupon,
   } = useStore();
 
   const [step, setStep] = useState<1 | 2>(1);
+  const [couponInput, setCouponInput] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isCouponsModalOpen, setIsCouponsModalOpen] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<AdminCoupon[]>([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
 
   // Auto-reset to Step 1 if cart is empty
   useEffect(() => {
@@ -241,16 +252,91 @@ export default function CheckoutPage() {
     } catch (e) {}
   };
 
-  // Base item prices stored in INR
+  // Itemized breakdown calculations
+  let baseJerseysTotalINR = 0;
+  let customPrintingTotalINR = 0;
+  let patchesTotalINR = 0;
+  let customizedItemsCount = 0;
+
+  for (const item of cartItems) {
+    const isPlayer = item.version?.includes('Player');
+    const versionExtra = isPlayer ? 150 : 0;
+    const baseUnit = (item.product?.price || 0) + versionExtra;
+    
+    const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
+    const customFee = (typeof item.product?.customizationPrice === 'number' && item.product.customizationPrice >= 0)
+      ? item.product.customizationPrice
+      : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : 150);
+    const itemPrintExtra = hasCustomPrint ? customFee : 0;
+    if (hasCustomPrint) {
+      customizedItemsCount += item.quantity;
+    }
+    
+    const itemPatchesExtra = Array.isArray(item.selectedPatches)
+      ? item.selectedPatches.reduce((sum, p) => sum + (Number(p.price) || 0), 0)
+      : 0;
+
+    baseJerseysTotalINR += baseUnit * item.quantity;
+    customPrintingTotalINR += itemPrintExtra * item.quantity;
+    patchesTotalINR += itemPatchesExtra * item.quantity;
+  }
+
   const rawSubtotalINR = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
-  const expressPrice = typeof storeSettings?.expressShippingCharge === 'number' ? storeSettings.expressShippingCharge : 250;
+
+  // Authoritative discount amount
+  const discountAmountINR = appliedCouponCode && discountPercentage > 0
+    ? Math.round((rawSubtotalINR * discountPercentage) / 100)
+    : 0;
+
+  const expressPrice = typeof storeSettings?.expressShippingCharge === 'number' ? storeSettings.expressShippingCharge : 100;
   const standardPrice = typeof storeSettings?.standardShippingCharge === 'number' ? storeSettings.standardShippingCharge : 0;
   const shippingCostINR = cartItems.length === 0 ? 0 : (formData.shippingMethod === 'express' ? expressPrice : standardPrice);
-  const grandTotalINR = rawSubtotalINR + shippingCostINR;
+  const grandTotalINR = Math.max(0, rawSubtotalINR - discountAmountINR + shippingCostINR);
 
+  const baseJerseysConverted = (baseJerseysTotalINR * activeCurrency.rate).toFixed(2);
+  const customPrintingConverted = (customPrintingTotalINR * activeCurrency.rate).toFixed(2);
+  const patchesConverted = (patchesTotalINR * activeCurrency.rate).toFixed(2);
   const rawSubtotalConverted = (rawSubtotalINR * activeCurrency.rate).toFixed(2);
+  const discountAmountConverted = (discountAmountINR * activeCurrency.rate).toFixed(2);
   const shippingCostConverted = (shippingCostINR * activeCurrency.rate).toFixed(2);
   const grandTotalConverted = (grandTotalINR * activeCurrency.rate).toFixed(2);
+
+  const handleApplyCoupon = async (e?: React.FormEvent, directCode?: string) => {
+    if (e) e.preventDefault();
+    const codeToApply = (directCode || couponInput).trim().toUpperCase();
+    if (!codeToApply) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setCouponError(null);
+    setIsApplyingCoupon(true);
+    try {
+      const res = await applyCoupon(codeToApply);
+      if (!res.success) {
+        setCouponError(res.message || 'Invalid coupon code.');
+      } else {
+        setCouponInput('');
+        setIsCouponsModalOpen(false);
+      }
+    } catch (err: any) {
+      setCouponError(err.message || 'Failed to apply coupon.');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleOpenCouponsModal = async () => {
+    setIsCouponsModalOpen(true);
+    setIsLoadingCoupons(true);
+    try {
+      const list = await couponService.fetchCoupons();
+      setAvailableCoupons(list.filter((c) => c.status === 'Active'));
+    } catch {
+      setAvailableCoupons([]);
+    } finally {
+      setIsLoadingCoupons(false);
+    }
+  };
 
   const triggerSuccess = (newId: string) => {
     try {
@@ -316,7 +402,7 @@ export default function CheckoutPage() {
         })),
         subtotal: rawSubtotalINR,
         shippingFee: shippingCostINR,
-        discountAmount: 0,
+        discountAmount: discountAmountINR,
         totalAmount: grandTotalINR,
         paymentMethod: 'Razorpay',
         paymentStatus: 'Pending',
@@ -438,7 +524,7 @@ export default function CheckoutPage() {
       })),
       subtotal: rawSubtotalINR,
       shippingFee: shippingCostINR,
-      discountAmount: 0,
+      discountAmount: discountAmountINR,
       totalAmount: grandTotalINR,
       shippingMethod: formData.shippingMethod,
       couponCode: appliedCouponCode || undefined,
@@ -950,19 +1036,136 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Price Calculation Totals */}
-              <div className="space-y-2 text-xs font-mono border-t border-[#222] pt-4 text-gray-300">
+              {/* Coupon Application Box */}
+              {cartItems.length > 0 && (
+                <div className="border-t border-[#222] pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Ticket className="w-3.5 h-3.5 text-[#f4c84a]" />
+                      <span>Discount Coupon</span>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenCouponsModal}
+                      className="text-[11px] text-[#f4c84a] hover:text-[#ffd96a] font-bold underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>View Available Coupons</span>
+                    </button>
+                  </div>
+
+                  {appliedCouponCode ? (
+                    <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-2xl px-4 py-3 text-xs">
+                      <div className="flex items-center gap-2.5 text-emerald-400 font-bold">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                        <div>
+                          <div className="font-mono text-white text-xs">
+                            COUPON &ldquo;<span className="text-emerald-400 font-bold">{appliedCouponCode}</span>&rdquo; APPLIED
+                          </div>
+                          <div className="text-[10px] text-emerald-400/90 font-mono">
+                            {discountPercentage > 0 ? `${discountPercentage}% Discount Applied (-${activeCurrency.symbol}${discountAmountConverted})` : appliedCouponMsg}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeCoupon}
+                        className="text-red-400 hover:text-red-300 font-bold text-xs underline cursor-pointer px-2 py-1 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                          <input
+                            type="text"
+                            placeholder="Enter coupon code"
+                            value={couponInput}
+                            onChange={(e) => {
+                              setCouponInput(e.target.value.toUpperCase());
+                              if (couponError) setCouponError(null);
+                            }}
+                            className="w-full bg-[#121212] border border-[#2b2b2b] focus:border-[#f4c84a] rounded-xl pl-8 pr-3 py-2.5 text-xs font-mono font-bold text-white uppercase focus:outline-none placeholder:text-gray-600"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={isApplyingCoupon || !couponInput.trim()}
+                          className="px-5 py-2.5 bg-[#f4c84a] hover:bg-[#ffd96a] disabled:opacity-40 disabled:hover:bg-[#f4c84a] text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                        >
+                          {isApplyingCoupon && <Loader2 className="w-3 h-3 animate-spin text-black" />}
+                          <span>{isApplyingCoupon ? 'Applying...' : 'Apply'}</span>
+                        </button>
+                      </form>
+
+                      {couponError && (
+                        <div className="flex items-center gap-1.5 text-red-400 text-[11px] font-bold px-1 pt-0.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{couponError}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Itemized Price Calculation Breakdown */}
+              <div className="space-y-2.5 text-xs font-mono border-t border-[#222] pt-4 text-gray-300">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span className="text-gray-400">Jerseys Base Total</span>
+                  <span className="text-white font-bold">{activeCurrency.symbol}{baseJerseysConverted}</span>
+                </div>
+
+                {customPrintingTotalINR > 0 && (
+                  <div className="flex justify-between text-[#f4c84a]">
+                    <span className="flex items-center gap-1">
+                      <span>Custom Name &amp; Number Printing</span>
+                      <span className="text-[10px] text-gray-400">({customizedItemsCount} item{customizedItemsCount > 1 ? 's' : ''})</span>
+                    </span>
+                    <span className="font-bold">+{activeCurrency.symbol}{customPrintingConverted}</span>
+                  </div>
+                )}
+
+                {patchesTotalINR > 0 && (
+                  <div className="flex justify-between text-amber-200">
+                    <span>Sleeve Badges &amp; Patches</span>
+                    <span className="font-bold">+{activeCurrency.symbol}{patchesConverted}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between border-t border-[#1a1a1a] pt-2">
+                  <span className="font-bold text-white">Subtotal</span>
                   <span className="text-white font-bold">{activeCurrency.symbol}{rawSubtotalConverted}</span>
                 </div>
+
+                {discountAmountINR > 0 && (
+                  <div className="flex justify-between text-emerald-400 font-bold">
+                    <span className="flex items-center gap-1">
+                      <span>Coupon Discount</span>
+                      {appliedCouponCode && (
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono">
+                          {appliedCouponCode}
+                        </span>
+                      )}
+                    </span>
+                    <span>-{activeCurrency.symbol}{discountAmountConverted}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between">
-                  <span>Shipping ({formData.shippingMethod.toUpperCase()})</span>
-                  <span className="text-white font-bold">{activeCurrency.symbol}{shippingCostConverted}</span>
+                  <span className="text-gray-400">Shipping ({formData.shippingMethod.toUpperCase()})</span>
+                  <span className={`font-bold ${shippingCostINR === 0 ? 'text-emerald-400' : 'text-white'}`}>
+                    {shippingCostINR === 0 ? 'FREE' : `${activeCurrency.symbol}${shippingCostConverted}`}
+                  </span>
                 </div>
+
                 <div className="flex justify-between text-sm font-black text-white pt-3 border-t border-[#222]">
-                  <span>Total Amount</span>
-                  <span className="text-[#f4c84a] font-mono text-base">{activeCurrency.symbol}{grandTotalConverted}</span>
+                  <span className="uppercase tracking-wider">Total Amount</span>
+                  <span className="text-[#f4c84a] font-mono text-lg font-black">{activeCurrency.symbol}{grandTotalConverted}</span>
                 </div>
               </div>
 
@@ -1002,6 +1205,103 @@ export default function CheckoutPage() {
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectSport={() => router.push('/shop')}
       />
+
+      {/* Available Coupons Modal */}
+      {isCouponsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#0e0e0e] border border-[#2b2b2b] rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-[#222] pb-4">
+              <div className="flex items-center gap-2 text-[#f4c84a]">
+                <Ticket className="w-5 h-5" />
+                <h3 className="font-serif font-black text-base text-white uppercase tracking-wider">
+                  Available Promo Coupons
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCouponsModalOpen(false)}
+                className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {isLoadingCoupons ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-400">
+                <Loader2 className="w-6 h-6 animate-spin text-[#f4c84a]" />
+                <span className="text-xs font-mono">Loading active coupons...</span>
+              </div>
+            ) : availableCoupons.length === 0 ? (
+              <div className="py-8 text-center space-y-2">
+                <Ticket className="w-8 h-8 text-gray-600 mx-auto" />
+                <p className="text-xs text-gray-400">No promo coupons available right now.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                {availableCoupons.map((coupon) => {
+                  const isCurrent = appliedCouponCode === coupon.code;
+                  return (
+                    <div
+                      key={coupon.id || coupon.code}
+                      className={`p-4 rounded-2xl border transition-all space-y-2.5 ${
+                        isCurrent
+                          ? 'bg-emerald-500/10 border-emerald-500/40 shadow'
+                          : 'bg-[#151515] border-[#292929] hover:border-[#f4c84a]/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-sm text-[#f4c84a] tracking-wider uppercase bg-[#f4c84a]/10 border border-[#f4c84a]/30 px-2 py-0.5 rounded-md">
+                              {coupon.code}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+                                Applied
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs font-bold text-white mt-1">
+                            {coupon.discountType === 'percentage'
+                              ? `${coupon.discountValue}% OFF`
+                              : `₹${coupon.discountValue} OFF`}
+                            {coupon.minOrder > 0 && ` on orders above ₹${coupon.minOrder}`}
+                          </div>
+                        </div>
+
+                        {!isCurrent ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCoupon(undefined, coupon.code)}
+                            disabled={isApplyingCoupon}
+                            className="px-3.5 py-1.5 bg-[#f4c84a] hover:bg-[#ffd96a] text-black font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow shrink-0"
+                          >
+                            Apply
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={removeCoupon}
+                            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-[11px] uppercase rounded-xl transition-all cursor-pointer shrink-0"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      {coupon.expiryDate && (
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          Expires: {coupon.expiryDate}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <SizeGuideModal isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
       <CustomJerseyStudio isOpen={isCustomStudioOpen} onClose={() => setIsCustomStudioOpen(false)} activeCurrency={activeCurrency} onAddToCart={addToCart} />

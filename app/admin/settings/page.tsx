@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, ShieldCheck, Truck, CreditCard, Share2, Store, Image as ImageIcon, Upload, Loader2, X, Plus, Trash2, Building, Ruler } from 'lucide-react';
+import { Settings, Save, ShieldCheck, Truck, CreditCard, Share2, Store, Image as ImageIcon, Upload, Loader2, X, Plus, Trash2, Building, Ruler, Tag } from 'lucide-react';
 import { settingsService } from '../../../lib/services/settingsService';
 import { uploadService } from '../../../lib/services/uploadService';
 import { StoreSettings, ICarryPickupLocation } from '../../../lib/types/admin';
@@ -211,6 +211,42 @@ export default function AdminSettingsPage() {
               onChange={(e) => setSettings({ ...settings, storeAddress: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400"
             />
+          </div>
+        </div>
+
+        {/* Custom Jersey Printing Fee Card */}
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-4 text-xs">
+          <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 text-amber-400">
+            <Tag className="w-4 h-4" />
+            <h2 className="text-sm font-extrabold font-serif uppercase tracking-wider text-white">
+              Custom Jersey Printing & Personalization Pricing
+            </h2>
+          </div>
+
+          <p className="text-zinc-400 text-xs">
+            Configure the default printing fee charged when customers customize a jersey with their name and number on the back. Individual products can override this fee in the product editor.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">
+                Default Custom Jersey Printing Fee (₹)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 font-mono font-bold">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={settings.customJerseyPrice ?? 150}
+                  onChange={(e) => setSettings({ ...settings, customJerseyPrice: Math.max(0, Number(e.target.value) || 0) })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <span className="text-[10px] text-zinc-500 mt-1 block">
+                Standard charge applied when back printing is selected (e.g. ₹150).
+              </span>
+            </div>
           </div>
         </div>
 
