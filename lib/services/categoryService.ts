@@ -5,17 +5,16 @@ import { INITIAL_CATEGORIES } from '../mock/categories';
 const CATEGORIES_KEY = 'jj_admin_categories';
 
 function getLocalCategories(): AdminCategory[] {
-  if (typeof window === 'undefined') return INITIAL_CATEGORIES;
+  if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(CATEGORIES_KEY);
   if (!stored) {
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(INITIAL_CATEGORIES));
-    return INITIAL_CATEGORIES;
+    return [];
   }
   try {
     const parsed: AdminCategory[] = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : INITIAL_CATEGORIES;
+    return Array.isArray(parsed) ? parsed.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
   } catch {
-    return INITIAL_CATEGORIES;
+    return [];
   }
 }
 
@@ -31,7 +30,7 @@ let memoryActiveCategories: AdminCategory[] | null = null;
 export const categoryService = {
   // Synchronous local fallback getter
   getCategoriesSync: (): AdminCategory[] => {
-    if (memoryActiveCategories && memoryActiveCategories.length > 0) {
+    if (memoryActiveCategories && Array.isArray(memoryActiveCategories)) {
       return memoryActiveCategories;
     }
     return getLocalCategories();
@@ -41,7 +40,7 @@ export const categoryService = {
   getCategories: async (): Promise<AdminCategory[]> => {
     try {
       const res = await apiClient.get('/categories/admin/all');
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
           id: c._id || c.id || c.slug,
           name: c.name,
@@ -52,6 +51,7 @@ export const categoryService = {
           image: c.image || '/placeholder-category.svg',
           order: typeof c.order === 'number' ? c.order : idx,
         }));
+        memoryActiveCategories = mapped;
         saveLocalCategories(mapped);
         return mapped;
       }
@@ -70,7 +70,7 @@ export const categoryService = {
     inFlightActiveCategoriesPromise = (async () => {
       try {
         const res = await apiClient.get('/categories');
-        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        if (res.success && Array.isArray(res.data)) {
           const mapped: AdminCategory[] = res.data.map((c: any, idx: number) => ({
             id: c.slug || c._id || c.id,
             name: c.name,
@@ -99,6 +99,7 @@ export const categoryService = {
   },
 
   addCategory: async (data: Omit<AdminCategory, 'id' | 'productsCount'>): Promise<AdminCategory> => {
+    memoryActiveCategories = null;
     const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const local = getLocalCategories();
     const newLocal: AdminCategory = {
@@ -121,6 +122,7 @@ export const categoryService = {
           status: res.data.status || 'Active',
           image: res.data.image,
         };
+        memoryActiveCategories = null;
         return created;
       }
     } catch (err) {
@@ -130,6 +132,7 @@ export const categoryService = {
   },
 
   updateCategory: async (id: string, updates: Partial<AdminCategory>): Promise<AdminCategory> => {
+    memoryActiveCategories = null;
     const local = getLocalCategories();
     const index = local.findIndex(c => c.id === id || c.slug === id);
     if (index !== -1) {
@@ -138,8 +141,9 @@ export const categoryService = {
     }
 
     try {
-      const res = await apiClient.put(`/categories/${id}`, updates);
+      const res = await apiClient.put(`/categories/${encodeURIComponent(id)}`, updates);
       if (res.success && res.data) {
+        memoryActiveCategories = null;
         return {
           id: res.data._id || res.data.id || res.data.slug,
           name: res.data.name,
@@ -157,25 +161,40 @@ export const categoryService = {
   },
 
   deleteCategory: async (id: string): Promise<void> => {
+    memoryActiveCategories = null;
     const local = getLocalCategories();
-    const filtered = local.filter(c => c.id !== id && c.slug !== id);
+    const idLower = (id || '').toLowerCase();
+    const filtered = local.filter(c => 
+      c.id !== id && 
+      c.slug !== id && 
+      (c.name || '').toLowerCase() !== idLower &&
+      (c.slug || '').toLowerCase() !== idLower
+    );
     saveLocalCategories(filtered);
 
     try {
-      await apiClient.delete(`/categories/${id}`);
+      await apiClient.delete(`/categories/${encodeURIComponent(id)}`);
+      memoryActiveCategories = null;
     } catch (err) {
       console.error('Failed to delete category on backend:', err);
     }
   },
 
   deleteCategoriesBulk: async (ids: string[]): Promise<void> => {
+    memoryActiveCategories = null;
     if (!ids || ids.length === 0) return;
     const local = getLocalCategories();
-    const filtered = local.filter(c => !ids.includes(c.id) && !ids.includes(c.slug));
+    const idSet = new Set(ids.map(i => String(i).toLowerCase()));
+    const filtered = local.filter(c => 
+      !idSet.has((c.id || '').toLowerCase()) && 
+      !idSet.has((c.slug || '').toLowerCase()) &&
+      !idSet.has((c.name || '').toLowerCase())
+    );
     saveLocalCategories(filtered);
 
     try {
       await apiClient.post('/categories/bulk-delete', { ids });
+      memoryActiveCategories = null;
     } catch (err) {
       console.error('Failed to bulk delete categories on backend:', err);
     }

@@ -17,12 +17,22 @@ export default function AddProductPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
-    categoryService.getCategories().then(setCategories);
+    categoryService.getCategories().then((cats) => {
+      setCategories(cats);
+      if (cats && cats.length > 0) {
+        setCategory((prev) => {
+          if (!prev || !cats.some((c) => c.name.toLowerCase() === prev.toLowerCase())) {
+            return cats[0].name;
+          }
+          return prev;
+        });
+      }
+    });
   }, []);
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [category, setCategory] = useState('Player Version');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('Official high-performance match jersey with moisture-wicking technology and official crest.');
   const [shortDescription, setShortDescription] = useState('Authentic master-quality match kit');
   const [price, setPrice] = useState(799);
@@ -233,13 +243,18 @@ export default function AddProductPage() {
               <div>
                 <label className="font-bold text-zinc-400 block mb-1 uppercase">Category *</label>
                 <select
-                  value={categories.find(c => c.name.toLowerCase() === (category || '').toLowerCase())?.name || category}
+                  required
+                  value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
+                  {categories.length === 0 ? (
+                    <option value="">No categories available - please create one first</option>
+                  ) : (
+                    categories.map((c) => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))
+                  )}
                 </select>
               </div>
 

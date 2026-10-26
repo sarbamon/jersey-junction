@@ -342,10 +342,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <div>
                   <label className="font-bold text-zinc-400 block mb-1 uppercase">Category</label>
                   <select
-                    value={categories.find(c => c.name.toLowerCase() === (category || '').toLowerCase())?.name || category}
+                    value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
                   >
+                    {!categories.some(c => c.name.toLowerCase() === (category || '').toLowerCase()) && category && (
+                      <option value={category}>{category} (Unassigned / Deleted)</option>
+                    )}
                     {categories.map((c) => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}

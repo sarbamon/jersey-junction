@@ -150,6 +150,11 @@ export default function EmployeesManagementPage() {
       return;
     }
 
+    if (editingEmployee && password && password.trim().length < 6) {
+      setFormError('New password must be at least 6 characters long');
+      return;
+    }
+
     if (selectedPermissions.length === 0) {
       setFormError('Please select at least 1 section that this employee is allowed to access.');
       return;

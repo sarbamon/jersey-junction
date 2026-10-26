@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState, useRef, useEffect, MouseEvent } from 'react';
-import { 
-  ZoomIn, 
-  ZoomOut, 
-  Maximize2, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  RotateCcw 
+import React, { useEffect, useRef, useState } from 'react';
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+  WheelEvent as ReactWheelEvent,
+} from 'react';
+import {
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ProductImageZoomProps {
@@ -18,6 +23,19 @@ interface ProductImageZoomProps {
   productName: string;
 }
 
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface Size {
+  width: number;
+  height: number;
+}
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
 export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
   images,
   selectedIndex,
@@ -25,46 +43,129 @@ export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
   productName,
 }) => {
   const [isHovering, setIsHovering] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [containerRect, setContainerRect] = useState({ width: 450, height: 420 });
+  const [mousePos, setMousePos] = useState<Position>({ x: 0, y: 0 });
+  const [containerRect, setContainerRect] = useState<Size>({
+    width: 450,
+    height: 420,
+  });
 
-  // Lightbox modal state
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
+  const [lightboxPan, setLightboxPan] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const currentImage = images[selectedIndex] || '';
+  const lightboxStageRef = useRef<HTMLDivElement>(null);
 
-  // Amazon Zoom Lens & Flyout Math
-  const LENS_SIZE = 140; // Size of cursor lens in px
-  const ZOOM_WINDOW_SIZE = 500; // Size of floating side zoom window in px
-  const ZOOM_SCALE = ZOOM_WINDOW_SIZE / LENS_SIZE; // ~3.57x magnification
+  const safeSelectedIndex = clamp(selectedIndex, 0, Math.max(images.length - 1, 0));
+  const currentImage = images[safeSelectedIndex] || '';
 
-  const lensX = Math.max(0, Math.min(containerRect.width - LENS_SIZE, mousePos.x - LENS_SIZE / 2));
-  const lensY = Math.max(0, Math.min(containerRect.height - LENS_SIZE, mousePos.y - LENS_SIZE / 2));
+  const LENS_SIZE = 140;
+  const ZOOM_WINDOW_SIZE = 500;
+  const FLYOUT_ZOOM = 3;
+  const MAX_ZOOM = 4;
+  const MIN_ZOOM = 1;
+  const ZOOM_STEP = 0.5;
 
-  const handleMouseEnter = (e: MouseEvent<HTMLDivElement>) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setContainerRect({ width: rect.width, height: rect.height });
-      setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    }
+  const lensX = clamp(
+    mousePos.x - LENS_SIZE / 2,
+    0,
+    Math.max(0, containerRect.width - LENS_SIZE),
+  );
+
+  const lensY = clamp(
+    mousePos.y - LENS_SIZE / 2,
+    0,
+    Math.max(0, containerRect.height - LENS_SIZE),
+  );
+
+  const xPercent =
+    containerRect.width > 0
+      ? clamp((mousePos.x / containerRect.width) * 100, 0, 100)
+      : 50;
+
+  const yPercent =
+    containerRect.height > 0
+      ? clamp((mousePos.y / containerRect.height) * 100, 0, 100)
+      : 50;
+
+  const resetLightboxView = () => {
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+    setIsDragging(false);
+  };
+
+  const openLightbox = () => {
+    resetLightboxView();
+    setIsLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
+    resetLightboxView();
+  };
+
+  const selectLightboxImage = (index: number) => {
+    onSelectIndex(index);
+    resetLightboxView();
+  };
+
+  const goToPreviousImage = () => {
+    if (images.length <= 1) return;
+
+    const previousIndex =
+      safeSelectedIndex === 0 ? images.length - 1 : safeSelectedIndex - 1;
+
+    selectLightboxImage(previousIndex);
+  };
+
+  const goToNextImage = () => {
+    if (images.length <= 1) return;
+
+    const nextIndex =
+      safeSelectedIndex === images.length - 1 ? 0 : safeSelectedIndex + 1;
+
+    selectLightboxImage(nextIndex);
+  };
+
+  const updateContainerRect = () => {
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+
+    setContainerRect({
+      width: rect.width,
+      height: rect.height,
+    });
+  };
+
+  const handleMouseEnter = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+
+    setContainerRect({
+      width: rect.width,
+      height: rect.height,
+    });
+
+    setMousePos({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+
     setIsHovering(true);
   };
 
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
+
     const rect = containerRef.current.getBoundingClientRect();
-    setContainerRect({ width: rect.width, height: rect.height });
+
     setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clamp(event.clientX - rect.left, 0, rect.width),
+      y: clamp(event.clientY - rect.top, 0, rect.height),
     });
   };
 
@@ -72,96 +173,182 @@ export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
     setIsHovering(false);
   };
 
-  // Close lightbox on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsLightboxOpen(false);
-        setLightboxZoom(1);
+  const handleZoomIn = (event?: ReactMouseEvent<HTMLButtonElement>) => {
+    event?.stopPropagation();
+
+    setLightboxZoom((previous) => clamp(previous + ZOOM_STEP, MIN_ZOOM, MAX_ZOOM));
+  };
+
+  const handleZoomOut = (event?: ReactMouseEvent<HTMLButtonElement>) => {
+    event?.stopPropagation();
+
+    setLightboxZoom((previous) => {
+      const nextZoom = clamp(previous - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
+
+      if (nextZoom === MIN_ZOOM) {
         setLightboxPan({ x: 0, y: 0 });
-      } else if (e.key === 'ArrowLeft' && images.length > 1 && isLightboxOpen) {
-        onSelectIndex((selectedIndex === 0 ? images.length - 1 : selectedIndex - 1));
-      } else if (e.key === 'ArrowRight' && images.length > 1 && isLightboxOpen) {
-        onSelectIndex((selectedIndex === images.length - 1 ? 0 : selectedIndex + 1));
+      }
+
+      return nextZoom;
+    });
+  };
+
+  const handleResetZoom = (event?: ReactMouseEvent<HTMLButtonElement>) => {
+    event?.stopPropagation();
+    resetLightboxView();
+  };
+
+  const getPanLimit = () => {
+    if (!lightboxStageRef.current || lightboxZoom <= 1) {
+      return { x: 0, y: 0 };
+    }
+
+    const rect = lightboxStageRef.current.getBoundingClientRect();
+
+    return {
+      x: Math.max(0, (rect.width * (lightboxZoom - 1)) / 2),
+      y: Math.max(0, (rect.height * (lightboxZoom - 1)) / 2),
+    };
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (lightboxZoom <= 1) return;
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    setIsDragging(true);
+    setDragStart({
+      x: event.clientX - lightboxPan.x,
+      y: event.clientY - lightboxPan.y,
+    });
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!isDragging || lightboxZoom <= 1) return;
+
+    const panLimit = getPanLimit();
+    const nextX = event.clientX - dragStart.x;
+    const nextY = event.clientY - dragStart.y;
+
+    setLightboxPan({
+      x: clamp(nextX, -panLimit.x, panLimit.x),
+      y: clamp(nextY, -panLimit.y, panLimit.y),
+    });
+  };
+
+  const stopDragging = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    if (event.deltaY < 0) {
+      setLightboxZoom((previous) =>
+        clamp(previous + ZOOM_STEP, MIN_ZOOM, MAX_ZOOM),
+      );
+    } else {
+      setLightboxZoom((previous) => {
+        const nextZoom = clamp(previous - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
+
+        if (nextZoom === MIN_ZOOM) {
+          setLightboxPan({ x: 0, y: 0 });
+        }
+
+        return nextZoom;
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isLightboxOpen) return;
+
+      if (event.key === 'Escape') {
+        closeLightbox();
+      }
+
+      if (event.key === 'ArrowLeft' && images.length > 1) {
+        goToPreviousImage();
+      }
+
+      if (event.key === 'ArrowRight' && images.length > 1) {
+        goToNextImage();
+      }
+
+      if (event.key === '+' || event.key === '=') {
+        setLightboxZoom((previous) =>
+          clamp(previous + ZOOM_STEP, MIN_ZOOM, MAX_ZOOM),
+        );
+      }
+
+      if (event.key === '-') {
+        setLightboxZoom((previous) => {
+          const nextZoom = clamp(previous - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
+
+          if (nextZoom === MIN_ZOOM) {
+            setLightboxPan({ x: 0, y: 0 });
+          }
+
+          return nextZoom;
+        });
       }
     };
 
     if (isLightboxOpen) {
       window.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
     }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [isLightboxOpen, selectedIndex, images.length, onSelectIndex]);
+  }, [isLightboxOpen, images.length, safeSelectedIndex]);
 
-  // Lightbox Pan Handlers
-  const handleLightboxMouseDown = (e: MouseEvent) => {
-    if (lightboxZoom <= 1) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - lightboxPan.x, y: e.clientY - lightboxPan.y });
-  };
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-  const handleLightboxMouseMove = (e: MouseEvent) => {
-    if (!isDragging || lightboxZoom <= 1) return;
-    setLightboxPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
+    updateContainerRect();
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateContainerRect();
     });
-  };
 
-  const handleLightboxMouseUp = () => {
-    setIsDragging(false);
-  };
+    resizeObserver.observe(containerRef.current);
 
-  const handleZoomIn = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setLightboxZoom((prev) => Math.min(prev + 0.5, 4));
-  };
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
-  const handleZoomOut = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setLightboxZoom((prev) => {
-      const next = Math.max(prev - 0.5, 1);
-      if (next === 1) setLightboxPan({ x: 0, y: 0 });
-      return next;
-    });
-  };
-
-  const handleResetZoom = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setLightboxZoom(1);
-    setLightboxPan({ x: 0, y: 0 });
-  };
+  if (images.length === 0) {
+    return (
+      <div className="flex h-72 w-full items-center justify-center rounded-2xl border border-[#282828] bg-[#121212] text-sm text-gray-400 sm:h-[420px]">
+        No product image available
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full">
-      {/* Main Image Container */}
       <div
         ref={containerRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
-        onClick={() => {
-          setIsLightboxOpen(true);
-          setLightboxZoom(1);
-          setLightboxPan({ x: 0, y: 0 });
-        }}
-        className="relative w-full h-72 sm:h-[420px] flex items-center justify-center overflow-hidden rounded-2xl cursor-crosshair select-none bg-transparent group"
+        onClick={openLightbox}
+        className="group relative flex h-72 w-full cursor-crosshair select-none items-center justify-center overflow-hidden rounded-2xl bg-transparent sm:h-[420px]"
       >
         {currentImage && (
           <img
             src={currentImage}
-            alt={`${productName} view ${selectedIndex + 1}`}
-            className="h-full w-full object-contain pointer-events-none drop-shadow-2xl"
+            alt={`${productName} view ${safeSelectedIndex + 1}`}
+            className="pointer-events-none h-full w-full object-contain drop-shadow-2xl"
+            draggable={false}
           />
         )}
 
-        {/* Amazon-style Magnifier Lens (visible on desktop hover) */}
         {isHovering && currentImage && (
           <div
             style={{
@@ -170,214 +357,199 @@ export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
               width: `${LENS_SIZE}px`,
               height: `${LENS_SIZE}px`,
             }}
-            className="hidden lg:block absolute pointer-events-none border-2 border-[#f4c84a] bg-[#f4c84a]/20 shadow-[0_0_20px_rgba(244,200,74,0.4)] rounded-xl backdrop-brightness-110 z-20"
+            className="pointer-events-none absolute z-20 hidden rounded-xl border-2 border-[#f4c84a] bg-[#f4c84a]/20 shadow-[0_0_20px_rgba(244,200,74,0.4)] backdrop-brightness-110 lg:block"
           />
         )}
 
-        {/* Maximize Icon on Top Right */}
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsLightboxOpen(true);
-            setLightboxZoom(1);
-            setLightboxPan({ x: 0, y: 0 });
+          onClick={(event) => {
+            event.stopPropagation();
+            openLightbox();
           }}
-          className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/75 hover:bg-black text-gray-300 hover:text-white border border-[#333] hover:border-[#f4c84a] transition-all opacity-80 group-hover:opacity-100 shadow-md cursor-pointer"
+          className="absolute right-3 top-3 z-20 cursor-pointer rounded-full border border-[#333] bg-black/75 p-2 text-gray-300 opacity-80 shadow-md transition-all hover:border-[#f4c84a] hover:bg-black hover:text-white group-hover:opacity-100"
           aria-label="Expand image"
-          title="Fullscreen Inspector"
+          title="Fullscreen inspector"
         >
-          <Maximize2 className="w-4 h-4 text-[#f4c84a]" />
+          <Maximize2 className="h-4 w-4 text-[#f4c84a]" />
         </button>
       </div>
 
-      {/* Amazon-Style Floating Side Zoom Window (Desktop Only) */}
       {isHovering && currentImage && (
         <div
           style={{
             width: `${ZOOM_WINDOW_SIZE}px`,
             height: `${ZOOM_WINDOW_SIZE}px`,
           }}
-          className="hidden lg:block absolute left-[calc(100%+24px)] top-0 z-[60] bg-[#0c0c0c] border-2 border-[#2f2f2f] rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.98)] overflow-hidden pointer-events-none animate-in fade-in duration-150"
+          className="pointer-events-none absolute left-[calc(100%+24px)] top-0 z-[60] hidden overflow-hidden rounded-2xl border-2 border-[#2f2f2f] bg-[#0c0c0c] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.98)] lg:block"
+          aria-hidden="true"
         >
-          {/* Magnified High-Resolution Image Canvas */}
           <div
+            className="absolute inset-0 bg-no-repeat"
             style={{
-              position: 'absolute',
-              left: `-${lensX * ZOOM_SCALE}px`,
-              top: `-${lensY * ZOOM_SCALE}px`,
-              width: `${containerRect.width * ZOOM_SCALE}px`,
-              height: `${containerRect.height * ZOOM_SCALE}px`,
+              backgroundImage: `url("${currentImage}")`,
+              backgroundSize: `${FLYOUT_ZOOM * 100}%`,
+              backgroundPosition: `${xPercent}% ${yPercent}%`,
             }}
-            className="flex items-center justify-center pointer-events-none"
-          >
-            <img
-              src={currentImage}
-              alt={`${productName} magnified detail`}
-              className="w-full h-full object-contain pointer-events-none drop-shadow-2xl"
-            />
-          </div>
+          />
         </div>
       )}
 
-      {/* Fullscreen Lightbox Modal (Click to open) */}
       {isLightboxOpen && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-lg flex flex-col justify-between p-4 sm:p-6 select-none animate-in fade-in duration-200"
-          onMouseMove={handleLightboxMouseMove}
-          onMouseUp={handleLightboxMouseUp}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${productName} image gallery`}
+          className="fixed inset-0 z-[9999] flex select-none flex-col justify-between bg-black/95 p-4 backdrop-blur-lg sm:p-6"
         >
-          {/* Top Bar: Title & Controls */}
-          <div className="flex items-center justify-between z-20 pb-2">
-            <div className="space-y-0.5">
-              <h3 className="text-white font-serif font-bold text-sm sm:text-base uppercase tracking-wider">
+          <div className="z-20 flex items-center justify-between gap-3 pb-2">
+            <div className="min-w-0 space-y-0.5">
+              <h3 className="truncate font-serif text-sm font-bold uppercase tracking-wider text-white sm:text-base">
                 {productName}
               </h3>
-              <p className="text-gray-400 text-xs">
-                Photo {selectedIndex + 1} of {images.length} • Fabric &amp; Detail Zoom
+              <p className="text-xs text-gray-400">
+                Photo {safeSelectedIndex + 1} of {images.length} • Fabric &amp; Detail
+                Zoom
               </p>
             </div>
 
-            {/* Controls Bar */}
-            <div className="flex items-center gap-2 bg-[#121212] border border-[#282828] rounded-2xl p-1.5 shadow-xl">
+            <div className="flex shrink-0 items-center gap-1 rounded-2xl border border-[#282828] bg-[#121212] p-1.5 shadow-xl sm:gap-2">
               <button
                 type="button"
                 onClick={handleZoomOut}
-                disabled={lightboxZoom <= 1}
-                className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
-                title="Zoom Out"
+                disabled={lightboxZoom <= MIN_ZOOM}
+                className="cursor-pointer rounded-xl p-2 text-gray-300 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label="Zoom out"
+                title="Zoom out"
               >
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="h-4 w-4" />
               </button>
 
-              <span className="font-mono text-xs font-bold text-[#f4c84a] px-2 min-w-[50px] text-center">
+              <span className="min-w-[50px] px-2 text-center font-mono text-xs font-bold text-[#f4c84a]">
                 {Math.round(lightboxZoom * 100)}%
               </span>
 
               <button
                 type="button"
                 onClick={handleZoomIn}
-                disabled={lightboxZoom >= 4}
-                className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
-                title="Zoom In"
+                disabled={lightboxZoom >= MAX_ZOOM}
+                className="cursor-pointer rounded-xl p-2 text-gray-300 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label="Zoom in"
+                title="Zoom in"
               >
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="h-4 w-4" />
               </button>
 
               <button
                 type="button"
                 onClick={handleResetZoom}
-                className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
-                title="Reset Zoom"
+                className="cursor-pointer rounded-xl p-2 text-gray-400 transition-colors hover:bg-zinc-800 hover:text-white"
+                aria-label="Reset zoom"
+                title="Reset zoom"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="h-4 w-4" />
               </button>
 
-              <div className="w-[1px] h-6 bg-[#333] mx-1" />
+              <div className="mx-1 h-6 w-px bg-[#333]" />
 
               <button
                 type="button"
-                onClick={() => {
-                  setIsLightboxOpen(false);
-                  setLightboxZoom(1);
-                  setLightboxPan({ x: 0, y: 0 });
-                }}
-                className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors cursor-pointer"
-                title="Close (Esc)"
+                onClick={closeLightbox}
+                className="cursor-pointer rounded-xl border border-red-500/30 bg-red-500/10 p-2 text-red-400 transition-colors hover:bg-red-500/20"
+                aria-label="Close image gallery"
+                title="Close (Escape)"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          {/* Center Stage: Interactive Zoomable Image Canvas */}
-          <div 
-            className={`relative flex-1 flex items-center justify-center overflow-hidden my-2 ${
-              lightboxZoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
-            }`}
-            onMouseDown={handleLightboxMouseDown}
-            onWheel={(e) => {
-              if (e.deltaY < 0) {
-                handleZoomIn();
-              } else {
-                handleZoomOut();
+          <div
+            ref={lightboxStageRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={stopDragging}
+            onPointerCancel={stopDragging}
+            onPointerLeave={stopDragging}
+            onWheel={handleWheel}
+            onClick={() => {
+              if (lightboxZoom === 1) {
+                setLightboxZoom(1.5);
               }
             }}
-            onClick={() => {
-              if (lightboxZoom === 1) handleZoomIn();
-            }}
+            className={`relative my-2 flex flex-1 items-center justify-center overflow-hidden ${lightboxZoom > 1
+              ? isDragging
+                ? 'cursor-grabbing'
+                : 'cursor-grab'
+              : 'cursor-zoom-in'
+              }`}
           >
-            {/* Previous Image Arrow */}
             {images.length > 1 && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectIndex(selectedIndex === 0 ? images.length - 1 : selectedIndex - 1);
-                  setLightboxPan({ x: 0, y: 0 });
+                onClick={(event) => {
+                  event.stopPropagation();
+                  goToPreviousImage();
                 }}
-                className="absolute left-2 sm:left-6 z-20 p-3 rounded-full bg-black/80 hover:bg-black text-[#f4c84a] border border-[#333] hover:border-[#f4c84a] transition-all hover:scale-110 shadow-2xl cursor-pointer"
+                className="absolute left-2 z-20 cursor-pointer rounded-full border border-[#333] bg-black/80 p-3 text-[#f4c84a] shadow-2xl transition-all hover:scale-110 hover:border-[#f4c84a] hover:bg-black sm:left-6"
+                aria-label="Previous image"
                 title="Previous photo"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="h-6 w-6" />
               </button>
             )}
 
-            {/* Next Image Arrow */}
             {images.length > 1 && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectIndex(selectedIndex === images.length - 1 ? 0 : selectedIndex + 1);
-                  setLightboxPan({ x: 0, y: 0 });
+                onClick={(event) => {
+                  event.stopPropagation();
+                  goToNextImage();
                 }}
-                className="absolute right-2 sm:right-6 z-20 p-3 rounded-full bg-black/80 hover:bg-black text-[#f4c84a] border border-[#333] hover:border-[#f4c84a] transition-all hover:scale-110 shadow-2xl cursor-pointer"
+                className="absolute right-2 z-20 cursor-pointer rounded-full border border-[#333] bg-black/80 p-3 text-[#f4c84a] shadow-2xl transition-all hover:scale-110 hover:border-[#f4c84a] hover:bg-black sm:right-6"
+                aria-label="Next image"
                 title="Next photo"
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="h-6 w-6" />
               </button>
             )}
 
-            {/* Zoomed / Panned Image */}
             <div
               style={{
                 transform: `translate(${lightboxPan.x}px, ${lightboxPan.y}px) scale(${lightboxZoom})`,
                 transition: isDragging ? 'none' : 'transform 0.2s ease-out',
               }}
-              className="max-w-[90vw] max-h-[75vh] flex items-center justify-center pointer-events-none select-none"
+              className="pointer-events-none flex max-h-[75vh] max-w-[90vw] select-none items-center justify-center"
             >
               <img
                 src={currentImage}
-                alt={productName}
+                alt={`${productName} view ${safeSelectedIndex + 1}`}
                 className="max-h-[72vh] max-w-[85vw] object-contain drop-shadow-2xl"
                 draggable={false}
               />
             </div>
           </div>
 
-          {/* Bottom Bar: Thumbnails Strip */}
           {images.length > 1 && (
-            <div className="flex items-center justify-center gap-3 overflow-x-auto py-2 z-20">
-              {images.map((imgUrl, idx) => (
+            <div className="z-20 flex items-center justify-center gap-3 overflow-x-auto py-2">
+              {images.map((imageUrl, index) => (
                 <button
-                  key={idx}
+                  key={`${imageUrl}-${index}`}
                   type="button"
-                  onClick={() => {
-                    onSelectIndex(idx);
-                    setLightboxPan({ x: 0, y: 0 });
-                  }}
-                  className={`h-16 w-16 sm:h-20 sm:w-20 rounded-xl border p-1 bg-[#121212] transition-all flex items-center justify-center shrink-0 cursor-pointer ${
-                    selectedIndex === idx
-                      ? 'border-[#f4c84a] scale-105 ring-2 ring-[#f4c84a]/50'
-                      : 'border-[#282828] opacity-60 hover:opacity-100 hover:border-gray-500'
-                  }`}
-                  title={`View angle ${idx + 1}`}
+                  onClick={() => selectLightboxImage(index)}
+                  className={`flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-[#121212] p-1 transition-all sm:h-20 sm:w-20 ${safeSelectedIndex === index
+                    ? 'scale-105 border-[#f4c84a] ring-2 ring-[#f4c84a]/50'
+                    : 'border-[#282828] opacity-60 hover:border-gray-500 hover:opacity-100'
+                    }`}
+                  aria-label={`View image ${index + 1}`}
+                  aria-current={safeSelectedIndex === index ? 'true' : undefined}
+                  title={`View angle ${index + 1}`}
                 >
                   <img
-                    src={imgUrl}
-                    alt={`Thumb ${idx + 1}`}
-                    className="w-full h-full object-contain rounded-lg"
+                    src={imageUrl}
+                    alt={`${productName} thumbnail ${index + 1}`}
+                    className="h-full w-full rounded-lg object-contain"
+                    draggable={false}
                   />
                 </button>
               ))}
