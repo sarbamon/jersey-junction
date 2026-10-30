@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Edit, Trash2, Check, X, Save, Star } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, Check, X, Save, Star, Loader2, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
+import { icarryService } from '../../../lib/services/icarryService';
 
 export interface SavedAddress {
   id: string;
@@ -31,6 +32,45 @@ export default function AddressesPage() {
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
   const [isDefault, setIsDefault] = useState(false);
+  const [isCheckingPincode, setIsCheckingPincode] = useState(false);
+  const [pincodeMessage, setPincodeMessage] = useState<string | null>(null);
+
+  const handlePincodeChange = async (val: string, isEdit = false) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    if (isEdit && editTarget) {
+      setEditTarget({ ...editTarget, pincode: clean });
+    } else {
+      setPincode(clean);
+    }
+
+    if (clean.length === 6) {
+      setIsCheckingPincode(true);
+      setPincodeMessage(null);
+      try {
+        const res = await icarryService.checkPincode(clean);
+        if (res && res.state) {
+          if (isEdit) {
+            setEditTarget((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    state: res.state || prev.state,
+                    city: res.district || res.city || prev.city,
+                  }
+                : null
+            );
+          } else {
+            setState(res.state || '');
+            setCity(res.district || res.city || '');
+          }
+          setPincodeMessage(`✓ ${res.district || res.city}, ${res.state}`);
+        }
+      } catch (_) {}
+      setIsCheckingPincode(false);
+    } else {
+      setPincodeMessage(null);
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -190,13 +230,33 @@ export default function AddressesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="font-bold text-gray-400 block mb-1 uppercase">City *</label>
+              <label className="font-bold text-gray-400 block mb-1 uppercase">PIN Code *</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value)}
+                  placeholder="6-digit PIN"
+                  className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-[#f4c84a]"
+                />
+                {isCheckingPincode && (
+                  <div className="absolute right-3 top-3">
+                    <Loader2 className="w-4 h-4 text-[#f4c84a] animate-spin" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-gray-400 block mb-1 uppercase">District / City *</label>
               <input
                 type="text"
                 required
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Bengaluru"
+                placeholder="Auto-detected district"
                 className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#f4c84a]"
               />
             </div>
@@ -208,23 +268,18 @@ export default function AddressesPage() {
                 required
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                placeholder="Karnataka"
+                placeholder="Auto-detected state"
                 className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#f4c84a]"
               />
             </div>
-
-            <div>
-              <label className="font-bold text-gray-400 block mb-1 uppercase">PIN Code *</label>
-              <input
-                type="text"
-                required
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="560038"
-                className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-[#f4c84a]"
-              />
-            </div>
           </div>
+
+          {pincodeMessage && (
+            <div className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>{pincodeMessage}</span>
+            </div>
+          )}
 
           <label className="flex items-center gap-2 cursor-pointer pt-2">
             <input
@@ -295,7 +350,26 @@ export default function AddressesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="font-bold text-gray-400 block mb-1 uppercase">City</label>
+              <label className="font-bold text-gray-400 block mb-1 uppercase">PIN Code</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={editTarget.pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value, true)}
+                  className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-[#f4c84a]"
+                />
+                {isCheckingPincode && (
+                  <div className="absolute right-3 top-3">
+                    <Loader2 className="w-4 h-4 text-[#f4c84a] animate-spin" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-gray-400 block mb-1 uppercase">District / City</label>
               <input
                 type="text"
                 required
@@ -313,17 +387,6 @@ export default function AddressesPage() {
                 value={editTarget.state}
                 onChange={(e) => setEditTarget({ ...editTarget, state: e.target.value })}
                 className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#f4c84a]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-gray-400 block mb-1 uppercase">PIN Code</label>
-              <input
-                type="text"
-                required
-                value={editTarget.pincode}
-                onChange={(e) => setEditTarget({ ...editTarget, pincode: e.target.value })}
-                className="w-full bg-black border border-[#333] rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-[#f4c84a]"
               />
             </div>
           </div>

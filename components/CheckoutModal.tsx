@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import confettiFn from 'canvas-confetti';
-import { X, Check, Lock, ArrowRight, ShieldCheck, Shield, MapPin, User } from 'lucide-react';
+import { X, Check, Lock, ArrowRight, ShieldCheck, Shield, MapPin, User, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { orderService } from '../lib/services/orderService';
 import { paymentService } from '../lib/services/paymentService';
 import { productService } from '../lib/services/productService';
+import { icarryService } from '../lib/services/icarryService';
 import { AdminOrder } from '../lib/types/admin';
 import { settingsService } from '../lib/services/settingsService';
 import { useStore } from '../context/StoreContext';
@@ -101,6 +102,43 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [isCheckingPincode, setIsCheckingPincode] = useState<boolean>(false);
+  const [pincodeMessage, setPincodeMessage] = useState<{ available: boolean; text: string } | null>(null);
+
+  const handlePincodeChange = async (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    setFormData((prev) => ({ ...prev, zip: clean }));
+
+    if (clean.length === 6) {
+      setIsCheckingPincode(true);
+      setPincodeMessage(null);
+      try {
+        const res = await icarryService.checkPincode(clean);
+        if (res && res.state) {
+          setFormData((prev) => ({
+            ...prev,
+            state: res.state || prev.state,
+            city: res.district || res.city || prev.city,
+          }));
+          setPincodeMessage({
+            available: res.available !== false,
+            text: res.message || `Delivery to ${res.district || res.city}, ${res.state}`,
+          });
+        } else if (res && res.message) {
+          setPincodeMessage({
+            available: res.available !== false,
+            text: res.message,
+          });
+        }
+      } catch (err: any) {
+        console.warn('Pincode check error:', err);
+      } finally {
+        setIsCheckingPincode(false);
+      }
+    } else {
+      setPincodeMessage(null);
+    }
+  };
 
   // Auto-load saved addresses from localStorage on open or mount
   useEffect(() => {
@@ -192,7 +230,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         email: formData.email,
         addressLine: formData.address,
         city: formData.city,
-        state: formData.state || 'Karnataka',
+        state: formData.state || '',
         pincode: formData.zip,
         country: formData.country || 'India',
         isDefault: true,
@@ -621,38 +659,66 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-1">City</label>
+                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-1">Postal PIN Code *</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={formData.zip}
+                        onChange={(e) => handlePincodeChange(e.target.value)}
+                        placeholder="6-digit PIN"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-400"
+                      />
+                      {isCheckingPincode && (
+                        <div className="absolute right-3 top-2.5">
+                          <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-1">District / City *</label>
                     <input
                       type="text"
                       required
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white"
+                      placeholder="Auto-detected district"
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
+
                   <div>
-                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-1">Postal Code</label>
+                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-1">State *</label>
                     <input
                       type="text"
                       required
-                      value={formData.zip}
-                      onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-zinc-400 uppercase block mb-1">Country</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      placeholder="Auto-detected state"
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
                 </div>
+
+                {pincodeMessage && (
+                  <div className={`text-[11px] font-mono px-3 py-2 rounded-xl flex items-center gap-2 ${
+                    pincodeMessage.available
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  }`}>
+                    {pincodeMessage.available ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                    )}
+                    <span>{pincodeMessage.text}</span>
+                  </div>
+                )}
 
                 {/* Shipping speed selection */}
                 <div>
