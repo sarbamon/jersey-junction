@@ -1,5 +1,3 @@
-import { serverStatusService } from './services/serverStatusService';
-
 const getNormalizedApiUrl = (): string => {
   const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
   const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
@@ -67,17 +65,12 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      if (response.status >= 500) {
-        serverStatusService.reportError(null, response.status);
-      }
       const errorMessage = data.error || data.message || `API error with status ${response.status}`;
       return {
         success: false,
         error: errorMessage,
       };
     }
-
-    serverStatusService.reportSuccess();
 
     return {
       success: true,
@@ -91,8 +84,6 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return request<T>(endpoint, options, retries - 1);
     }
-
-    serverStatusService.reportError(error);
 
     return {
       success: false,

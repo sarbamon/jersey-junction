@@ -28,7 +28,6 @@ declare global {
 export default function CheckoutPage() {
   const router = useRouter();
   const { 
-    isServerDown,
     cartItems, 
     activeCurrency, 
     clearCart,
@@ -554,10 +553,6 @@ export default function CheckoutPage() {
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isServerDown) {
-      alert('Uh oh! Store server is temporarily offline. Purchasing is currently disabled.');
-      return;
-    }
     if (!currentUser) {
       setIsAuthOpen(true);
       return;
@@ -963,12 +958,10 @@ export default function CheckoutPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={isProcessing || cartItems.length === 0 || isServerDown}
+                      disabled={isProcessing || cartItems.length === 0}
                       className="flex-1 py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {isServerDown ? (
-                        <span>SERVER OFFLINE — PURCHASING DISABLED</span>
-                      ) : isProcessing ? (
+                      {isProcessing ? (
                         <span>INITIATING RAZORPAY...</span>
                       ) : cartItems.length === 0 ? (
                         <span>CART IS EMPTY</span>
