@@ -50,6 +50,12 @@ export default function AdminOrdersPage() {
   };
 
   const filteredOrders = orders.filter((o) => {
+    // Only show confirmed orders: Paid online orders or Cash on Delivery
+    // Exclude any unpaid orders where payment portal was just opened
+    const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
+    const isPaid = o.paymentStatus === 'Paid';
+    if (!isCOD && !isPaid) return false;
+
     const q = searchQuery.toLowerCase();
     const matchesSearch = 
       o.id.toLowerCase().includes(q) ||

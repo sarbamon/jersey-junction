@@ -3,13 +3,26 @@ import { apiClient } from '../apiClient';
 
 const ORDERS_KEY = 'jj_admin_orders';
 
+// Helper to verify that an order is confirmed/paid:
+// Cash on Delivery orders, or online orders that have completed payment (Paid).
+// Filters out abandoned/pending payment portal attempts.
+export const isConfirmedOrder = (order: AdminOrder): boolean => {
+  if (!order) return false;
+  const isCOD = order.paymentMethod === 'COD' || (order.paymentMethod as string) === 'Cash on Delivery';
+  const isPaid = order.paymentStatus === 'Paid';
+  return isCOD || isPaid;
+};
+
 // Safely persist orders to localStorage without exceeding browser storage quota
 const safeStoreOrders = (orders: AdminOrder[]): void => {
   if (typeof window === 'undefined') return;
   try {
+    // Only persist confirmed orders
+    const confirmed = orders.filter(isConfirmedOrder);
+
     // Keep up to 20 most recent orders in localStorage cache (MongoDB has full history)
     // Strip giant base64 data URIs from items so localStorage doesn't hit 5MB quota
-    const sanitized = orders.slice(0, 20).map((o) => ({
+    const sanitized = confirmed.slice(0, 20).map((o) => ({
       ...o,
       items: Array.isArray(o.items)
         ? o.items.map((itm) => ({
@@ -45,7 +58,8 @@ export const orderService = {
     try {
       const stored = localStorage.getItem(ORDERS_KEY);
       if (!stored) return [];
-      return JSON.parse(stored);
+      const parsed: AdminOrder[] = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed.filter(isConfirmedOrder) : [];
     } catch {
       return [];
     }
@@ -55,8 +69,9 @@ export const orderService = {
     try {
       const res = await apiClient.get<AdminOrder[]>('/orders');
       if (res.success && Array.isArray(res.data)) {
-        safeStoreOrders(res.data);
-        return res.data;
+        const confirmed = res.data.filter(isConfirmedOrder);
+        safeStoreOrders(confirmed);
+        return confirmed;
       }
     } catch (err) {
       console.error('Error fetching orders from backend:', err);
@@ -69,7 +84,7 @@ export const orderService = {
       if (email) {
         const res = await apiClient.get<AdminOrder[]>(`/orders/user/${encodeURIComponent(email)}`);
         if (res.success && Array.isArray(res.data)) {
-          return res.data;
+          return res.data.filter(isConfirmedOrder);
         }
       }
     } catch (err) {
@@ -78,7 +93,7 @@ export const orderService = {
     // Fallback: search local orders by email or customer name
     const all = orderService.getOrders();
     const query = email.toLowerCase();
-    return all.filter((o) => o.email.toLowerCase() === query || o.customerName.toLowerCase() === query);
+    return all.filter((o) => (o.email.toLowerCase() === query || o.customerName.toLowerCase() === query) && isConfirmedOrder(o));
   },
 
   getOrderById: (id: string): AdminOrder | undefined => {
