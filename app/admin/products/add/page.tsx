@@ -81,27 +81,24 @@ export default function AddProductPage() {
     if (files.length === 0) return;
 
     setIsUploadingImage(true);
+    setUploadProgress(`Optimizing and uploading ${files.length} photo(s)...`);
     try {
-      const uploadedUrls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
-        const url = await uploadService.uploadImage(files[i], 'jerseyjunction_uploads');
-        if (url) uploadedUrls.push(url);
-      }
+      const uploadedUrls = await uploadService.uploadMultiple(files, 'jerseyjunction_uploads');
+      const validUrls = uploadedUrls.filter(Boolean);
 
       setImages(prev => {
-        const combined = [...prev, ...uploadedUrls];
+        const combined = [...prev, ...validUrls];
         if (!image && combined.length > 0) {
           setImage(combined[0]);
         }
         return combined;
       });
 
-      if (!image && uploadedUrls.length > 0) {
-        setImage(uploadedUrls[0]);
+      if (!image && validUrls.length > 0) {
+        setImage(validUrls[0]);
       }
 
-      setToastMsg(`Successfully uploaded ${uploadedUrls.length} photo(s)!`);
+      setToastMsg(`Successfully uploaded ${validUrls.length} photo(s)!`);
     } catch (err: any) {
       setToastMsg(`Upload failed: ${err.message || 'Could not upload image'}`);
     } finally {

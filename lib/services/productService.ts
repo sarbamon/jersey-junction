@@ -170,7 +170,7 @@ export const productService = {
     const cached = getStoredCache();
 
     const params = new URLSearchParams();
-    params.append('limit', '1000');
+    params.append('limit', '60');
     if (filters?.sport) params.append('sport', filters.sport);
     if (filters?.category) params.append('category', filters.category);
     if (filters?.search) params.append('search', filters.search);

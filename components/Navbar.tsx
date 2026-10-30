@@ -258,7 +258,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
             aria-label="Toggle Theme"
           >
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-indigo-600" />}
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[hsl(16.9deg_39.66%_64.9%)]" /> : <Moon className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-black" />}
           </button>
 
           {/* Search Trigger */}

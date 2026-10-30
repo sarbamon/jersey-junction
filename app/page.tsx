@@ -41,9 +41,14 @@ export default function Home() {
     toggleWishlist
   } = useStore();
 
-  const [products, setProducts] = useState<JerseyProduct[]>([]);
+  const [products, setProducts] = useState<JerseyProduct[]>(() => {
+    return productService.getCachedProductsSync();
+  });
   const [hasMounted, setHasMounted] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const initial = productService.getCachedProductsSync();
+    return initial.length === 0;
+  });
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedLeague] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'bestseller' | 'price-low' | 'price-high'>('featured');
@@ -69,11 +74,12 @@ export default function Home() {
       .then((prods) => {
         if (isMounted && prods && prods.length > 0) {
           setProducts(prods);
-          setIsLoading(false);
         }
       })
       .catch((err) => {
         console.error('Error loading products:', err);
+      })
+      .finally(() => {
         if (isMounted) setIsLoading(false);
       });
     const handleProductsUpdated = () => {

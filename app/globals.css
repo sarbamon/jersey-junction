@@ -5,38 +5,41 @@
   --background: #000000;
   --foreground: #ffffff;
   --card-bg: #0c0c0c;
-  --card-sub: #111111;
+  --card-sub: #141414;
   --border-color: #242424;
-  --accent: #f4c84a;
-  --accent-hover: #ffd96a;
-  --accent-text: #000000;
-  --muted-text: #9ca3af;
-}
-
-html.light {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card-bg: #ffffff;
-  --card-sub: #f1f5f9;
-  --border-color: #e2e8f0;
-  --accent: #d97706;
-  --accent-hover: #b45309;
+  --accent: hsl(16.9deg 39.66% 64.9%);
+  --accent-hover: hsl(16.9deg 46% 73%);
+  --accent-deep: hsl(16.9deg 44% 42%);
   --accent-text: #ffffff;
-  --muted-text: #475569;
-  color-scheme: light;
+  --muted-text: #9ca3af;
 }
 
 html.dark {
   --background: #000000;
   --foreground: #ffffff;
   --card-bg: #0c0c0c;
-  --card-sub: #111111;
+  --card-sub: #141414;
   --border-color: #242424;
-  --accent: #f4c84a;
-  --accent-hover: #ffd96a;
-  --accent-text: #000000;
+  --accent: hsl(16.9deg 39.66% 64.9%);
+  --accent-hover: hsl(16.9deg 46% 73%);
+  --accent-deep: hsl(16.9deg 44% 42%);
+  --accent-text: #ffffff;
   --muted-text: #9ca3af;
   color-scheme: dark;
+}
+
+html.light {
+  --background: #fbfaf9;
+  --foreground: #000000;
+  --card-bg: #ffffff;
+  --card-sub: #f5f2ee;
+  --border-color: #e5dfda;
+  --accent: hsl(16.9deg 39.66% 64.9%);
+  --accent-hover: hsl(16.9deg 42% 56%);
+  --accent-deep: hsl(16.9deg 45% 38%);
+  --accent-text: #000000;
+  --muted-text: #57534e;
+  color-scheme: light;
 }
 
 body {
@@ -46,47 +49,143 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dynamic Light Mode Theme Overrides */
-html.light body,
-html.light .min-h-screen,
-html.light main,
-html.light section,
-html.light footer,
-html.light header {
-  background-color: #f8fafc;
-  color: #0f172a;
+/* ========================================================
+   DARK MODE BRAND ACCENT MAPPINGS (hsl(16.9deg 39.66% 64.9%) + White)
+   ======================================================== */
+
+/* Text & Icons */
+.text-\[\#f4c84a\],
+.text-\[\#d4af37\],
+.text-\[\#c5a059\],
+.text-amber-400,
+.text-yellow-400 {
+  color: hsl(16.9deg 39.66% 64.9%) !important;
 }
 
-html.light header {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+svg.fill-\[\#f4c84a\],
+svg.fill-amber-400 {
+  fill: hsl(16.9deg 39.66% 64.9%) !important;
+  color: hsl(16.9deg 39.66% 64.9%) !important;
 }
 
-/* Dedicated Brand Logo Crest Overrides (Independent of Theme) */
+/* Borders & Focus */
+.border-\[\#f4c84a\],
+.border-\[\#d4af37\],
+.border-amber-400 {
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
+}
+
+.hover\:border-\[\#f4c84a\]\/60:hover {
+  border-color: hsla(16.9, 39.66%, 64.9%, 0.65) !important;
+}
+
+.hover\:text-\[\#f4c84a\]:hover,
+.group-hover\:text-\[\#f4c84a\] {
+  color: hsl(16.9deg 46% 73%) !important;
+}
+
+/* Badges & Background Tints */
+.bg-\[\#f4c84a\]\/10,
+.bg-amber-400\/10 {
+  background-color: hsla(16.9, 39.66%, 64.9%, 0.15) !important;
+}
+
+.bg-\[\#f4c84a\]\/20,
+.bg-amber-400\/20 {
+  background-color: hsla(16.9, 39.66%, 64.9%, 0.25) !important;
+}
+
+/* Primary Accent Buttons & CTAs (Dark Mode: Terracotta with crisp White typography) */
+button.bg-\[\#f4c84a\],
+a.bg-\[\#f4c84a\],
+.bg-\[\#f4c84a\],
+button.bg-amber-500,
+.bg-gradient-to-r.from-\[\#f4c84a\],
+.bg-gradient-to-r.from-amber-400,
+.bg-gradient-to-r.from-amber-500 {
+  background: linear-gradient(135deg, hsl(16.9deg 44% 68%) 0%, hsl(16.9deg 39.66% 64.9%) 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(201, 150, 130, 0.35) !important;
+}
+
+button.bg-\[\#f4c84a\] *,
+a.bg-\[\#f4c84a\] *,
+.bg-\[\#f4c84a\] *,
+.bg-gradient-to-r.from-\[\#f4c84a\] * {
+  color: #ffffff !important;
+}
+
+/* Dedicated Brand Logo Crest (Dark Mode: Terracotta & White) */
 .header-logo-crest {
-  background-color: #05070a !important;
-  border-color: #f59e0b !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  background-color: #0c0c0c !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
 .header-logo-crest .logo-jersey {
-  color: #f59e0b !important;
+  color: hsl(16.9deg 39.66% 64.9%) !important;
 }
 .header-logo-crest .logo-junction {
   color: #ffffff !important;
 }
 
 .footer-logo-crest {
-  background-color: #05070a !important;
-  border-color: #d4af37 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  background-color: #0c0c0c !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
-.footer-logo-crest .logo-js,
-.footer-logo-crest .logo-spot {
-  color: #d4af37 !important;
+.footer-logo-crest .logo-jersey {
+  color: hsl(16.9deg 39.66% 64.9%) !important;
+}
+.footer-logo-crest .logo-junction {
+  color: #ffffff !important;
 }
 
-/* Card & Section Container Overrides */
+/* ========================================================
+   LIGHT MODE OVERRIDES (Solid Black for Dark Elements + hsl(16.9deg 39.66% 64.9%))
+   ======================================================== */
+
+html.light body,
+html.light .min-h-screen,
+html.light main,
+html.light section,
+html.light footer,
+html.light header {
+  background-color: #fbfaf9;
+  color: #000000;
+}
+
+html.light header {
+  background-color: #ffffff !important;
+  border-color: #e5dfda !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Brand Logo Crest in Light Mode: Black text + Terracotta accent */
+html.light .header-logo-crest {
+  background-color: #ffffff !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+html.light .header-logo-crest .logo-jersey {
+  color: hsl(16.9deg 45% 38%) !important;
+}
+html.light .header-logo-crest .logo-junction {
+  color: #000000 !important;
+}
+
+html.light .footer-logo-crest {
+  background-color: #f5f2ee !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+html.light .footer-logo-crest .logo-jersey {
+  color: hsl(16.9deg 45% 38%) !important;
+}
+html.light .footer-logo-crest .logo-junction {
+  color: #000000 !important;
+}
+
+/* Containers & Cards in Light Mode */
 html.light .bg-\[\#080808\],
 html.light .bg-\[\#0a0a0a\],
 html.light .bg-\[\#0c0c0c\],
@@ -100,31 +199,31 @@ html.light .bg-black,
 html.light .bg-zinc-900,
 html.light .bg-zinc-950 {
   background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  border-color: #e5dfda !important;
+  color: #000000 !important;
 }
 
-/* Image wrappers & inner tile containers */
+/* Subtle image wrappers & preview containers */
 html.light .bg-\[\#050505\],
 html.light .bg-black\/50,
 html.light .bg-black\/70,
 html.light .bg-black\/80,
 html.light .bg-zinc-950\/70,
 html.light .bg-zinc-950\/90 {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+  background-color: #f5f2ee !important;
+  border-color: #e5dfda !important;
 }
 
-/* Badges & Tag Backgrounds */
+/* Badges & Tag Backgrounds in Light Mode */
 html.light .bg-\[\#f4c84a\]\/10,
 html.light .bg-amber-400\/10 {
-  background-color: rgba(217, 119, 6, 0.12) !important;
+  background-color: hsla(16.9, 39.66%, 64.9%, 0.18) !important;
 }
 
 /* Borders in Light Mode */
 html.light .border-\[\#f4c84a\],
 html.light .border-\[\#d4af37\] {
-  border-color: #d97706 !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
 }
 
 html.light .border-\[\#242424\],
@@ -135,10 +234,10 @@ html.light .border-\[\#282828\],
 html.light .border-\[\#333\],
 html.light .border-zinc-800,
 html.light .border-zinc-900 {
-  border-color: #e2e8f0 !important;
+  border-color: #e5dfda !important;
 }
 
-/* Base Text Colors */
+/* Solid Black for Dark Elements & Headings in Light Mode */
 html.light .text-white,
 html.light .text-zinc-100,
 html.light .text-zinc-200,
@@ -148,7 +247,7 @@ html.light h3,
 html.light h4,
 html.light h5,
 html.light h6 {
-  color: #0f172a !important;
+  color: #000000 !important;
 }
 
 html.light .text-gray-400,
@@ -158,52 +257,52 @@ html.light .text-zinc-400,
 html.light .text-zinc-500,
 html.light .text-\[\#a1a1a1\],
 html.light .text-\[\#888888\] {
-  color: #475569 !important;
+  color: #57534e !important;
 }
 
-/* High Contrast Amber/Gold Accent Text & Stars */
+/* Accent Text & Stars in Light Mode (Deep Terracotta for High Contrast) */
 html.light .text-\[\#f4c84a\],
 html.light .text-\[\#d4af37\],
 html.light .text-\[\#c5a059\],
 html.light .text-amber-400,
 html.light .text-yellow-500,
 html.light .text-yellow-400 {
-  color: #b45309 !important;
+  color: hsl(16.9deg 45% 38%) !important;
 }
 
 html.light svg.fill-\[\#f4c84a\],
 html.light svg.fill-amber-400 {
-  fill: #d97706 !important;
-  color: #d97706 !important;
+  fill: hsl(16.9deg 45% 38%) !important;
+  color: hsl(16.9deg 45% 38%) !important;
 }
 
 /* Navigation & Links hover */
 html.light nav button,
 html.light nav a {
-  color: #0f172a !important;
+  color: #000000 !important;
 }
 html.light nav button:hover,
 html.light nav a:hover {
-  color: #b45309 !important;
+  color: hsl(16.9deg 45% 38%) !important;
 }
 
 /* Breadcrumbs bar */
 html.light div.bg-\[\#0a0a0a\],
 html.light .bg-\[\#0a0a0a\] {
-  background-color: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
+  background-color: #f5f2ee !important;
+  border-color: #e5dfda !important;
 }
 html.light .bg-\[\#0a0a0a\] a {
-  color: #475569 !important;
+  color: #57534e !important;
 }
 html.light .bg-\[\#0a0a0a\] a:hover {
-  color: #b45309 !important;
+  color: hsl(16.9deg 45% 38%) !important;
 }
 html.light .bg-\[\#0a0a0a\] span.text-\[\#f4c84a\] {
-  color: #b45309 !important;
+  color: hsl(16.9deg 45% 38%) !important;
 }
 
-/* Buttons & CTAs in Light Mode */
+/* Secondary Buttons in Light Mode */
 html.light button.bg-\[\#111\],
 html.light button.bg-\[\#1a1a1a\],
 html.light button.bg-black,
@@ -211,44 +310,44 @@ html.light button.bg-zinc-800,
 html.light button.bg-zinc-900,
 html.light .bg-\[\#1a1a1a\],
 html.light .bg-\[\#111\] {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+  background-color: #f5f2ee !important;
+  color: #000000 !important;
+  border-color: #e5dfda !important;
 }
 
 html.light button.bg-\[\#111\]:hover,
 html.light button.bg-\[\#1a1a1a\]:hover,
 html.light button.bg-black:hover,
 html.light .hover\:bg-\[\#1a1a1a\]:hover {
-  background-color: #e2e8f0 !important;
+  background-color: #eae5e0 !important;
 }
 
-/* Primary CTA Gold Buttons in Light Mode */
+/* Primary CTA Buttons in Light Mode: Terracotta with Solid Black Typography */
 html.light button.bg-\[\#f4c84a\],
 html.light a.bg-\[\#f4c84a\],
 html.light .bg-\[\#f4c84a\],
 html.light button.bg-amber-500,
 html.light .bg-gradient-to-r.from-\[\#f4c84a\],
 html.light .bg-gradient-to-r.from-amber-500 {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
-  color: #ffffff !important;
-  border-color: #b45309 !important;
-  box-shadow: 0 4px 14px 0 rgba(217, 119, 6, 0.35) !important;
+  background: hsl(16.9deg 39.66% 64.9%) !important;
+  color: #000000 !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
+  box-shadow: 0 4px 14px 0 rgba(201, 150, 130, 0.4) !important;
 }
 
 html.light button.bg-\[\#f4c84a\] *,
 html.light a.bg-\[\#f4c84a\] *,
 html.light .bg-\[\#f4c84a\] *,
 html.light .bg-gradient-to-r.from-\[\#f4c84a\] * {
-  color: #ffffff !important;
+  color: #000000 !important;
 }
 
 /* Size Pill Selected State in Light Mode */
 html.light button.bg-\[\#f4c84a\].text-black,
 html.light .bg-\[\#f4c84a\].text-black {
-  background-color: #d97706 !important;
-  color: #ffffff !important;
-  border-color: #b45309 !important;
+  background-color: hsl(16.9deg 39.66% 64.9%) !important;
+  color: #000000 !important;
+  border-color: hsl(16.9deg 45% 38%) !important;
 }
 
 /* Input Fields in Light Mode */
@@ -256,12 +355,12 @@ html.light input[type="text"],
 html.light input[type="email"],
 html.light input[type="search"] {
   background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+  color: #000000 !important;
+  border-color: #e5dfda !important;
 }
 
 html.light input::placeholder {
-  color: #94a3b8 !important;
+  color: #a8a29e !important;
 }
 
 /* Stock & Success Badges */
@@ -278,23 +377,29 @@ html.light .text-emerald-400 {
 /* Footer in Light Mode */
 html.light footer {
   background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  border-color: #e5dfda !important;
 }
 
 html.light footer .border-\[\#c5a059\],
 html.light footer div.bg-black {
-  background-color: #0f172a !important;
-  border-color: #d97706 !important;
+  background-color: #f5f2ee !important;
+  border-color: hsl(16.9deg 39.66% 64.9%) !important;
 }
 
 html.light footer .border-\[\#c5a059\] span,
 html.light footer div.bg-black span {
-  color: #ffffff !important;
+  color: #000000 !important;
 }
 
-html.light footer .border-\[\#c5a059\] span.text-\[\#d4af37\],
-html.light footer div.bg-black span.text-\[\#d4af37\] {
-  color: #f59e0b !important;
+/* Selection Color */
+::selection {
+  background-color: hsl(16.9deg 39.66% 64.9%);
+  color: #ffffff;
+}
+
+html.light ::selection {
+  background-color: hsl(16.9deg 39.66% 64.9%);
+  color: #000000;
 }
 
 /* Custom Scrollbar */
@@ -330,5 +435,3 @@ html.light footer div.bg-black span.text-\[\#d4af37\] {
 .animate-slide-in-right {
   animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
-

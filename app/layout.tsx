@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689797/jerseyjunction_uploads/prhjnmffrxbpcpe3lbmm.webp" />
         <link rel="preload" as="image" href="https://res.cloudinary.com/mcsohx4p/image/upload/v1792689799/jerseyjunction_uploads/dsmns1cd8bdxbqlpiyj9.webp" />
       </head>
-      <body className="min-h-full flex flex-col bg-black text-white selection:bg-[#f4c84a] selection:text-black">
+      <body className="min-h-full flex flex-col bg-black text-white selection:bg-[hsl(16.9deg_39.66%_64.9%)] selection:text-white">
         <StoreProvider>
           {children}
           <AuthModal />

@@ -1,4 +1,8 @@
 const getNormalizedApiUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    // In client browser, use relative /api proxy to avoid CORS roundtrips
+    return '/api';
+  }
   const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
   const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
   if (cleanUrl.endsWith('/api')) {
@@ -48,7 +52,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
   }
 
   const controller = new AbortController();
-  const timeoutMs = endpoint.includes('/admin/all') ? 20000 : 15000;
+  const timeoutMs = endpoint.includes('/admin') ? 15000 : 7000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const signal = options.signal || controller.signal;
 
@@ -79,9 +83,9 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
   } catch (error: any) {
     clearTimeout(timeoutId);
 
-    // Auto-retry if network drop/error and retries remain
+    // Fast auto-retry if network drop/error and retries remain
     if (retries > 0 && error.name !== 'AbortError') {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 400));
       return request<T>(endpoint, options, retries - 1);
     }
 
