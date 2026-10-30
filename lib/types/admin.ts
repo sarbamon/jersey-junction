@@ -87,6 +87,7 @@ export interface AdminOrder {
   orderStatus: OrderStatus;
   date: string;
   timeline: TimelineEvent[];
+  otp?: string;
   icarryShipmentId?: string;
   trackingNumber?: string;
   courierName?: string;

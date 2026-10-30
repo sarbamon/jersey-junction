@@ -99,6 +99,34 @@ export const orderService = {
     return orderService.getOrderById(id);
   },
 
+  sendOrderOtp: async (data: {
+    email: string;
+    customerName?: string;
+    orderId?: string;
+    totalAmount?: number;
+  }): Promise<{ success: boolean; message: string; simulated?: boolean }> => {
+    const res = await apiClient.post<{ message: string; simulated?: boolean }>('/orders/send-otp', data);
+    if (!res.success) {
+      throw new Error(res.message || res.error || 'Failed to send OTP code to Gmail');
+    }
+    return {
+      success: true,
+      message: res.message || res.data?.message || 'OTP sent successfully',
+      simulated: res.data?.simulated,
+    };
+  },
+
+  verifyOrderOtp: async (email: string, otp: string): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<{ message: string }>('/orders/verify-otp', { email, otp });
+    if (!res.success) {
+      throw new Error(res.message || res.error || 'Invalid or expired OTP code');
+    }
+    return {
+      success: true,
+      message: res.message || 'OTP verified successfully',
+    };
+  },
+
   addOrder: async (newOrder: AdminOrder): Promise<AdminOrder> => {
     // Post to backend MongoDB API authoritatively
     const res = await apiClient.post<AdminOrder>('/orders', newOrder);
