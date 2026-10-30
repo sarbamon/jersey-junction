@@ -254,6 +254,9 @@ export const icarryService = {
         : (res?.success && res.data ? res.data : null);
 
       if (payload && payload.state) {
+        if (payload.message) {
+          payload.message = payload.message.replace(/\s*\([Ee]st\.?[^)]*\)/gi, '').trim();
+        }
         return payload;
       }
     } catch (err: any) {

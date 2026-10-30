@@ -120,14 +120,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             state: res.state || prev.state,
             city: res.district || res.city || prev.city,
           }));
+          const cleanMsg = (res.message || `Delivery to ${res.district || res.city}, ${res.state}`)
+            .replace(/\s*\([Ee]st\.?[^)]*\)/gi, '')
+            .trim();
           setPincodeMessage({
             available: res.available !== false,
-            text: res.message || `Delivery to ${res.district || res.city}, ${res.state}`,
+            text: cleanMsg,
           });
         } else if (res && res.message) {
+          const cleanMsg = res.message.replace(/\s*\([Ee]st\.?[^)]*\)/gi, '').trim();
           setPincodeMessage({
             available: res.available !== false,
-            text: res.message,
+            text: cleanMsg,
           });
         }
       } catch (err: any) {
