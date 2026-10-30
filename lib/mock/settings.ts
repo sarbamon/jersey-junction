@@ -28,7 +28,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
     facebook: 'https://facebook.com/jerseyjunction',
     youtube: 'https://youtube.com/@jerseyjunction'
   },
-  midBannerImage: 'https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp',
+  midBannerImage: '',
   midBannerTag: 'AUTHENTIC COLLECTION',
   midBannerTitle: 'REPRESENT YOUR CLUB.',
   midBannerSubtitle: 'WEAR YOUR COLORS.',

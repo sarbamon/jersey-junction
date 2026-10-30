@@ -143,61 +143,76 @@ export default function Home() {
       />
 
       {/* Mid Banner Showcase Section */}
-      <section className="bg-[#050505] px-5 py-16 lg:px-12 lg:py-24 relative overflow-hidden border-b border-[#242424]">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#f4c84a]/5 rounded-full blur-[120px] pointer-events-none"></div>
+      {(() => {
+        const hasMidBannerImage = Boolean(
+          storeSettings?.midBannerImage && 
+          typeof storeSettings.midBannerImage === 'string' && 
+          storeSettings.midBannerImage.trim().length > 0 &&
+          !storeSettings.midBannerImage.includes('gojvmjz31hz2thbpruu4')
+        );
 
-        <div className="mx-auto grid max-w-[1420px] items-center gap-12 lg:grid-cols-2 lg:gap-24 relative z-10">
-          
-          <div className="hidden lg:block group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#242424] bg-[#0c0c0c] shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
-            <img
-              src={storeSettings?.midBannerImage || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp'}
-              alt="Authentic Football Jerseys"
-              className="object-cover w-full h-full opacity-95 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 brightness-105"
-            />
-            {(storeSettings?.midBannerOverlayTag || storeSettings?.midBannerOverlayTitle) && (
-              <div className="absolute bottom-6 left-6 z-20 space-y-1">
-                {storeSettings?.midBannerOverlayTag && (
-                  <span className="text-xs font-bold text-[#f4c84a] uppercase tracking-widest font-mono">
-                    {storeSettings.midBannerOverlayTag}
+        return (
+          <section className="bg-[#050505] px-5 py-14 lg:px-12 lg:py-20 relative overflow-hidden border-b border-[#242424]">
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[hsl(16.9deg_39.66%_64.9%)]/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+            {hasMidBannerImage ? (
+              /* PHOTO ONLY WHEN PHOTO IS ADDED */
+              <div className="mx-auto max-w-[1420px] relative z-10">
+                <Link
+                  href="/shop"
+                  className="group relative block aspect-[16/7] sm:aspect-[21/9] w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-zinc-800 shadow-2xl cursor-pointer"
+                >
+                  <img
+                    src={storeSettings!.midBannerImage}
+                    alt="Showcase Banner"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                  />
+                  {(storeSettings?.midBannerOverlayTag || storeSettings?.midBannerOverlayTitle) && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-6 sm:p-10 space-y-1">
+                      {storeSettings?.midBannerOverlayTag && (
+                        <span className="text-xs sm:text-sm font-bold text-[hsl(16.9deg_39.66%_64.9%)] uppercase tracking-widest font-mono">
+                          {storeSettings.midBannerOverlayTag}
+                        </span>
+                      )}
+                      {storeSettings?.midBannerOverlayTitle && (
+                        <h3 className="text-xl sm:text-3xl font-black font-serif text-white uppercase drop-shadow-md">
+                          {storeSettings.midBannerOverlayTitle}
+                        </h3>
+                      )}
+                    </div>
+                  )}
+                </Link>
+              </div>
+            ) : (
+              /* ONLY TEXT WHEN NO PHOTO ADDED */
+              <div className="mx-auto max-w-3xl text-center flex flex-col items-center space-y-5 relative z-10 py-4">
+                <span className="inline-block rounded-full bg-[hsl(16.9deg_39.66%_64.9%)]/15 px-4 py-1.5 text-xs font-bold tracking-[0.2em] text-[hsl(16.9deg_39.66%_64.9%)] border border-[hsl(16.9deg_39.66%_64.9%)]/30">
+                  {storeSettings?.midBannerTag || 'AUTHENTIC COLLECTION'}
+                </span>
+
+                <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight uppercase">
+                  {storeSettings?.midBannerTitle || 'REPRESENT YOUR CLUB.'}<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(16.9deg_39.66%_64.9%)] to-[hsl(16.9deg_44%_48%)]">
+                    {storeSettings?.midBannerSubtitle || 'WEAR YOUR COLORS.'}
                   </span>
-                )}
-                {storeSettings?.midBannerOverlayTitle && (
-                  <h3 className="text-2xl font-black font-serif text-white uppercase">
-                    {storeSettings.midBannerOverlayTitle}
-                  </h3>
-                )}
+                </h2>
+
+                <p className="max-w-xl text-sm sm:text-base leading-relaxed text-zinc-400">
+                  From electric matchdays at the stadium to weekend watch parties, wear your club&apos;s official crest with pride. Discover authentic player-version and fan-version kits for top European football clubs.
+                </p>
+
+                <button
+                  onClick={() => router.push('/shop')}
+                  className="group flex items-center gap-3 rounded-full bg-[hsl(16.9deg_39.66%_64.9%)] px-8 py-4 text-xs sm:text-sm font-black tracking-widest text-black uppercase transition-all hover:scale-105 shadow-xl hover:shadow-[0_0_20px_rgba(201,150,130,0.5)] mt-4 cursor-pointer"
+                >
+                  <span>EXPLORE CATALOG</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-black" />
+                </button>
               </div>
             )}
-          </div>
-
-          <div className="text-center lg:text-left flex flex-col items-center lg:items-start space-y-4">
-            <span className="mb-2 inline-block rounded-full bg-[#f4c84a]/10 px-4 py-1.5 text-xs font-bold tracking-[0.2em] text-[#f4c84a] border border-[#f4c84a]/20">
-              {storeSettings?.midBannerTag || 'AUTHENTIC COLLECTION'}
-            </span>
-
-            <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight uppercase">
-              {storeSettings?.midBannerTitle || 'REPRESENT YOUR CLUB.'}<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(16.9deg_39.66%_64.9%)] to-[hsl(16.9deg_44%_48%)]">
-                {storeSettings?.midBannerSubtitle || 'WEAR YOUR COLORS.'}
-              </span>
-            </h2>
-
-            <p className="max-w-md text-base leading-relaxed text-gray-400">
-              From electric matchdays at the stadium to weekend watch parties, wear your club&apos;s official crest with pride. Discover authentic player-version and fan-version kits for top European football clubs.
-            </p>
-
-            <button
-              onClick={() => router.push('/shop')}
-              className="group flex items-center gap-3 rounded-full bg-gradient-to-r from-[#f4c84a] to-[#d4af37] px-8 py-4 text-sm font-bold tracking-wider text-black transition-all hover:shadow-[0_0_20px_rgba(244,200,74,0.4)] hover:-translate-y-1 mt-4"
-            >
-              <span>EXPLORE CATALOG</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
-
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* Bestseller Jerseys Product Showcase */}
       <section id="shop" className="bg-black px-5 py-14 sm:px-8 lg:px-12 lg:py-20 border-b border-[#242424]">

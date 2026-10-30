@@ -26,9 +26,12 @@ export const settingsService = {
     }
     try {
       const parsed = JSON.parse(stored);
-      // Clean up any giant base64 strings that might have bloated localStorage in previous attempts
-      if (parsed.midBannerImage && typeof parsed.midBannerImage === 'string' && parsed.midBannerImage.startsWith('data:image')) {
-        parsed.midBannerImage = INITIAL_SETTINGS.midBannerImage;
+      // Clean up old placeholder from jerseyspot or giant base64 strings
+      if (
+        (parsed.midBannerImage && typeof parsed.midBannerImage === 'string' && parsed.midBannerImage.includes('gojvmjz31hz2thbpruu4')) ||
+        (parsed.midBannerImage && typeof parsed.midBannerImage === 'string' && parsed.midBannerImage.startsWith('data:image'))
+      ) {
+        parsed.midBannerImage = '';
         try {
           localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...INITIAL_SETTINGS, ...parsed }));
         } catch (_) {}
