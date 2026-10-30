@@ -52,24 +52,6 @@ export default function CheckoutPage() {
   const [availableCoupons, setAvailableCoupons] = useState<AdminCoupon[]>([]);
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
 
-  // Gmail OTP Order Confirmation State
-  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [otpSuccessMsg, setOtpSuccessMsg] = useState<string | null>(null);
-  const [otpCountdown, setOtpCountdown] = useState(0);
-
-  // OTP resend countdown timer
-  useEffect(() => {
-    let timer: any;
-    if (otpCountdown > 0) {
-      timer = setTimeout(() => setOtpCountdown((prev) => prev - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [otpCountdown]);
-
   // Auto-reset to Step 1 if cart is empty
   useEffect(() => {
     if (cartItems.length === 0 && step === 2) {
@@ -503,42 +485,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleSendOtp = async (targetEmail: string) => {
-    const cleanEmail = (targetEmail || '').trim();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      alert('Please provide a valid Gmail address to receive your confirmation code.');
-      return;
-    }
-    setIsSendingOtp(true);
-    setOtpError(null);
-    setOtpSuccessMsg(null);
-    try {
-      const res = await orderService.sendOrderOtp({
-        email: cleanEmail,
-        customerName: formData.fullName,
-        totalAmount: grandTotalINR,
-      });
-      setOtpSuccessMsg(res.message);
-      setOtpCountdown(60);
-    } catch (err: any) {
-      setOtpError(err.message || 'Failed to send OTP code. Please try again.');
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-
-  const handleOpenOtpModal = async () => {
-    if (!formData.email || !formData.email.includes('@')) {
-      alert('Please enter a valid Gmail address to receive your order confirmation code.');
-      return;
-    }
-    setIsOtpModalOpen(true);
-    setOtpCode('');
-    setOtpError(null);
-    await handleSendOtp(formData.email);
-  };
-
-  const handleCodPayment = async (otp?: string) => {
+  const handleCodPayment = async () => {
     if (!currentUser) {
       setIsAuthOpen(true);
       return;
@@ -588,37 +535,20 @@ export default function CheckoutPage() {
         {
           status: 'Confirmed',
           timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-          note: 'Order confirmed with Gmail OTP (Cash on Delivery)',
+          note: 'Order placed with Cash on Delivery option. Order confirmation email sent to customer.',
         },
       ],
-      otp: otp || undefined,
     };
 
     try {
       await orderService.addOrder(createdOrder);
-      setIsOtpModalOpen(false);
       triggerSuccess(newId);
     } catch (err: any) {
       console.error('Error saving order:', err);
-      if (err.message && (err.message.toLowerCase().includes('otp') || err.message.toLowerCase().includes('code'))) {
-        setOtpError(err.message);
-      } else {
-        alert(err.message || 'Failed to place COD order. Please try again.');
-      }
+      alert(err.message || 'Failed to place COD order. Please try again.');
     } finally {
       setIsProcessing(false);
-      setIsVerifyingOtp(false);
     }
-  };
-
-  const handleVerifyOtpAndConfirm = async () => {
-    if (!otpCode || otpCode.trim().length !== 6) {
-      setOtpError('Please enter the full 6-digit confirmation code.');
-      return;
-    }
-    setIsVerifyingOtp(true);
-    setOtpError(null);
-    await handleCodPayment(otpCode.trim());
   };
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
@@ -637,7 +567,7 @@ export default function CheckoutPage() {
         setPaymentMethod('Razorpay');
         return;
       }
-      handleOpenOtpModal();
+      handleCodPayment();
     } else {
       handleRazorpayPayment();
     }
@@ -1362,145 +1292,6 @@ export default function CheckoutPage() {
                 })}
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Gmail OTP Order Confirmation Modal */}
-      {isOtpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#121214] border border-[#2b2b30] rounded-3xl w-full max-w-md p-6 sm:p-8 space-y-6 shadow-2xl relative">
-            <button
-              type="button"
-              onClick={() => {
-                if (!isVerifyingOtp) setIsOtpModalOpen(false);
-              }}
-              disabled={isVerifyingOtp}
-              className="absolute top-5 right-5 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center flex flex-col items-center pt-2">
-              <div className="w-16 h-16 rounded-2xl bg-[hsl(16.9deg_39.66%_64.9%)]/15 border border-[hsl(16.9deg_39.66%_64.9%)]/30 flex items-center justify-center text-[hsl(16.9deg_39.66%_64.9%)] mb-4 shadow-lg shadow-[hsl(16.9deg_39.66%_64.9%)]/10">
-                <Mail className="w-8 h-8" />
-              </div>
-
-              <span className="text-[11px] font-bold tracking-widest text-[hsl(16.9deg_39.66%_64.9%)] uppercase font-mono bg-[hsl(16.9deg_39.66%_64.9%)]/10 px-3 py-1 rounded-full border border-[hsl(16.9deg_39.66%_64.9%)]/20 mb-2">
-                Order Verification
-              </span>
-
-              <h3 className="font-serif font-black text-xl sm:text-2xl text-white uppercase tracking-wider">
-                Confirm Your Order
-              </h3>
-
-              <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-xs leading-relaxed">
-                We sent a 6-digit confirmation code to your Gmail:
-                <br />
-                <span className="font-semibold text-white tracking-wide break-all">
-                  {formData.email}
-                </span>
-              </p>
-            </div>
-
-            {/* OTP Status / Notice */}
-            {otpSuccessMsg && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-300 text-center leading-relaxed">
-                {otpSuccessMsg}
-              </div>
-            )}
-
-            {otpError && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-xs text-red-400 text-center flex items-center justify-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{otpError}</span>
-              </div>
-            )}
-
-            {/* 6-Digit OTP Input */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleVerifyOtpAndConfirm();
-              }}
-              className="space-y-5"
-            >
-              <div className="flex flex-col items-center">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 font-mono">
-                  Enter 6-Digit Code
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => {
-                    const clean = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setOtpCode(clean);
-                    setOtpError(null);
-                  }}
-                  placeholder="------"
-                  disabled={isVerifyingOtp}
-                  className="w-56 text-center text-3xl font-mono tracking-[0.4em] font-black bg-zinc-950 border-2 border-zinc-700 focus:border-[hsl(16.9deg_39.66%_64.9%)] rounded-2xl py-3.5 px-4 text-white outline-none transition-all shadow-inner focus:ring-4 focus:ring-[hsl(16.9deg_39.66%_64.9%)]/20"
-                  autoFocus
-                />
-                <span className="text-[11px] text-zinc-500 mt-2 font-mono">
-                  Code expires in 10 minutes
-                </span>
-              </div>
-
-              {/* Resend Action */}
-              <div className="flex items-center justify-between text-xs text-zinc-400 pt-1">
-                <span>Didn&apos;t receive it?</span>
-                {otpCountdown > 0 ? (
-                  <span className="text-zinc-500 font-mono">Resend in {otpCountdown}s</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleSendOtp(formData.email)}
-                    disabled={isSendingOtp || isVerifyingOtp}
-                    className="text-[hsl(16.9deg_39.66%_64.9%)] hover:underline font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                  >
-                    {isSendingOtp ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    )}
-                    <span>Resend Code</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsOtpModalOpen(false)}
-                  disabled={isVerifyingOtp}
-                  className="w-full sm:w-1/3 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800/60 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isVerifyingOtp || otpCode.length !== 6}
-                  className="w-full sm:w-2/3 py-3 rounded-xl bg-[hsl(16.9deg_39.66%_64.9%)] hover:bg-[hsl(16.9deg_44%_60%)] disabled:opacity-50 text-black font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-[hsl(16.9deg_39.66%_64.9%)]/20"
-                >
-                  {isVerifyingOtp ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-black" />
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 text-black" />
-                      <span>Confirm Order</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
