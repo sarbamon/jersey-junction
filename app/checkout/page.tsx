@@ -913,8 +913,6 @@ export default function CheckoutPage() {
                             </span>
                           </div>
                         </div>
-
-                        <span className="text-xs font-mono font-bold text-[#f4c84a]">INSTANT DISPATCH</span>
                       </div>
 
                       {/* Option 2: COD (Only when enabled) */}
@@ -968,8 +966,8 @@ export default function CheckoutPage() {
                       ) : (
                         <span>
                           {paymentMethod === 'Razorpay'
-                            ? `PAY ${activeCurrency.symbol}${grandTotalConverted} VIA RAZORPAY`
-                            : `PLACE COD ORDER (${activeCurrency.symbol}${grandTotalConverted})`}
+                            ? 'PAY VIA RAZORPAY'
+                            : 'PLACE COD ORDER'}
                         </span>
                       )}
                       {!isProcessing && cartItems.length > 0 && <ArrowRight className="w-4 h-4" />}

@@ -793,7 +793,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         ? 'INITIATING RAZORPAY...'
                         : items.length === 0
                         ? 'CART IS EMPTY'
-                        : `PAY ${activeCurrency.symbol}${grandTotalConverted} NOW`}
+                        : paymentMethod === 'Razorpay'
+                        ? 'PAY VIA RAZORPAY'
+                        : 'PLACE ORDER'}
                     </button>
                   </div>
                 </div>
