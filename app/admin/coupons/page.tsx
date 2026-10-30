@@ -136,7 +136,7 @@ export default function AdminCouponsPage() {
             <span>DISCOUNT & PROMOTIONAL ENGINE</span>
           </div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white">
-            COUPONS ({coupons.length})
+            COUPONS
           </h1>
           <p className="text-xs text-zinc-400">
             Create checkout promo codes, percentage discounts, and fixed cart deductions.

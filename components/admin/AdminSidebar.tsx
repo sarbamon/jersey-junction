@@ -86,13 +86,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
 
       {/* Navigation Links */}
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 scrollbar-thin">
-        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2 flex items-center justify-between">
+        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">
           <span>{isBoss ? 'NAVIGATION' : 'MY WORKSPACE'}</span>
-          {!isBoss && (
-            <span className="text-[9px] text-zinc-400 font-mono">
-              {filteredNavItems.length} active
-            </span>
-          )}
         </div>
         
         {filteredNavItems.map((item) => {

@@ -137,7 +137,7 @@ export default function AdminBannersPage() {
             <span>HOMEPAGE HERO CMS & BANNERS</span>
           </div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white">
-            HERO BANNERS ({banners.length})
+            HERO BANNERS
           </h1>
           <p className="text-xs text-zinc-400">
             Manage promotional hero slides, background artwork, and CTA buttons live on the storefront.

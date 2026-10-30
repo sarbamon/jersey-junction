@@ -94,7 +94,7 @@ export default function AdminCustomersPage() {
             <span>CUSTOMER ACCOUNTS DIRECTORY</span>
           </div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white">
-            CUSTOMERS ({filteredCustomers.length})
+            CUSTOMERS
           </h1>
           <p className="text-xs text-zinc-400">
             View registered user profiles, order frequency, total spending, and VIP statuses.

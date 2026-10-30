@@ -214,12 +214,9 @@ export default function AdminProductsPage() {
             <span>CATALOG MANAGEMENT SYSTEM</span>
           </div>
           <h1 className="text-2xl font-black font-serif uppercase tracking-tight text-white flex items-center gap-3">
-            PRODUCTS ({filteredProducts.length})
+            PRODUCTS
             {(isLoading || isRefreshing) && <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />}
           </h1>
-          <p className="text-xs text-zinc-400">
-            Manage store catalog, prices, inventory levels, and product availability.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
