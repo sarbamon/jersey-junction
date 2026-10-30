@@ -36,7 +36,7 @@ export interface EditableProductRow extends AdminProduct {
  * - "5" (uniform 5 units per standard size)
  * - "S, M, L, XL" (defaults to 5 each)
  */
-export function parseSizesAndStock(input: string): {
+function parseSizesAndStock(input: string): {
   sizeStock: Record<string, number>;
   totalStock: number;
   sizes: string[];
