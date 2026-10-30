@@ -1,7 +1,6 @@
 import { StoreSettings } from '../types/admin';
 import { INITIAL_SETTINGS } from '../mock/settings';
 import { icarryService } from './icarryService';
-import { INITIAL_PRODUCTS } from '../mock/products';
 import { INITIAL_ORDERS } from '../mock/orders';
 import { INITIAL_CUSTOMERS } from '../mock/customers';
 import { INITIAL_CATEGORIES } from '../mock/categories';
@@ -133,6 +132,10 @@ export const settingsService = {
     localStorage.removeItem('jj_admin_banners');
     localStorage.removeItem('jj_cart');
     localStorage.removeItem('jj_wishlist');
+    localStorage.removeItem('jj_store_products_cache');
+    localStorage.removeItem('jj_admin_products_cache');
+    localStorage.removeItem('jj_store_products_cache_v2');
+    localStorage.removeItem('jj_admin_products_cache_v2');
     localStorage.setItem('jj_admin_products', JSON.stringify([]));
     localStorage.setItem('jj_admin_orders', JSON.stringify([]));
     localStorage.setItem('jj_admin_customers', JSON.stringify([]));

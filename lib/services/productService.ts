@@ -79,25 +79,54 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
 }
 
 let memoryProductsCache: JerseyProduct[] | null = null;
-const CACHE_KEY = 'jj_store_products_cache';
+const CACHE_KEY = 'jj_store_products_cache_v2';
 
 let memoryAdminProductsCache: AdminProduct[] | null = null;
-const ADMIN_CACHE_KEY = 'jj_admin_products_cache';
+const ADMIN_CACHE_KEY = 'jj_admin_products_cache_v2';
+
+// Identify any legacy demo or test items
+function isDemoProduct(item: any): boolean {
+  if (!item) return false;
+  const n = (item.name || '').toLowerCase().trim();
+  const s = (item.slug || '').toLowerCase().trim();
+  return (
+    n.startsWith('test') ||
+    s.startsWith('test') ||
+    n === 'arhentina' ||
+    s === 'arhentina' ||
+    n === 'real mader' ||
+    s.startsWith('messi-4373') ||
+    s.startsWith('ronaldo-4868') ||
+    n === 'fdsfds' ||
+    n === 'fdsfsd' ||
+    n === 'fsdfs' ||
+    n === 'dsad' ||
+    n === 'dsada' ||
+    n === 'dsa' ||
+    n === 'dsadsa'
+  );
+}
 
 function getStoredCache(): JerseyProduct[] {
   if (memoryProductsCache !== null) return memoryProductsCache;
   if (typeof window !== 'undefined') {
     try {
+      // Purge legacy demo caches
+      localStorage.removeItem('jj_store_products_cache');
+      localStorage.removeItem('jj_admin_products_cache');
+      localStorage.removeItem('jj_admin_products');
+
       const stored = localStorage.getItem(CACHE_KEY);
       if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          memoryProductsCache = parsed;
-          return parsed;
+          const clean = parsed.filter(p => !isDemoProduct(p));
+          memoryProductsCache = clean;
+          return clean;
         }
       }
     } catch {}
-    const defaults = (SEED_ADMIN_PRODUCTS || []).map(mapBackendToJerseyProduct);
+    const defaults = (SEED_ADMIN_PRODUCTS || []).filter(p => !isDemoProduct(p)).map(mapBackendToJerseyProduct);
     memoryProductsCache = defaults;
     return defaults;
   }
@@ -106,10 +135,11 @@ function getStoredCache(): JerseyProduct[] {
 
 function saveStoredCache(products: JerseyProduct[]) {
   if (!products) return;
-  memoryProductsCache = products;
+  const clean = products.filter(p => !isDemoProduct(p));
+  memoryProductsCache = clean;
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(products));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(clean));
     } catch {}
   }
 }
@@ -118,27 +148,34 @@ function getStoredAdminCache(): AdminProduct[] {
   if (memoryAdminProductsCache !== null) return memoryAdminProductsCache;
   if (typeof window !== 'undefined') {
     try {
+      // Purge legacy demo caches
+      localStorage.removeItem('jj_store_products_cache');
+      localStorage.removeItem('jj_admin_products_cache');
+      localStorage.removeItem('jj_admin_products');
+
       const stored = localStorage.getItem(ADMIN_CACHE_KEY);
       if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          memoryAdminProductsCache = parsed;
-          return parsed;
+          const clean = parsed.filter(p => !isDemoProduct(p));
+          memoryAdminProductsCache = clean;
+          return clean;
         }
       }
     } catch {}
   }
-  const defaults = (SEED_ADMIN_PRODUCTS || []).map(mapBackendToAdminProduct);
+  const defaults = (SEED_ADMIN_PRODUCTS || []).filter(p => !isDemoProduct(p)).map(mapBackendToAdminProduct);
   memoryAdminProductsCache = defaults;
   return defaults;
 }
 
 function saveStoredAdminCache(products: AdminProduct[]) {
   if (!products) return;
-  memoryAdminProductsCache = products;
+  const clean = products.filter(p => !isDemoProduct(p));
+  memoryAdminProductsCache = clean;
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(products));
+      localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(clean));
     } catch {}
   }
 }
@@ -181,7 +218,7 @@ export const productService = {
     try {
       const res = await apiClient.get(`/products${query}`);
       if (res.success && Array.isArray(res.data)) {
-        const mapped = res.data.map(mapBackendToJerseyProduct);
+        const mapped = res.data.map(mapBackendToJerseyProduct).filter(p => !isDemoProduct(p));
         if (!hasFilters) {
           saveStoredCache(mapped);
         }
@@ -199,7 +236,7 @@ export const productService = {
     try {
       const res = await apiClient.get('/products/admin/all');
       if (res.success && Array.isArray(res.data)) {
-        const mapped = res.data.map(mapBackendToAdminProduct);
+        const mapped = res.data.map(mapBackendToAdminProduct).filter(p => !isDemoProduct(p));
         saveStoredAdminCache(mapped);
         return mapped;
       }
@@ -210,8 +247,8 @@ export const productService = {
     // Fallback to public products if admin call fails or is empty
     try {
       const fallbackRes = await apiClient.get('/products?limit=200');
-      if (fallbackRes.success && Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
-        const mapped = fallbackRes.data.map(mapBackendToAdminProduct);
+      if (fallbackRes.success && Array.isArray(fallbackRes.data)) {
+        const mapped = fallbackRes.data.map(mapBackendToAdminProduct).filter(p => !isDemoProduct(p));
         saveStoredAdminCache(mapped);
         return mapped;
       }

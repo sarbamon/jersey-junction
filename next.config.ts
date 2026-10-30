@@ -10,7 +10,10 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const rawUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:5000/api').trim();
+    const defaultBackend = process.env.NODE_ENV === 'production'
+      ? 'https://aqua-pheasant-372889.hostingersite.com/api'
+      : 'http://localhost:5000/api';
+    const rawUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || defaultBackend).trim();
     const cleanUrl = rawUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
     return [
       {

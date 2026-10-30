@@ -335,7 +335,13 @@ function ShopContent() {
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-20 text-center text-zinc-500 font-mono text-xs space-y-3">
-            <p>No products found matching {searchTerm ? `search "${searchTerm}"` : 'selected filter options'}.</p>
+            <p>
+              {searchTerm
+                ? `No products found matching search "${searchTerm}".`
+                : activeCategory !== 'all'
+                ? 'No products found matching selected filter options.'
+                : 'No products available in the catalog yet.'}
+            </p>
             {searchTerm && (
               <button
                 onClick={() => {
