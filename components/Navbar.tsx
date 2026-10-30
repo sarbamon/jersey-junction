@@ -73,6 +73,25 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
 
+  const shopDropdownRef = React.useRef<HTMLDivElement>(null);
+  const moreDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (shopDropdownRef.current && !shopDropdownRef.current.contains(event.target as Node)) {
+        setIsShopDropdownOpen(false);
+      }
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
+        setIsMoreDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
   React.useEffect(() => {
     setStoreSettings(settingsService.getSettings());
   }, []);
@@ -151,28 +170,31 @@ export const Navbar: React.FC<NavbarProps> = ({
               HOME
             </Link>
 
-            {/* SHOP Dropdown */}
-            <div className="relative" onMouseLeave={() => setIsShopDropdownOpen(false)}>
+            {/* SHOP Dropdown (One-click open, One-click close) */}
+            <div className="relative" ref={shopDropdownRef}>
               <button
-                onMouseEnter={() => setIsShopDropdownOpen(true)}
-                onClick={() => scrollToShop('all')}
-                className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setIsShopDropdownOpen((prev) => !prev);
+                  setIsMoreDropdownOpen(false);
+                }}
+                className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity cursor-pointer select-none"
+                aria-expanded={isShopDropdownOpen}
               >
                 <span>SHOP</span>
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isShopDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isShopDropdownOpen && (
                 <div 
-                  className="absolute left-0 top-full mt-2 w-64 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50 divide-y divide-[#181818]"
-                  onMouseEnter={() => setIsShopDropdownOpen(true)}
+                  className="absolute left-0 top-full mt-2 w-64 bg-[#0c0c0c] dark:bg-[#0c0c0c] light:bg-white border border-[#242424] dark:border-[#242424] light:border-zinc-200 rounded-lg shadow-2xl py-2 z-50 divide-y divide-[#181818] dark:divide-[#181818] light:divide-zinc-100"
                 >
                   <button
                     onClick={() => {
                       scrollToShop('all');
                       setIsShopDropdownOpen(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex items-center cursor-pointer"
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 dark:text-gray-300 light:text-zinc-800 hover:text-[hsl(16.9deg_39.66%_64.9%)] hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 transition-colors flex items-center cursor-pointer"
                   >
                     <span>All Jerseys</span>
                   </button>
@@ -185,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           scrollToShop(catKey);
                           setIsShopDropdownOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] transition-colors flex items-center cursor-pointer"
+                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 dark:text-gray-300 light:text-zinc-800 hover:text-[hsl(16.9deg_39.66%_64.9%)] hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 transition-colors flex items-center cursor-pointer"
                       >
                         <span>{cat.name}</span>
                       </button>
@@ -211,37 +233,40 @@ export const Navbar: React.FC<NavbarProps> = ({
               CONTACT US
             </Link>
 
-            {/* MORE Dropdown */}
-            <div className="relative" onMouseLeave={() => setIsMoreDropdownOpen(false)}>
+            {/* MORE Dropdown (One-click open, One-click close) */}
+            <div className="relative" ref={moreDropdownRef}>
               <button
-                onMouseEnter={() => setIsMoreDropdownOpen(true)}
-                onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
-                className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setIsMoreDropdownOpen((prev) => !prev);
+                  setIsShopDropdownOpen(false);
+                }}
+                className="flex items-center gap-1.5 font-serif text-[14px] font-bold tracking-[0.08em] uppercase hover:opacity-80 transition-opacity cursor-pointer select-none"
+                aria-expanded={isMoreDropdownOpen}
               >
                 <span>MORE</span>
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isMoreDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isMoreDropdownOpen && (
                 <div 
-                  className="absolute left-0 top-full mt-2 w-56 bg-black border border-[#242424] rounded-lg shadow-2xl py-2 z-50 divide-y divide-[#181818]"
-                  onMouseEnter={() => setIsMoreDropdownOpen(true)}
+                  className="absolute left-0 top-full mt-2 w-56 bg-[#0c0c0c] dark:bg-[#0c0c0c] light:bg-white border border-[#242424] dark:border-[#242424] light:border-zinc-200 rounded-lg shadow-2xl py-2 z-50 divide-y divide-[#181818] dark:divide-[#181818] light:divide-zinc-100"
                 >
                   <Link
                     href="/terms"
                     onClick={() => setIsMoreDropdownOpen(false)}
-                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] flex items-center justify-between cursor-pointer"
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 dark:text-gray-300 light:text-zinc-800 hover:text-[hsl(16.9deg_39.66%_64.9%)] hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
                   >
                     <span>Terms & Conditions</span>
-                    <FileText className="w-3.5 h-3.5 text-[#f4c84a]" />
+                    <FileText className="w-3.5 h-3.5 text-[hsl(16.9deg_39.66%_64.9%)]" />
                   </Link>
 
                   <button
                     onClick={() => { setIsTrackOrderOpen(true); setIsMoreDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-[#f4c84a] hover:bg-[#111] flex items-center justify-between cursor-pointer"
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 dark:text-gray-300 light:text-zinc-800 hover:text-[hsl(16.9deg_39.66%_64.9%)] hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
                   >
                     <span>Track Order</span>
-                    <Truck className="w-3.5 h-3.5 text-[#f4c84a]" />
+                    <Truck className="w-3.5 h-3.5 text-[hsl(16.9deg_39.66%_64.9%)]" />
                   </button>
                 </div>
               )}
