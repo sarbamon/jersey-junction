@@ -149,11 +149,11 @@ export default function Home() {
         <div className="mx-auto grid max-w-[1420px] items-center gap-12 lg:grid-cols-2 lg:gap-24 relative z-10">
           
           <div className="hidden lg:block group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#242424] bg-[#0c0c0c] shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
             <img
               src={storeSettings?.midBannerImage || 'https://res.cloudinary.com/mcsohx4p/image/upload/v1788513650/jerseyspot/gojvmjz31hz2thbpruu4.webp'}
               alt="Authentic Football Jerseys"
-              className="object-cover w-full h-full opacity-70 group-hover:scale-105 transition-transform duration-700"
+              className="object-cover w-full h-full opacity-95 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 brightness-105"
             />
             {(storeSettings?.midBannerOverlayTag || storeSettings?.midBannerOverlayTitle) && (
               <div className="absolute bottom-6 left-6 z-20 space-y-1">
@@ -178,7 +178,7 @@ export default function Home() {
 
             <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight uppercase">
               {storeSettings?.midBannerTitle || 'REPRESENT YOUR CLUB.'}<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f4c84a] to-[#d4af37]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(16.9deg_39.66%_64.9%)] to-[hsl(16.9deg_44%_48%)]">
                 {storeSettings?.midBannerSubtitle || 'WEAR YOUR COLORS.'}
               </span>
             </h2>

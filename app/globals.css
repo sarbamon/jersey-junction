@@ -98,11 +98,14 @@ svg.fill-amber-400 {
 /* Primary Accent Buttons & CTAs (Dark Mode: Terracotta with crisp White typography) */
 button.bg-\[\#f4c84a\],
 a.bg-\[\#f4c84a\],
-.bg-\[\#f4c84a\],
 button.bg-amber-500,
-.bg-gradient-to-r.from-\[\#f4c84a\],
-.bg-gradient-to-r.from-amber-400,
-.bg-gradient-to-r.from-amber-500 {
+a.bg-amber-500,
+button.bg-gradient-to-r,
+a.bg-gradient-to-r,
+button[class*="from-\[\#f4c84a\]"],
+a[class*="from-\[\#f4c84a\]"],
+button[class*="from-amber"],
+a[class*="from-amber"] {
   background: linear-gradient(135deg, hsl(16.9deg 44% 68%) 0%, hsl(16.9deg 39.66% 64.9%) 100%) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 16px rgba(201, 150, 130, 0.35) !important;
@@ -110,9 +113,33 @@ button.bg-amber-500,
 
 button.bg-\[\#f4c84a\] *,
 a.bg-\[\#f4c84a\] *,
-.bg-\[\#f4c84a\] *,
-.bg-gradient-to-r.from-\[\#f4c84a\] * {
+button[class*="from-\[\#f4c84a\]"] *,
+a[class*="from-\[\#f4c84a\]"] * {
   color: #ffffff !important;
+}
+
+/* Category Card Title - Guaranteed Pure White in all modes */
+.category-card-title,
+html.light .category-card-title,
+html.dark .category-card-title,
+a .category-card-title,
+.group .category-card-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Gradient Text Clipping Preservation */
+span.bg-clip-text,
+.bg-clip-text,
+html.light span.bg-clip-text,
+html.light .bg-clip-text,
+html.dark span.bg-clip-text,
+html.dark .bg-clip-text {
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Dedicated Brand Logo Crest (Dark Mode: Terracotta & White) */
@@ -237,17 +264,14 @@ html.light .border-zinc-900 {
   border-color: #e5dfda !important;
 }
 
-/* Solid Black for Dark Elements & Headings in Light Mode */
-html.light .text-white,
-html.light .text-zinc-100,
-html.light .text-zinc-200,
-html.light h1,
-html.light h2,
-html.light h3,
-html.light h4,
-html.light h5,
-html.light h6 {
+/* Solid Black for Dark Elements & Headings in Light Mode (Preserving white titles on image overlays) */
+html.light :is(h1, h2, h3, h4, h5, h6):not(.category-card-title, [class*="!text-white"], [class*="bg-clip-text"], .text-transparent) {
   color: #000000 !important;
+}
+
+html.light .text-zinc-100:not(.category-card-title, [class*="!text-white"]),
+html.light .text-zinc-200:not(.category-card-title, [class*="!text-white"]) {
+  color: #000000;
 }
 
 html.light .text-gray-400,
@@ -325,10 +349,14 @@ html.light .hover\:bg-\[\#1a1a1a\]:hover {
 /* Primary CTA Buttons in Light Mode: Terracotta with Solid Black Typography */
 html.light button.bg-\[\#f4c84a\],
 html.light a.bg-\[\#f4c84a\],
-html.light .bg-\[\#f4c84a\],
 html.light button.bg-amber-500,
-html.light .bg-gradient-to-r.from-\[\#f4c84a\],
-html.light .bg-gradient-to-r.from-amber-500 {
+html.light a.bg-amber-500,
+html.light button.bg-gradient-to-r,
+html.light a.bg-gradient-to-r,
+html.light button[class*="from-\[\#f4c84a\]"],
+html.light a[class*="from-\[\#f4c84a\]"],
+html.light button[class*="from-amber"],
+html.light a[class*="from-amber"] {
   background: hsl(16.9deg 39.66% 64.9%) !important;
   color: #000000 !important;
   border-color: hsl(16.9deg 39.66% 64.9%) !important;
@@ -337,8 +365,8 @@ html.light .bg-gradient-to-r.from-amber-500 {
 
 html.light button.bg-\[\#f4c84a\] *,
 html.light a.bg-\[\#f4c84a\] *,
-html.light .bg-\[\#f4c84a\] *,
-html.light .bg-gradient-to-r.from-\[\#f4c84a\] * {
+html.light button[class*="from-\[\#f4c84a\]"] *,
+html.light a[class*="from-\[\#f4c84a\]"] * {
   color: #000000 !important;
 }
 
