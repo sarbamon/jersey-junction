@@ -2,7 +2,10 @@ const getNormalizedApiUrl = (): string => {
   if (typeof window !== 'undefined') {
     return '/api';
   }
-  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const defaultBackend = process.env.NODE_ENV === 'production'
+    ? 'https://aqua-pheasant-372889.hostingersite.com/api'
+    : 'http://localhost:5000/api';
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || defaultBackend;
   const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
   if (cleanUrl.endsWith('/api')) {
     return cleanUrl;
