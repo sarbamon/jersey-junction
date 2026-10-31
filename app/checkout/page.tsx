@@ -929,7 +929,7 @@ export default function CheckoutPage() {
                     disabled={cartItems.length === 0}
                     className="w-full py-4 bg-gradient-to-r from-[#f4c84a] to-[#d4af37] hover:from-[#ffd96a] hover:to-[#f4c84a] text-black font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all mt-6 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    <span>{cartItems.length === 0 ? 'CART IS EMPTY' : `PROCEED TO PAYMENT (${activeCurrency.symbol}${grandTotalConverted})`}</span>
+                    <span>{cartItems.length === 0 ? 'CART IS EMPTY' : 'PROCEED TO PAYMENT'}</span>
                     {cartItems.length > 0 && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </form>
