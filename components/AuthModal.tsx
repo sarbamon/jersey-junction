@@ -108,11 +108,14 @@ export const AuthModal: React.FC = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setError('Please provide your registered email and a new password.');
       return;
     }
-    if (password.length < 6) {
+    if (cleanPassword.length < 6) {
       setError('New password must be at least 6 characters long.');
       return;
     }
@@ -122,13 +125,13 @@ export const AuthModal: React.FC = () => {
     setSuccessMsg('');
 
     try {
-      const res = await customerService.resetPasswordCustomer(email.trim(), password);
+      const res = await customerService.resetPasswordCustomer(cleanEmail, cleanPassword);
       if (res.success) {
         setSuccessMsg(res.message || 'Password reset successfully! Returning to sign in...');
         setTimeout(() => {
           setMode('login');
           setSuccessMsg('');
-        }, 2200);
+        }, 1800);
       } else {
         setError(res.message || 'Failed to reset password. Please check your email.');
       }
@@ -188,7 +191,10 @@ export const AuthModal: React.FC = () => {
 
   const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setError('Please enter your email and password.');
       return;
     }
@@ -197,7 +203,7 @@ export const AuthModal: React.FC = () => {
     setError('');
 
     try {
-      const authUser = await authService.loginCustomer(email.trim(), password);
+      const authUser = await authService.loginCustomer(cleanEmail, cleanPassword);
       loginUser({
         name: authUser.name,
         email: authUser.email,
@@ -214,12 +220,17 @@ export const AuthModal: React.FC = () => {
 
   const handleUserSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
+    const cleanPhone = phone.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanName || !cleanEmail || !cleanPhone || !cleanPassword) {
       setError('Please fill in all required fields (Name, Email, Phone, Password).');
       return;
     }
 
-    if (password.length < 6) {
+    if (cleanPassword.length < 6) {
       setError('Password must be at least 6 characters long.');
       return;
     }
@@ -233,12 +244,12 @@ export const AuthModal: React.FC = () => {
     setError('');
 
     try {
-      const authUser = await authService.registerCustomer(name.trim(), email.trim(), password, phone.trim());
+      const authUser = await authService.registerCustomer(cleanName, cleanEmail, cleanPassword, cleanPhone);
       loginUser({
         name: authUser.name,
         email: authUser.email,
         role: authUser.role,
-        phone: phone.trim()
+        phone: cleanPhone
       });
       handleClose();
     } catch (err: any) {

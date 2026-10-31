@@ -27,14 +27,14 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const loggedUser = await authService.login(email, password);
+      const loggedUser = await authService.login(email.trim(), password.trim());
       if (loggedUser.role === 'admin') {
         router.push('/admin');
       } else {
         router.push(authService.getFirstAllowedRoute());
       }
     } catch (err: any) {
-      setError(err.message || 'Invalid login credentials');
+      setError(err.message || 'Invalid email or password');
       setIsLoading(false);
     }
   };

@@ -19,7 +19,10 @@ const CUSTOMER_TOKEN_KEY = 'jj_customer_token';
 export const authService = {
   // Admin & Staff Login
   login: async (email: string, pass: string): Promise<AuthUser> => {
-    const res = await apiClient.post('/auth/login', { email, password: pass });
+    const res = await apiClient.post('/auth/login', {
+      email: (email || '').trim().toLowerCase(),
+      password: (pass || '').trim(),
+    });
 
     if (!res.success || !res.token) {
       throw new Error(res.error || 'Invalid email or password');
@@ -31,7 +34,7 @@ export const authService = {
 
     const user: AuthUser = {
       id: res.user?.id || res.user?._id,
-      email: res.user?.email || email,
+      email: res.user?.email || email.trim(),
       name: res.user?.name || (res.user?.role === 'admin' ? 'Administrator' : 'Employee'),
       role: res.user?.role || 'admin',
       token: res.token,
@@ -50,7 +53,10 @@ export const authService = {
 
   // Customer Login (Real MongoDB connection)
   loginCustomer: async (email: string, pass: string): Promise<AuthUser> => {
-    const res = await apiClient.post('/auth/login', { email, password: pass });
+    const res = await apiClient.post('/auth/login', {
+      email: (email || '').trim().toLowerCase(),
+      password: (pass || '').trim(),
+    });
 
     if (!res.success || !res.token) {
       throw new Error(res.error || 'Invalid email or password');
@@ -170,6 +176,18 @@ export const authService = {
     authService.logoutCustomer();
     authService.logoutAdmin();
     apiClient.get('/auth/logout').catch(() => {});
+  },
+
+  // Change Password for currently authenticated user/admin/employee
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    const res = await apiClient.put('/auth/change-password', {
+      currentPassword: (currentPassword || '').trim(),
+      newPassword: (newPassword || '').trim(),
+    });
+    if (!res.success) {
+      throw new Error(res.error || 'Failed to update password');
+    }
+    return { success: true, message: res.message || 'Password updated successfully!' };
   },
 
   getCustomerUser: (): AuthUser | null => {

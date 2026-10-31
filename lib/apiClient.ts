@@ -55,7 +55,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
   }
 
   const controller = new AbortController();
-  const timeoutMs = endpoint.includes('/admin') ? 15000 : 7000;
+  const timeoutMs = 25000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const signal = options.signal || controller.signal;
 
