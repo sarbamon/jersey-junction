@@ -150,6 +150,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         src={item.product.image}
                         alt={item.product.name}
                         className="w-full h-full object-contain drop-shadow-md rounded-lg"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = '/placeholder-jersey.svg';
+                        }}
                       />
                     ) : (
                       <JerseyViewerSVG

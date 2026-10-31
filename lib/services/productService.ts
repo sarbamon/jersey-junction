@@ -3,9 +3,25 @@ import { AdminProduct } from '../types/admin';
 import { JerseyProduct } from '../../types';
 import { SEED_ADMIN_PRODUCTS } from '../mock/products';
 
+// Helper to filter out dead ephemeral /uploads/ URLs that Hostinger wiped on container restart
+export function sanitizeValidImageUrl(url?: any): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  // Ephemeral hostinger container upload that 404s
+  if (trimmed.includes('/uploads/img_')) return '';
+  return trimmed;
+}
+
 // Helper to normalize backend Product Mongoose doc into AdminProduct / JerseyProduct format
 export function mapBackendToAdminProduct(item: any): AdminProduct {
   const id = item.id || item._id?.toString() || item.slug;
+  const rawImage = sanitizeValidImageUrl(item.image);
+  const rawImages = Array.isArray(item.images)
+    ? item.images.map(sanitizeValidImageUrl).filter(Boolean)
+    : [];
+  const primaryImage = rawImage || (rawImages.length > 0 ? rawImages[0] : '') || '/placeholder-jersey.svg';
+
   return {
     id,
     name: item.name || '',
@@ -23,8 +39,8 @@ export function mapBackendToAdminProduct(item: any): AdminProduct {
     brand: item.brand || 'Jersey Junction',
     sizes: item.sizes || item.availableSizes || ['S', 'M', 'L', 'XL', '2XL'],
     colors: Array.isArray(item.colors) ? item.colors : (item.colors ? [item.colors.primary, item.colors.secondary].filter(Boolean) : []),
-    image: item.image || (item.images && item.images[0]) || '/placeholder-jersey.svg',
-    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : ['/placeholder-jersey.svg']),
+    image: primaryImage,
+    images: rawImages.length > 0 ? rawImages : (primaryImage ? [primaryImage] : ['/placeholder-jersey.svg']),
     isFeatured: Boolean(item.isFeatured),
     isBestseller: Boolean(item.isBestseller),
     isCustomizable: Boolean(item.isCustomizable),
@@ -73,8 +89,22 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     tags: item.tags || [],
     stock: item.stock !== undefined ? Number(item.stock) : 50,
     status: item.status || (item.stock === 0 ? 'Out of Stock' : 'Active'),
-    image: item.image || (item.images && item.images[0]) || '/placeholder-jersey.svg',
-    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : (item.image ? [item.image] : ['/placeholder-jersey.svg']),
+    image: (() => {
+      const rawImage = sanitizeValidImageUrl(item.image);
+      const rawImages = Array.isArray(item.images)
+        ? item.images.map(sanitizeValidImageUrl).filter(Boolean)
+        : [];
+      return rawImage || (rawImages.length > 0 ? rawImages[0] : '') || '/placeholder-jersey.svg';
+    })(),
+    images: (() => {
+      const rawImage = sanitizeValidImageUrl(item.image);
+      const rawImages = Array.isArray(item.images)
+        ? item.images.map(sanitizeValidImageUrl).filter(Boolean)
+        : [];
+      if (rawImages.length > 0) return rawImages;
+      if (rawImage) return [rawImage];
+      return ['/placeholder-jersey.svg'];
+    })(),
   };
 }
 

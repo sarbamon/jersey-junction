@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ShoppingBag, Eye, Clock, CheckCircle2, Truck } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
 import { orderService } from '../../../lib/services/orderService';
 import { AdminOrder, OrderStatus } from '../../../lib/types/admin';
 import { LiveTrackingModal } from '../../../components/admin/LiveTrackingModal';
+import { OrderProductImage } from '../../../components/OrderProductImage';
 
 export default function MyOrdersPage() {
   const { currentUser } = useStore();
@@ -116,10 +116,14 @@ export default function MyOrdersPage() {
                 {o.items.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between gap-4 text-xs">
                     <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-black border border-[#222] overflow-hidden relative shrink-0">
-                        {item.image && (
-                          <Image src={item.image} alt={item.name} fill className="object-cover" />
-                        )}
+                      <div className="h-12 w-12 rounded-xl bg-black border border-[#222] overflow-hidden relative shrink-0 flex items-center justify-center">
+                        <OrderProductImage
+                          src={item.image}
+                          name={item.name}
+                          productId={item.productId}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div>
                         <div className="font-bold text-white text-sm">{item.name}</div>

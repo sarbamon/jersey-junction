@@ -19,6 +19,7 @@ import { settingsService } from '../../lib/services/settingsService';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { OrderConfirmedAnimation } from '../../components/OrderConfirmedAnimation';
+import { OrderProductImage } from '../../components/OrderProductImage';
 
 declare global {
   interface Window {
@@ -1089,9 +1090,13 @@ export default function CheckoutPage() {
                     <div key={item.id} className="flex justify-between items-center gap-3 text-xs border-b border-[#1a1a1a] pb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-14 bg-black rounded-lg border border-[#222] flex items-center justify-center shrink-0 overflow-hidden relative">
-                          {item.product.image && (
-                            <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain" />
-                          )}
+                          <OrderProductImage
+                            src={item.product.image}
+                            name={item.product.name}
+                            productId={item.product.id}
+                            alt={item.product.name}
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                         <div className="space-y-0.5">
                           <div className="font-bold text-white text-xs line-clamp-1">{item.product.name}</div>

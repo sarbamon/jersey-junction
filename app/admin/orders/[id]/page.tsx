@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowLeft, ShoppingBag, Truck, CreditCard, User, MapPin, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
 import { orderService } from '../../../../lib/services/orderService';
 import { AdminOrder, OrderStatus, PaymentStatus } from '../../../../lib/types/admin';
@@ -11,6 +10,7 @@ import { OrderTimeline } from '../../../../components/admin/OrderTimeline';
 import { Toast } from '../../../../components/admin/Toast';
 import { ICarryBookingModal } from '../../../../components/admin/ICarryBookingModal';
 import { LiveTrackingModal } from '../../../../components/admin/LiveTrackingModal';
+import { OrderProductImage } from '../../../../components/OrderProductImage';
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -159,10 +159,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               {order.items.map((item, idx) => (
                 <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4 text-xs">
                   <div className="flex items-center gap-3">
-                    <div className="h-14 w-14 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0">
-                      {item.image && (
-                        <Image src={item.image} alt={item.name} fill className="object-cover" />
-                      )}
+                    <div className="h-14 w-14 rounded-xl bg-zinc-950 border border-zinc-800 overflow-hidden relative shrink-0 flex items-center justify-center">
+                      <OrderProductImage
+                        src={item.image}
+                        name={item.name}
+                        productId={item.productId}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
 
                     <div className="space-y-1">

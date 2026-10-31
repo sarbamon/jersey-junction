@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
+import { OrderProductImage } from '../../../components/OrderProductImage';
 
 export default function AccountWishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useStore();
@@ -36,10 +36,14 @@ export default function AccountWishlistPage() {
             <div key={item.id} className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-4 flex flex-col justify-between space-y-4 group">
               
               <div className="space-y-3">
-                <div className="h-44 w-full rounded-xl bg-black border border-[#222] relative overflow-hidden">
-                  {item.image && (
-                    <Image src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform" />
-                  )}
+                <div className="h-44 w-full rounded-xl bg-black border border-[#222] relative overflow-hidden flex items-center justify-center">
+                  <OrderProductImage
+                    src={item.image}
+                    name={item.name}
+                    productId={item.id}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
                   {item.originalPrice && (
                     <span className="absolute top-2 left-2 bg-[#f4c84a] text-black text-[10px] font-black px-2 py-0.5 rounded uppercase">
                       SALE

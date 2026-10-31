@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ArrowLeft,
   MapPin,
@@ -22,6 +21,7 @@ import { useStore } from '../../../../context/StoreContext';
 import { orderService } from '../../../../lib/services/orderService';
 import { AdminOrder } from '../../../../lib/types/admin';
 import { icarryService, TrackingResult } from '../../../../lib/services/icarryService';
+import { OrderProductImage } from '../../../../components/OrderProductImage';
 
 export default function CustomerOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -287,10 +287,14 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
               {order.items.map((item, idx) => (
                 <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4 text-xs">
                   <div className="flex items-center gap-3">
-                    <div className="h-14 w-14 rounded-xl bg-black border border-[#222] overflow-hidden relative shrink-0">
-                      {item.image && (
-                        <Image src={item.image} alt={item.name} fill className="object-cover" />
-                      )}
+                    <div className="h-14 w-14 rounded-xl bg-black border border-[#222] overflow-hidden relative shrink-0 flex items-center justify-center">
+                      <OrderProductImage
+                        src={item.image}
+                        name={item.name}
+                        productId={item.productId}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
 
                     <div className="space-y-1">
