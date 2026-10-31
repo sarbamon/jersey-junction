@@ -171,7 +171,11 @@ export default function EmployeesManagementPage() {
           phone: phone.trim(),
           ...(password ? { password: password.trim() } : {}),
         });
-        setToastMsg(`Employee "${name}" updated successfully!`);
+        setToastMsg(
+          password
+            ? `Employee "${name}" updated and new password sent to ${email.trim()}!`
+            : `Employee "${name}" updated successfully!`
+        );
       } else {
         await employeeService.createEmployee({
           name: name.trim(),
@@ -181,7 +185,7 @@ export default function EmployeesManagementPage() {
           permissions: selectedPermissions,
           phone: phone.trim(),
         });
-        setToastMsg(`Employee "${name}" created with assigned section access!`);
+        setToastMsg(`Employee "${name}" created and login credentials sent to ${email.trim()}!`);
       }
 
       setIsModalOpen(false);
@@ -508,6 +512,11 @@ export default function EmployeesManagementPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
                   />
+                  <p className="text-[10px] text-zinc-500 font-mono mt-1">
+                    ✉️ {editingEmployee
+                      ? 'If changed, the new password will be emailed to the employee.'
+                      : 'Login password and portal link will be emailed to this address automatically.'}
+                  </p>
                 </div>
 
                 <div>
