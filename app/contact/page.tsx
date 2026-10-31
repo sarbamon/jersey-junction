@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   HelpCircle,
   Truck,
-  RotateCcw
+  RotateCcw,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
@@ -20,6 +22,7 @@ import { JerseyProduct } from '../../types';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
+import { apiClient } from '../../lib/apiClient';
 
 export default function ContactPage() {
   const router = useRouter();
@@ -49,6 +52,7 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const cached = productService.getCachedProductsSync();
@@ -56,19 +60,35 @@ export default function ContactPage() {
     productService.getActiveProducts().then(setProducts).catch(() => {});
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !message.trim()) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    setErrorMessage('');
+    try {
+      const res = await apiClient.post('/contact', {
+        name: name.trim(),
+        email: email.trim(),
+        orderNumber: orderNumber.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+      });
+
+      if (res.success) {
+        setIsSubmitted(true);
+        setName('');
+        setEmail('');
+        setOrderNumber('');
+        setMessage('');
+      } else {
+        setErrorMessage(res.message || res.error || 'Failed to deliver message. Please try again or email support@jerseyjunction.shop directly.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Unable to connect to the email server. Please try again later.');
+    } finally {
       setIsSubmitting(false);
-      setIsSubmitted(true);
-      setName('');
-      setEmail('');
-      setOrderNumber('');
-      setMessage('');
-    }, 800);
+    }
   };
 
   return (
@@ -131,8 +151,8 @@ export default function ContactPage() {
               <div className="bg-[#141414] border border-[#f4c84a]/30 rounded-2xl p-8 text-center space-y-4 animate-fade-in">
                 <CheckCircle2 className="w-12 h-12 text-[#f4c84a] mx-auto animate-bounce" />
                 <h3 className="font-serif font-black text-xl text-white uppercase">Message Sent Successfully!</h3>
-                <p className="text-xs text-gray-300 max-w-md mx-auto">
-                  Thank you for reaching out to Jersey Junction. Our customer support team has received your ticket and will reply via email shortly.
+                <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                  Thank you for reaching out to Jersey Junction. Your message has been sent directly to <strong className="text-[#f4c84a] font-mono">support@jerseyjunction.shop</strong>. Our team will review your inquiry and reply to your email shortly.
                 </p>
                 <button
                   onClick={() => setIsSubmitted(false)}
@@ -211,14 +231,21 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {errorMessage && (
+                  <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="leading-snug">{errorMessage}</p>
+                  </div>
+                )}
+
                 <div className="pt-2">
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-600 text-black font-extrabold uppercase rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg hover:scale-105"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-600 text-black font-extrabold uppercase rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg hover:scale-105 disabled:opacity-50"
                   >
-                    <Send className="w-4 h-4" />
-                    <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
+                    <span>{isSubmitting ? 'Sending to Support...' : 'Send Message'}</span>
                   </button>
                 </div>
 
