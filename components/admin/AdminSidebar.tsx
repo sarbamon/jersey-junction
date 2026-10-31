@@ -14,7 +14,9 @@ import {
   Image as ImageIcon, 
   Settings, 
   LogOut, 
-  X
+  X,
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 import { authService } from '../../lib/services/authService';
 
@@ -111,11 +113,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
           );
         })}
 
-        {/* Employees Section */}
+        {/* Master Admin Only Management Section */}
         {isBoss && (
           <div className="pt-4 mt-4 border-t border-zinc-900 space-y-1.5">
             <div className="text-[10px] font-black text-amber-400/80 uppercase tracking-widest px-3 mb-2 flex items-center gap-1.5">
-              <span>MANAGEMENT</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>MASTER ADMIN</span>
             </div>
             <Link
               href="/admin/employees"
@@ -128,6 +131,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
             >
               <Users className="w-4 h-4" />
               <span>Employees</span>
+            </Link>
+            <Link
+              href="/admin/security"
+              onClick={onClose}
+              className={`flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+                pathname.startsWith('/admin/security')
+                  ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20 font-extrabold'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900/80'
+              }`}
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Admin Security</span>
             </Link>
           </div>
         )}

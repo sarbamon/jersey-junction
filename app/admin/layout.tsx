@@ -42,8 +42,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // Role is Employee: Check granular permissions
     if (user.role === 'employee') {
-      // 1. Employees can NEVER access the Employees management section (Boss only)
-      if (pathname.startsWith('/admin/employees')) {
+      // 1. Employees can NEVER access Master Admin sections (Employees or Security)
+      if (pathname.startsWith('/admin/employees') || pathname.startsWith('/admin/security')) {
         const fallback = authService.getFirstAllowedRoute();
         router.push(fallback);
         return;
