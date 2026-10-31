@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   HelpCircle,
   Truck,
-  ShieldCheck,
   RotateCcw
 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
@@ -245,16 +244,6 @@ export default function ContactPage() {
                   </h4>
                   <p className="text-gray-400 leading-relaxed pl-5">
                     Orders are processed within 24-48 hours. Express tracked delivery usually takes 3-7 business days across India.
-                  </p>
-                </div>
-
-                <div className="pt-3 space-y-1">
-                  <h4 className="font-bold text-white flex items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#f4c84a] shrink-0" />
-                    <span>Are names & numbers heat-pressed?</span>
-                  </h4>
-                  <p className="text-gray-400 leading-relaxed pl-5">
-                    Yes! All custom prints use authentic thermo-bonded official fonts identical to matchday player kits.
                   </p>
                 </div>
 
