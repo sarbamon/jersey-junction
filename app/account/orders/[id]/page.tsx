@@ -12,7 +12,6 @@ import {
   Clock,
   Copy,
   Check,
-  ExternalLink,
   RefreshCw,
   Calendar,
   Package,
@@ -22,6 +21,14 @@ import { orderService } from '../../../../lib/services/orderService';
 import { AdminOrder } from '../../../../lib/types/admin';
 import { icarryService, TrackingResult } from '../../../../lib/services/icarryService';
 import { OrderProductImage } from '../../../../components/OrderProductImage';
+
+const formatShippingStatusText = (status?: string): string => {
+  if (!status) return 'Shipping getting ready';
+  if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
+    return 'Shipping getting ready';
+  }
+  return status;
+};
 
 export default function CustomerOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -88,12 +95,7 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
   const currentIdx = steps.findIndex(s => s.status === order.orderStatus);
   const awb = trackingData?.trackingNumber || order.trackingNumber || '';
   const courier = trackingData?.courier || order.courierName || 'Assigned Courier';
-  const liveStatus = trackingData?.shippingStatus || order.shippingStatus || 'Booked';
-  const externalTrackingUrl =
-    trackingData?.externalTrackingUrl ||
-    (order.trackingNumber
-      ? `https://www.icarry.in/track-shipment&awb=${encodeURIComponent(order.trackingNumber)}`
-      : '');
+  const liveStatus = formatShippingStatusText(trackingData?.shippingStatus || order.shippingStatus || 'Booked');
 
   const copyAwb = () => {
     if (awb) {
@@ -159,18 +161,6 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTracking ? 'animate-spin text-amber-400' : ''}`} />
                 <span>Refresh</span>
               </button>
-
-              {externalTrackingUrl && (
-                <a
-                  href={externalTrackingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-extrabold uppercase flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                >
-                  <span>Carrier Tracking Page</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
             </div>
           </div>
 
@@ -225,7 +215,7 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
                         }`}
                       />
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <strong className="text-white font-medium">{step.status}</strong>
+                        <strong className="text-white font-medium">{formatShippingStatusText(step.status)}</strong>
                         <span className="text-zinc-500 text-[10px] font-mono">{step.timestamp}</span>
                       </div>
                       {step.location && (

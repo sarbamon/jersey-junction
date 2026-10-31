@@ -217,7 +217,25 @@ export const icarryService = {
       const cleanId = orderId.replace('#', '');
       const res = await apiClient.get<TrackingResult>(`/icarry/track/${cleanId}`);
       if (res.success && res.data) {
-        return res.data;
+        const raw = res.data;
+        const normalizeStatus = (str?: string) => {
+          if (!str) return 'Shipping getting ready';
+          if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(str)) {
+            return 'Shipping getting ready';
+          }
+          return str;
+        };
+
+        return {
+          ...raw,
+          shippingStatus: normalizeStatus(raw.shippingStatus),
+          externalTrackingUrl: '', // Stripped so users stay within site
+          history: (raw.history || []).map((step) => ({
+            ...step,
+            status: normalizeStatus(step.status),
+            details: normalizeStatus(step.details),
+          })),
+        };
       }
     } catch (err) {
       console.error('Failed to track iCarry shipment:', err);

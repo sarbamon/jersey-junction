@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Truck,
-  ExternalLink,
   RefreshCw,
   Copy,
   Check,
@@ -17,6 +16,14 @@ import {
 } from 'lucide-react';
 import { icarryService, TrackingResult } from '@/lib/services/icarryService';
 import { AdminOrder } from '@/lib/types/admin';
+
+const formatShippingStatusText = (status?: string): string => {
+  if (!status) return 'Shipping getting ready';
+  if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
+    return 'Shipping getting ready';
+  }
+  return status;
+};
 
 interface LiveTrackingModalProps {
   isOpen: boolean;
@@ -66,7 +73,7 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
 
   const awb = trackingData?.trackingNumber || order.trackingNumber || 'PENDING';
   const courier = trackingData?.courier || order.courierName || 'Assigned Courier';
-  const status = trackingData?.shippingStatus || order.shippingStatus || 'Booked';
+  const status = formatShippingStatusText(trackingData?.shippingStatus || order.shippingStatus || 'Booked');
   const externalUrl =
     trackingData?.externalTrackingUrl ||
     (order.trackingNumber
@@ -258,7 +265,7 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
                       <div className="space-y-0.5">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <strong className="text-xs text-white font-bold font-sans">
-                            {step.status}
+                            {formatShippingStatusText(step.status)}
                           </strong>
                           <span className="text-[10px] text-zinc-400 font-mono">
                             {step.timestamp}
@@ -292,21 +299,11 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-zinc-800/80 bg-zinc-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <a
-            href={externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
-          >
-            <span>Open Carrier Tracking Portal</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-
+        <div className="px-6 py-4 border-t border-zinc-800/80 bg-zinc-900/50 flex items-center justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
           >
             Close
           </button>

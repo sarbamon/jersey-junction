@@ -1,8 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Search, Package, CheckCircle2, Clock, Truck, MapPin, Loader2, ExternalLink, AlertCircle, Copy, Check } from 'lucide-react';
+import { X, Search, Package, CheckCircle2, Clock, Truck, MapPin, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
 import { icarryService, TrackingResult } from '@/lib/services/icarryService';
+
+const formatShippingStatusText = (status?: string): string => {
+  if (!status) return 'Shipping getting ready';
+  if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
+    return 'Shipping getting ready';
+  }
+  return status;
+};
 
 interface TrackOrderModalProps {
   isOpen: boolean;
@@ -109,8 +117,8 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClos
                   </span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="font-bold text-amber-400 text-sm">{trackedResult.courier}</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase">
-                      {trackedResult.shippingStatus}
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                      {formatShippingStatusText(trackedResult.shippingStatus)}
                     </span>
                   </div>
                 </div>
@@ -147,7 +155,9 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClos
                           }`}
                         />
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <strong className="text-white font-medium">{step.status}</strong>
+                          <strong className="text-white font-medium">
+                            {formatShippingStatusText(step.status)}
+                          </strong>
                           <span className="text-zinc-500 text-[10px] font-mono">{step.timestamp}</span>
                         </div>
                         {step.location && (
@@ -162,20 +172,6 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClos
                   </div>
                 )}
               </div>
-
-              {trackedResult.externalTrackingUrl && (
-                <div className="pt-2 border-t border-zinc-800/80">
-                  <a
-                    href={trackedResult.externalTrackingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <span>Open Carrier Tracking Page</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              )}
             </div>
           ) : (
             <div className="text-center py-8 text-xs text-zinc-400 space-y-2">
