@@ -10,6 +10,25 @@ import { INITIAL_BANNERS } from '../mock/banners';
 import { apiClient } from '../apiClient';
 
 const SETTINGS_KEY = 'jj_admin_settings';
+let isRealtimeSyncStarted = false;
+
+function applyIncomingSettings(fresh: Partial<StoreSettings>): StoreSettings {
+  const local = settingsService.getSettings();
+  const merged: StoreSettings = {
+    ...local,
+    ...fresh,
+    icarryPickupLocations: local.icarryPickupLocations || INITIAL_SETTINGS.icarryPickupLocations,
+  };
+
+  const hasChanged = JSON.stringify(local) !== JSON.stringify(merged);
+  if (hasChanged && typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+      window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: merged }));
+    } catch (_) {}
+  }
+  return merged;
+}
 
 export const settingsService = {
   getSettings: (): StoreSettings => {
@@ -44,26 +63,65 @@ export const settingsService = {
   fetchSettingsAsync: async (): Promise<StoreSettings> => {
     const local = settingsService.getSettings();
     try {
-      const res = await apiClient.get<StoreSettings>('/settings');
+      // Add cache-busting timestamp to avoid proxy or CDN caching
+      const res = await apiClient.get<StoreSettings>(`/settings?_t=${Date.now()}`);
       if (res && res.success && res.data) {
-        const merged: StoreSettings = {
-          ...local,
-          ...res.data,
-          // Retain local pickup locations if backend doesn't have them
-          icarryPickupLocations: local.icarryPickupLocations || INITIAL_SETTINGS.icarryPickupLocations,
-        };
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
-            window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: merged }));
-          } catch (_) {}
-        }
-        return merged;
+        return applyIncomingSettings(res.data);
       }
     } catch (e) {
       // Fallback silently to local cache
     }
     return local;
+  },
+
+  startRealtimeSync: (): void => {
+    if (typeof window === 'undefined' || isRealtimeSyncStarted) return;
+    isRealtimeSyncStarted = true;
+
+    // 1. Immediate initial fresh fetch
+    settingsService.fetchSettingsAsync().catch(() => {});
+
+    // 2. Cross-tab real-time sync (within same browser)
+    window.addEventListener('storage', (e) => {
+      if (e.key === SETTINGS_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: parsed }));
+        } catch (_) {}
+      }
+    });
+
+    // 3. Tab visibility / focus instant revalidation
+    window.addEventListener('focus', () => {
+      settingsService.fetchSettingsAsync().catch(() => {});
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        settingsService.fetchSettingsAsync().catch(() => {});
+      }
+    });
+
+    // 4. Server-Sent Events (SSE) for instantaneous sub-100ms push
+    try {
+      const sseOrigin = window.location.origin;
+      const eventSource = new EventSource(`${sseOrigin}/api/settings/events`);
+      eventSource.onmessage = (event) => {
+        try {
+          if (event.data && event.data.startsWith('{')) {
+            const data = JSON.parse(event.data);
+            applyIncomingSettings(data);
+          }
+        } catch (_) {}
+      };
+      eventSource.onerror = () => {
+        // SSE error or proxy drop, fallback polling guarantees sync
+      };
+    } catch (_) {}
+
+    // 5. High-frequency background polling (every 3.5s) as bulletproof guarantee
+    setInterval(() => {
+      settingsService.fetchSettingsAsync().catch(() => {});
+    }, 3500);
   },
 
   updateSettings: (updates: Partial<StoreSettings>): StoreSettings => {

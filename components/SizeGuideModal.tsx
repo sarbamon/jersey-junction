@@ -49,7 +49,7 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose,
           <div className="flex items-center gap-2">
             <Ruler className="w-5 h-5 text-amber-400" />
             <h3 className="text-lg font-bold text-white font-mono uppercase tracking-wide">
-              OFFICIAL SIZE &amp; FIT GUIDE
+              SIZE CHART
             </h3>
           </div>
           <button 
@@ -63,17 +63,12 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose,
 
         {/* Dynamic Admin Size Chart Picture */}
         {sizeChartImage ? (
-          <div className="space-y-3">
-            <div className="rounded-2xl overflow-hidden border border-zinc-800 bg-black p-2 shadow-inner flex items-center justify-center">
-              <img
-                src={sizeChartImage}
-                alt="Official Jersey Size Chart"
-                className="w-full h-auto max-h-[60vh] object-contain rounded-xl"
-              />
-            </div>
-            <p className="text-[11px] text-zinc-400 text-center font-mono">
-              Official measurement chart for Player &amp; Fan jerseys.
-            </p>
+          <div className="rounded-2xl overflow-hidden border border-zinc-800 bg-black p-2 shadow-inner flex items-center justify-center">
+            <img
+              src={sizeChartImage}
+              alt="Jersey Size Chart"
+              className="w-full h-auto max-h-[65vh] object-contain rounded-xl"
+            />
           </div>
         ) : (
           /* Fallback table if no image uploaded yet */
@@ -129,21 +124,11 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose,
           </div>
         )}
 
-        {/* Player vs Fan Fit Explainer */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800 space-y-1">
-            <strong className="text-amber-400 font-bold block text-sm">⚡ Player Edition (Slim Fit)</strong>
-            <p className="text-zinc-400 text-[11px] leading-relaxed">
-              Identical to match-worn jerseys. Tailored athletic slim fit. We recommend sizing UP if you prefer a looser casual fit.
-            </p>
-          </div>
-
-          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800 space-y-1">
-            <strong className="text-white font-bold block text-sm">👕 Fan Replica (Standard Fit)</strong>
-            <p className="text-zinc-400 text-[11px] leading-relaxed">
-              Designed for everyday comfortable street wear. True to standard t-shirt sizes.
-            </p>
-          </div>
+        {/* Note at bottom */}
+        <div className="pt-2 border-t border-zinc-800/60 text-center">
+          <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+            We recommend sizing UP if you prefer a looser casual fit for player version.
+          </p>
         </div>
 
       </div>

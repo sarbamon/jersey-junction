@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import confettiFn from 'canvas-confetti';
-import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin, User, Tag, Ticket, X, AlertCircle, Loader2, Sparkles, Percent, Mail, RefreshCw } from 'lucide-react';
+import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin, User, Tag, Ticket, X, AlertCircle, Loader2, Sparkles, Percent, Mail, RefreshCw, Minus, Plus } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
@@ -43,6 +43,8 @@ export default function CheckoutPage() {
     appliedCouponMsg,
     applyCoupon,
     removeCoupon,
+    updateQuantity,
+    removeFromCart,
   } = useStore();
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -322,15 +324,19 @@ export default function CheckoutPage() {
     patchesTotalINR += itemPatchesExtra * item.quantity;
   }
 
-  const rawSubtotalINR = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
+  const rawSubtotalINR = baseJerseysTotalINR + customPrintingTotalINR + patchesTotalINR;
 
   // Authoritative discount amount
   const discountAmountINR = appliedCouponCode && discountPercentage > 0
     ? Math.round((rawSubtotalINR * discountPercentage) / 100)
     : 0;
 
-  const expressPrice = typeof storeSettings?.expressShippingCharge === 'number' ? storeSettings.expressShippingCharge : 100;
-  const standardPrice = typeof storeSettings?.standardShippingCharge === 'number' ? storeSettings.standardShippingCharge : 0;
+  const expressPrice = typeof storeSettings?.expressShippingCharge === 'number'
+    ? storeSettings.expressShippingCharge
+    : (typeof storeSettings?.shippingCharge === 'number' ? storeSettings.shippingCharge : 100);
+  const freeThreshold = typeof storeSettings?.freeShippingThreshold === 'number' ? storeSettings.freeShippingThreshold : 100000;
+  const isFreeStandard = rawSubtotalINR >= freeThreshold;
+  const standardPrice = isFreeStandard ? 0 : (typeof storeSettings?.standardShippingCharge === 'number' ? storeSettings.standardShippingCharge : 0);
   const shippingCostINR = cartItems.length === 0 ? 0 : (formData.shippingMethod === 'express' ? expressPrice : standardPrice);
   const grandTotalINR = Math.max(0, rawSubtotalINR - discountAmountINR + shippingCostINR);
 
@@ -410,6 +416,8 @@ export default function CheckoutPage() {
     }
     setIsProcessing(true);
     try {
+      const freshSettings = await settingsService.fetchSettingsAsync().catch(() => null);
+      if (freshSettings) setStoreSettings(freshSettings);
       const razorpayKey = await paymentService.getRazorpayKey();
 
       const newIdNum = Math.floor(1000 + Math.random() * 9000);
@@ -536,6 +544,8 @@ export default function CheckoutPage() {
     const newIdNum = Math.floor(1000 + Math.random() * 9000);
     const newId = `#JJ${newIdNum}`;
     setOrderId(newId);
+    const freshSettings = await settingsService.fetchSettingsAsync().catch(() => null);
+    if (freshSettings) setStoreSettings(freshSettings);
 
     const createdOrder: AdminOrder = {
       id: newId,
@@ -705,7 +715,8 @@ export default function CheckoutPage() {
                         return;
                       }
                       persistAddress();
-                      setStep(2); 
+                      settingsService.fetchSettingsAsync().then((fresh) => { if (fresh) setStoreSettings(fresh); });
+                      setStep(2);
                     }} 
                     className="space-y-6"
                   >
@@ -1095,8 +1106,33 @@ export default function CheckoutPage() {
                         </div>
                       </div>
 
-                      <div className="text-right font-mono font-bold text-[#f4c84a] shrink-0">
-                        {activeCurrency.symbol}{(item.totalPrice * activeCurrency.rate).toFixed(2)}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <div className="text-right font-mono font-bold text-[#f4c84a]">
+                          {activeCurrency.symbol}{(item.totalPrice * activeCurrency.rate).toFixed(2)}
+                        </div>
+                        <div className="inline-flex items-center gap-1 bg-[#141414] border border-[#282828] rounded-lg p-0.5 shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, -1)}
+                            className="p-1 text-gray-400 hover:text-[#f4c84a] hover:bg-[#202020] rounded transition-colors cursor-pointer"
+                            aria-label="Decrease quantity"
+                            title="Decrease quantity"
+                          >
+                            <Minus className="w-2.5 h-2.5" />
+                          </button>
+                          <span className="text-[11px] font-bold font-mono min-w-[14px] text-center text-white">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, 1)}
+                            className="p-1 text-gray-400 hover:text-[#f4c84a] hover:bg-[#202020] rounded transition-colors cursor-pointer"
+                            aria-label="Increase quantity"
+                            title="Increase quantity"
+                          >
+                            <Plus className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

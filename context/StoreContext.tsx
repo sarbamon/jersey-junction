@@ -83,8 +83,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       isLoadedRef.current = true;
 
-      // Fetch latest store settings (custom jersey price, COD status, etc.) from backend
-      settingsService.fetchSettingsAsync().catch(() => {});
+      // Start real-time settings engine (SSE + instant polling + cross-tab sync)
+      settingsService.startRealtimeSync();
 
       // Verify token with backend database
       authService.fetchMe().then((me) => {
@@ -139,6 +139,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem('jj_wishlist', JSON.stringify(wishlist));
     } catch (e) {}
   }, [cartItems, wishlist]);
+
+  // Real-time recalculation of cart items when store settings change
+  useEffect(() => {
+    const handleSettingsUpdated = (e: any) => {
+      const freshSettings = e.detail || settingsService.getSettings();
+      setCartItems((prevItems) => {
+        if (!prevItems || prevItems.length === 0) return prevItems;
+        let hasChanged = false;
+        const updatedItems = prevItems.map((item) => {
+          const patchesPrice = Array.isArray(item.selectedPatches)
+            ? item.selectedPatches.reduce((sum, p) => sum + (Number(p.price) || 0), 0)
+            : 0;
+          const isPlayer = item.version?.includes('Player');
+          const versionExtra = isPlayer ? 150 : 0;
+          const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
+          const customFee = (typeof item.product?.customizationPrice === 'number' && item.product.customizationPrice >= 0 && item.product.customizationPrice !== 150)
+            ? item.product.customizationPrice
+            : (typeof freshSettings?.customJerseyPrice === 'number' && freshSettings.customJerseyPrice >= 0 ? freshSettings.customJerseyPrice : (item.product?.customizationPrice ?? 250));
+          const printExtra = hasCustomPrint ? customFee : 0;
+          const unitPrice = (item.product?.price || 0) + patchesPrice + versionExtra + printExtra;
+          const totalPrice = unitPrice * item.quantity;
+
+          if (unitPrice !== item.unitPrice || totalPrice !== item.totalPrice) {
+            hasChanged = true;
+            return {
+              ...item,
+              unitPrice,
+              totalPrice,
+            };
+          }
+          return item;
+        });
+        return hasChanged ? updatedItems : prevItems;
+      });
+    };
+
+    window.addEventListener('jj_store_settings_updated', handleSettingsUpdated);
+    return () => {
+      window.removeEventListener('jj_store_settings_updated', handleSettingsUpdated);
+    };
+  }, []);
 
   const addToCart = (
     product: JerseyProduct,
