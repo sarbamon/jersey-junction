@@ -179,10 +179,18 @@ export const authService = {
   },
 
   // Change Password for currently authenticated user/admin/employee
-  changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+  changePassword: async (currentOrNewPassword: string, optionalNewPassword?: string): Promise<{ success: boolean; message?: string }> => {
+    let currentPassword = '';
+    let newPassword = '';
+    if (optionalNewPassword !== undefined) {
+      currentPassword = currentOrNewPassword;
+      newPassword = optionalNewPassword;
+    } else {
+      newPassword = currentOrNewPassword;
+    }
     const res = await apiClient.put('/auth/change-password', {
-      currentPassword: (currentPassword || '').trim(),
       newPassword: (newPassword || '').trim(),
+      ...(currentPassword ? { currentPassword: currentPassword.trim() } : {}),
     });
     if (!res.success) {
       throw new Error(res.error || 'Failed to update password');

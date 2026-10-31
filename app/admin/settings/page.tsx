@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, ShieldCheck, Truck, CreditCard, Share2, Store, Image as ImageIcon, Upload, Loader2, X, Plus, Trash2, Building, Ruler, Tag } from 'lucide-react';
+import { Settings, Save, ShieldCheck, Truck, CreditCard, Share2, Store, Image as ImageIcon, Upload, Loader2, X, Plus, Trash2, Building, Ruler, Tag, KeyRound, Lock, Eye, EyeOff, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { settingsService } from '../../../lib/services/settingsService';
 import { uploadService } from '../../../lib/services/uploadService';
+import { authService, AuthUser } from '../../../lib/services/authService';
 import { StoreSettings, ICarryPickupLocation } from '../../../lib/types/admin';
 import { Toast } from '../../../components/admin/Toast';
 
@@ -13,8 +14,22 @@ export default function AdminSettingsPage() {
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingSizeChart, setIsUploadingSizeChart] = useState(false);
 
+  // Admin Account & Password Management State
+  const [adminUser, setAdminUser] = useState<AuthUser | null>(null);
+  const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+  const [showAdminCurrentPassword, setShowAdminCurrentPassword] = useState(false);
+  const [showAdminNewPassword, setShowAdminNewPassword] = useState(false);
+  const [showAdminConfirmPassword, setShowAdminConfirmPassword] = useState(false);
+  const [isSavingAdminPassword, setIsSavingAdminPassword] = useState(false);
+  const [adminPasswordError, setAdminPasswordError] = useState('');
+  const [adminPasswordSuccess, setAdminPasswordSuccess] = useState('');
+
   useEffect(() => {
     setSettings(settingsService.getSettings());
+    const current = authService.getAdminUser();
+    setAdminUser(current);
   }, []);
 
   if (!settings) return null;
@@ -100,6 +115,49 @@ export default function AdminSettingsPage() {
     } catch (err: any) {
       console.error('Save failed:', err);
       setToastMsg(`Could not save settings: ${err.message || 'Storage error'}`);
+    }
+  };
+
+  const handleUpdateAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminPasswordError('');
+    setAdminPasswordSuccess('');
+
+    const cleanNew = adminNewPassword.trim();
+    const cleanConfirm = adminConfirmPassword.trim();
+    const cleanCurrent = adminCurrentPassword.trim();
+
+    if (!cleanNew) {
+      setAdminPasswordError('Please enter a new security password.');
+      return;
+    }
+
+    if (cleanNew.length < 6) {
+      setAdminPasswordError('New security password must be at least 6 characters long.');
+      return;
+    }
+
+    if (cleanNew !== cleanConfirm) {
+      setAdminPasswordError('New passwords do not match. Please verify and re-enter.');
+      return;
+    }
+
+    setIsSavingAdminPassword(true);
+    try {
+      const res = await authService.changePassword(
+        cleanCurrent ? cleanCurrent : cleanNew,
+        cleanCurrent ? cleanNew : undefined
+      );
+      setAdminPasswordSuccess(res.message || 'Administrator password successfully updated in database!');
+      setAdminCurrentPassword('');
+      setAdminNewPassword('');
+      setAdminConfirmPassword('');
+      setToastMsg('Security password updated successfully!');
+      setTimeout(() => setAdminPasswordSuccess(''), 4000);
+    } catch (err: any) {
+      setAdminPasswordError(err.message || 'Failed to update administrator password');
+    } finally {
+      setIsSavingAdminPassword(false);
     }
   };
 
@@ -211,6 +269,140 @@ export default function AdminSettingsPage() {
               onChange={(e) => setSettings({ ...settings, storeAddress: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400"
             />
+          </div>
+        </div>
+
+        {/* Administrator Security & Password Management Card */}
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-5 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+            <div className="flex items-center gap-2 text-amber-400">
+              <KeyRound className="w-4 h-4" />
+              <h2 className="text-sm font-extrabold font-serif uppercase tracking-wider text-white">
+                Admin Security &amp; Password Change
+              </h2>
+            </div>
+            {adminUser && (
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="text-zinc-500 font-mono">Logged in as:</span>
+                <span className="text-zinc-300 font-mono font-bold">{adminUser.email}</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-mono text-[10px] font-bold border border-amber-400/20 uppercase">
+                  {adminUser.role === 'admin' ? 'Boss Admin' : adminUser.employeeTitle || 'Staff'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <p className="text-zinc-400 text-xs">
+            Update the login credentials for your portal account. Your new password will take effect immediately in the MongoDB authentication database.
+          </p>
+
+          {adminPasswordSuccess && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{adminPasswordSuccess}</span>
+            </div>
+          )}
+
+          {adminPasswordError && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-semibold flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <span>{adminPasswordError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">
+                Current Password {adminUser?.role === 'admin' ? '(Optional for Boss)' : '*'}
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
+                <input
+                  type={showAdminCurrentPassword ? 'text' : 'password'}
+                  placeholder="Enter current password"
+                  value={adminCurrentPassword}
+                  onChange={(e) => setAdminCurrentPassword(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-10 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminCurrentPassword(!showAdminCurrentPassword)}
+                  className="absolute right-3.5 top-2.5 text-zinc-500 hover:text-amber-400 p-0.5 transition-colors cursor-pointer"
+                  aria-label={showAdminCurrentPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">
+                New Security Password * (Min 6 chars)
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
+                <input
+                  type={showAdminNewPassword ? 'text' : 'password'}
+                  placeholder="Min 6 characters"
+                  value={adminNewPassword}
+                  onChange={(e) => setAdminNewPassword(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-10 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminNewPassword(!showAdminNewPassword)}
+                  className="absolute right-3.5 top-2.5 text-zinc-500 hover:text-amber-400 p-0.5 transition-colors cursor-pointer"
+                  aria-label={showAdminNewPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">
+                Confirm New Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
+                <input
+                  type={showAdminConfirmPassword ? 'text' : 'password'}
+                  placeholder="Re-enter new password"
+                  value={adminConfirmPassword}
+                  onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-10 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminConfirmPassword(!showAdminConfirmPassword)}
+                  className="absolute right-3.5 top-2.5 text-zinc-500 hover:text-amber-400 p-0.5 transition-colors cursor-pointer"
+                  aria-label={showAdminConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              disabled={isSavingAdminPassword || !adminNewPassword}
+              onClick={handleUpdateAdminPassword}
+              className="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 text-black font-extrabold uppercase rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md tracking-wider"
+            >
+              {isSavingAdminPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <span>Updating Password...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4 text-black" />
+                  <span>Save New Admin Password</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
