@@ -4,10 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Clock, 
   Send, 
   ChevronRight, 
   MessageSquare, 
@@ -20,8 +16,6 @@ import {
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
-import { settingsService } from '../../lib/services/settingsService';
-import { StoreSettings } from '../../lib/types/admin';
 import { productService } from '../../lib/services/productService';
 import { JerseyProduct } from '../../types';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
@@ -45,7 +39,6 @@ export default function ContactPage() {
   } = useStore();
 
   const [products, setProducts] = useState<JerseyProduct[]>([]);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
 
@@ -59,7 +52,6 @@ export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
-    setStoreSettings(settingsService.getSettings());
     const cached = productService.getCachedProductsSync();
     if (cached.length > 0) setProducts(cached);
     productService.getActiveProducts().then(setProducts).catch(() => {});
@@ -79,10 +71,6 @@ export default function ContactPage() {
       setMessage('');
     }, 800);
   };
-
-  const emailAddress = storeSettings?.storeEmail || 'support@jerseyjunction.com';
-  const phoneNumber = storeSettings?.storePhone || '+91 98765 43210';
-  const addressText = storeSettings?.storeAddress || '108 Sports Hub Plaza, MG Road, Bengaluru, Karnataka, India';
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-[#f4c84a] selection:text-black">
@@ -124,65 +112,6 @@ export default function ContactPage() {
           <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
             Have questions regarding your jersey order, sizing recommendations, or bespoke customization? Reach out and our support crew will get back to you within 24 hours.
           </p>
-        </div>
-
-        {/* Contact Information Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          
-          {/* Card 1: Email */}
-          <div className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/40 p-6 rounded-2xl space-y-3 transition-colors shadow-lg">
-            <div className="w-10 h-10 rounded-xl bg-[#f4c84a]/10 border border-[#f4c84a]/20 flex items-center justify-center text-[#f4c84a]">
-              <Mail className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-black uppercase text-sm text-white">Email Us</h3>
-            <p className="text-xs text-gray-400">Direct response for orders, sizing, and press inquiries.</p>
-            <a 
-              href={`mailto:${emailAddress}`} 
-              className="text-xs font-bold text-[#f4c84a] hover:underline block break-all font-mono"
-            >
-              {emailAddress}
-            </a>
-          </div>
-
-          {/* Card 2: Phone & WhatsApp */}
-          <div className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/40 p-6 rounded-2xl space-y-3 transition-colors shadow-lg">
-            <div className="w-10 h-10 rounded-xl bg-[#f4c84a]/10 border border-[#f4c84a]/20 flex items-center justify-center text-[#f4c84a]">
-              <Phone className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-black uppercase text-sm text-white">Call / WhatsApp</h3>
-            <p className="text-xs text-gray-400">Instant assistance for urgent order tracking or custom prints.</p>
-            <a 
-              href={`tel:${phoneNumber}`} 
-              className="text-xs font-bold text-[#f4c84a] hover:underline block font-mono"
-            >
-              {phoneNumber}
-            </a>
-          </div>
-
-          {/* Card 3: Operating Hours */}
-          <div className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/40 p-6 rounded-2xl space-y-3 transition-colors shadow-lg">
-            <div className="w-10 h-10 rounded-xl bg-[#f4c84a]/10 border border-[#f4c84a]/20 flex items-center justify-center text-[#f4c84a]">
-              <Clock className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-black uppercase text-sm text-white">Support Hours</h3>
-            <p className="text-xs text-gray-400">Available Monday through Saturday</p>
-            <span className="text-xs font-bold text-gray-300 block font-mono">
-              10:00 AM – 8:00 PM IST
-            </span>
-          </div>
-
-          {/* Card 4: Headquarters */}
-          <div className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/40 p-6 rounded-2xl space-y-3 transition-colors shadow-lg">
-            <div className="w-10 h-10 rounded-xl bg-[#f4c84a]/10 border border-[#f4c84a]/20 flex items-center justify-center text-[#f4c84a]">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-black uppercase text-sm text-white">Headquarters</h3>
-            <p className="text-xs text-gray-400">Central Fulfillment & Design Studio</p>
-            <span className="text-xs text-gray-300 block leading-tight font-sans">
-              {addressText}
-            </span>
-          </div>
-
         </div>
 
         {/* Contact Form Section */}
