@@ -95,7 +95,7 @@ export const settingsService = {
       }
     }
 
-    // Automatically sync store settings (like codEnabled, razorpayEnabled, shipping charge) to backend
+    // Automatically sync store settings (like codEnabled, razorpayEnabled, shipping charge, customJerseyPrice) to backend
     apiClient.put('/settings', {
       storeName: updated.storeName,
       storeEmail: updated.storeEmail,
@@ -107,6 +107,7 @@ export const settingsService = {
       freeShippingThreshold: updated.freeShippingThreshold,
       codEnabled: updated.codEnabled,
       razorpayEnabled: updated.razorpayEnabled,
+      customJerseyPrice: updated.customJerseyPrice,
     }).catch(() => {});
 
     // Automatically sync iCarry pickup address ID, name, and pincode with backend

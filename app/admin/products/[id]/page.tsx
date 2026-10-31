@@ -12,6 +12,7 @@ import { AdminProduct, AdminCategory, AdminOrder } from '../../../../lib/types/a
 import { StatusBadge } from '../../../../components/admin/StatusBadge';
 import { ConfirmModal } from '../../../../components/admin/ConfirmModal';
 import { Toast } from '../../../../components/admin/Toast';
+import { settingsService } from '../../../../lib/services/settingsService';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -50,7 +51,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestseller, setIsBestseller] = useState(false);
   const [isCustomizable, setIsCustomizable] = useState(false);
-  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(150);
+  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(() => settingsService.getSettings().customJerseyPrice ?? 250);
 
   const fetchProduct = async () => {
     setIsLoading(true);
@@ -123,7 +124,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         setIsFeatured(found.isFeatured);
         setIsBestseller(found.isBestseller);
         setIsCustomizable(Boolean(found.isCustomizable));
-        setCustomizationPrice(found.customizationPrice !== undefined ? found.customizationPrice : 150);
+        const storeCustPrice = settingsService.getSettings().customJerseyPrice ?? 250;
+        setCustomizationPrice(found.customizationPrice !== undefined && found.customizationPrice !== 150 ? found.customizationPrice : storeCustPrice);
       }
     } catch (err: any) {
       setToastMsg(`Error loading product: ${err.message}`);
@@ -238,6 +240,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         return;
       }
 
+      const defaultCustomPrice = settingsService.getSettings().customJerseyPrice ?? 250;
       const updated = await productService.updateProduct(product.id, {
         name,
         price: Number(price),
@@ -254,12 +257,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         isFeatured,
         isBestseller,
         isCustomizable,
-        customizationPrice: customizationPrice === '' ? 150 : Number(customizationPrice),
+        customizationPrice: customizationPrice === '' ? defaultCustomPrice : Number(customizationPrice),
       });
 
+      const storeDefaultPrice = settingsService.getSettings().customJerseyPrice ?? 250;
       setProduct(updated);
       setIsCustomizable(Boolean(updated.isCustomizable));
-      setCustomizationPrice(updated.customizationPrice !== undefined ? updated.customizationPrice : 150);
+      setCustomizationPrice(updated.customizationPrice !== undefined && updated.customizationPrice !== 150 ? updated.customizationPrice : storeDefaultPrice);
       setIsEditing(false);
       setToastMsg('Product updated successfully!');
     } catch (err: any) {
@@ -653,11 +657,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                         min="0"
                         value={customizationPrice}
                         onChange={(e) => setCustomizationPrice(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-                        placeholder="150"
+                        placeholder={String(settingsService.getSettings().customJerseyPrice ?? 250)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-1.5 text-white font-mono text-xs font-bold focus:outline-none focus:border-amber-400"
                       />
                     </div>
-                    <span className="text-[9px] text-zinc-500 block">Default is ₹150 (or store setting).</span>
+                    <span className="text-[9px] text-zinc-500 block">Default is ₹{settingsService.getSettings().customJerseyPrice ?? 250} (or store setting).</span>
                   </div>
                 )}
               </div>

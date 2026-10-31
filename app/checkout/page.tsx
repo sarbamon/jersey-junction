@@ -305,9 +305,9 @@ export default function CheckoutPage() {
     const baseUnit = (item.product?.price || 0) + versionExtra;
     
     const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
-    const customFee = (typeof item.product?.customizationPrice === 'number' && item.product.customizationPrice >= 0)
+    const customFee = (typeof item.product?.customizationPrice === 'number' && item.product.customizationPrice >= 0 && item.product.customizationPrice !== 150)
       ? item.product.customizationPrice
-      : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : 150);
+      : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : (item.product?.customizationPrice ?? 250));
     const itemPrintExtra = hasCustomPrint ? customFee : 0;
     if (hasCustomPrint) {
       customizedItemsCount += item.quantity;

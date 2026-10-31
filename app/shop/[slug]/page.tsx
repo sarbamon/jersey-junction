@@ -64,6 +64,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const [product, setProduct] = useState<JerseyProduct | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [storeSettings, setStoreSettings] = useState(() => settingsService.getSettings());
 
   const [selectedSize, setSelectedSize] = useState('L');
   const selectedVersion: VersionType = 'Fan Version (Standard Fit)';
@@ -200,6 +201,24 @@ export default function ProductDetailPage({ params }: PageProps) {
     };
   }, [slug]);
 
+  useEffect(() => {
+    let isMounted = true;
+    settingsService.fetchSettingsAsync().then((s) => {
+      if (s && isMounted) setStoreSettings(s);
+    });
+
+    const handleSettingsUpdated = (e: any) => {
+      const updated = e.detail || settingsService.getSettings();
+      if (isMounted) setStoreSettings(updated);
+    };
+
+    window.addEventListener('jj_store_settings_updated', handleSettingsUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('jj_store_settings_updated', handleSettingsUpdated);
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -220,10 +239,9 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   }
 
-  const storeSettings = settingsService.getSettings();
-  const customFee = (typeof product.customizationPrice === 'number' && product.customizationPrice >= 0)
+  const customFee = (typeof product.customizationPrice === 'number' && product.customizationPrice >= 0 && product.customizationPrice !== 150)
     ? product.customizationPrice
-    : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : 150);
+    : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : (product.customizationPrice ?? 250));
   const customFeeConverted = Math.round(customFee * activeCurrency.rate);
 
   const patchesExtra = selectedPatches.reduce((acc, p) => acc + p.price, 0);

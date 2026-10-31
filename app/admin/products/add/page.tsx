@@ -9,6 +9,7 @@ import { categoryService } from '../../../../lib/services/categoryService';
 import { uploadService } from '../../../../lib/services/uploadService';
 import { AdminCategory } from '../../../../lib/types/admin';
 import { Toast } from '../../../../components/admin/Toast';
+import { settingsService } from '../../../../lib/services/settingsService';
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function AddProductPage() {
   const [isFeatured, setIsFeatured] = useState(true);
   const [isBestseller, setIsBestseller] = useState(false);
   const [isCustomizable, setIsCustomizable] = useState(false);
-  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(150);
+  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(() => settingsService.getSettings().customJerseyPrice ?? 250);
   const [status, setStatus] = useState<'Active' | 'Out of Stock'>('Active');
 
   const [toastMsg, setToastMsg] = useState('');
@@ -182,7 +183,7 @@ export default function AddProductPage() {
         isFeatured,
         isBestseller,
         isCustomizable,
-        customizationPrice: customizationPrice === '' ? 150 : Number(customizationPrice),
+        customizationPrice: customizationPrice === '' ? (settingsService.getSettings().customJerseyPrice ?? 250) : Number(customizationPrice),
         status
       });
 
@@ -568,11 +569,11 @@ export default function AddProductPage() {
                         min="0"
                         value={customizationPrice}
                         onChange={(e) => setCustomizationPrice(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-                        placeholder="150"
+                        placeholder={String(settingsService.getSettings().customJerseyPrice ?? 250)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-1.5 text-white font-mono text-xs font-bold focus:outline-none focus:border-amber-400"
                       />
                     </div>
-                    <span className="text-[9px] text-zinc-500 block">Default is ₹150 (or store setting).</span>
+                    <span className="text-[9px] text-zinc-500 block">Default is ₹{settingsService.getSettings().customJerseyPrice ?? 250} (or store setting).</span>
                   </div>
                 )}
               </div>

@@ -317,6 +317,7 @@ export const productService = {
       isFeatured: productData.isFeatured,
       isBestseller: productData.isBestseller,
       isCustomizable: Boolean(productData.isCustomizable),
+      customizationPrice: productData.customizationPrice !== undefined ? Number(productData.customizationPrice) : undefined,
       status: productData.status || 'Active',
       team: productData.subcategory || 'Jersey Junction',
       sport: productData.category?.toLowerCase() || 'soccer',
