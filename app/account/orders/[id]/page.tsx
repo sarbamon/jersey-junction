@@ -21,6 +21,7 @@ import { orderService } from '../../../../lib/services/orderService';
 import { AdminOrder } from '../../../../lib/types/admin';
 import { icarryService, TrackingResult } from '../../../../lib/services/icarryService';
 import { OrderProductImage } from '../../../../components/OrderProductImage';
+import { WhatsAppIcon } from '../../../../components/WhatsAppHelpButton';
 
 const formatShippingStatusText = (status?: string): string => {
   if (!status) return 'Shipping getting ready';
@@ -376,6 +377,26 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
               <div>{order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}</div>
               <div className="font-mono text-gray-400 pt-1">{order.shippingAddress.phone}</div>
             </div>
+          </div>
+
+          {/* WhatsApp Order Support Card */}
+          <div className="bg-gradient-to-br from-[#0c2317] to-[#0d0d0d] border border-emerald-500/30 p-5 rounded-2xl space-y-3 text-xs">
+            <div className="flex items-center gap-2 text-[#25D366]">
+              <WhatsAppIcon className="w-4 h-4 text-[#25D366]" />
+              <span className="font-bold uppercase tracking-wider text-white">Need Help With This Order?</span>
+            </div>
+            <p className="text-zinc-400 text-[11px] leading-relaxed">
+              Have questions about your delivery or tracking? Chat directly with support on WhatsApp.
+            </p>
+            <a
+              href={`https://wa.me/917002740268?text=${encodeURIComponent(`Hi Jersey Junction Support! I need help with my Order ${order.id}.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold rounded-xl text-xs uppercase tracking-wide transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+            >
+              <WhatsAppIcon className="w-3.5 h-3.5" />
+              <span>Chat on WhatsApp</span>
+            </a>
           </div>
 
         </div>

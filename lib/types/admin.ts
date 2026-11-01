@@ -176,6 +176,7 @@ export interface StoreSettings {
   storeName: string;
   storeEmail: string;
   storePhone: string;
+  storeWhatsapp?: string;
   storeAddress: string;
   shippingCharge: number;
   expressShippingCharge?: number;

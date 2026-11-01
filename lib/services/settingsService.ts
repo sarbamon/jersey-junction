@@ -158,6 +158,7 @@ export const settingsService = {
       storeName: updated.storeName,
       storeEmail: updated.storeEmail,
       storePhone: updated.storePhone,
+      storeWhatsapp: updated.storeWhatsapp,
       storeAddress: updated.storeAddress,
       shippingCharge: updated.shippingCharge,
       expressShippingCharge: updated.expressShippingCharge,

@@ -4,6 +4,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   storeName: 'Jersey Junction',
   storeEmail: 'support@jerseyjunction.com',
   storePhone: '+91 98765 43210',
+  storeWhatsapp: '+91 70027 40268',
   storeAddress: '108 Sports Hub Plaza, MG Road, Bengaluru, Karnataka 560001, India',
   shippingCharge: 50,
   expressShippingCharge: 250,

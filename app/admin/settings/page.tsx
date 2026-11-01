@@ -168,7 +168,7 @@ export default function AdminSettingsPage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="font-bold text-zinc-400 block mb-1 uppercase">Store Name</label>
               <input
@@ -198,6 +198,17 @@ export default function AdminSettingsPage() {
                 required
                 value={settings.storePhone}
                 onChange={(e) => setSettings({ ...settings, storePhone: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-zinc-400 block mb-1 uppercase">WhatsApp Support</label>
+              <input
+                type="text"
+                value={settings.storeWhatsapp || ''}
+                onChange={(e) => setSettings({ ...settings, storeWhatsapp: e.target.value })}
+                placeholder="+91 70027 40268"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
               />
             </div>

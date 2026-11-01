@@ -31,6 +31,7 @@ import { settingsService } from '../lib/services/settingsService';
 import { AdminCategory, StoreSettings } from '../lib/types/admin';
 import { INITIAL_CATEGORIES } from '../lib/mock/categories';
 import { TrackOrderModal } from './TrackOrderModal';
+import { WhatsAppIcon } from './WhatsAppHelpButton';
 
 interface NavbarProps {
   cartCount: number;
@@ -72,6 +73,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
+
+  const whatsappNumber = (() => {
+    const raw = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '917002740268';
+    const clean = raw.replace(/\D/g, '');
+    return clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean || '917002740268');
+  })();
 
   const shopDropdownRef = React.useRef<HTMLDivElement>(null);
   const moreDropdownRef = React.useRef<HTMLDivElement>(null);
@@ -268,6 +275,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Track Order</span>
                     <Truck className="w-3.5 h-3.5 text-[hsl(16.9deg_39.66%_64.9%)]" />
                   </button>
+
+                  <a
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need help with an order / jersey query.')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMoreDropdownOpen(false)}
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>WhatsApp Help</span>
+                    <WhatsAppIcon className="w-3.5 h-3.5 text-[#25D366]" />
+                  </a>
                 </div>
               )}
             </div>
@@ -525,6 +543,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             TRACK ORDER
           </button>
+
+          {/* 8. WHATSAPP HELP */}
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need help with an order / jersey query.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center justify-between w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-emerald-400 hover:text-emerald-300 hover:bg-zinc-950 transition-colors cursor-pointer"
+          >
+            <span>WHATSAPP HELP</span>
+            <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
+          </a>
 
 
           </div>

@@ -23,6 +23,8 @@ import { SizeGuideModal } from '../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
 import { apiClient } from '../../lib/apiClient';
+import { settingsService } from '../../lib/services/settingsService';
+import { WhatsAppIcon } from '../../components/WhatsAppHelpButton';
 
 export default function ContactPage() {
   const router = useRouter();
@@ -53,6 +55,15 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('917002740268');
+
+  useEffect(() => {
+    const s = settingsService.getSettings();
+    const raw = s.storeWhatsapp || s.storePhone || '917002740268';
+    const clean = raw.replace(/\D/g, '');
+    const withCountry = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
+    setWhatsappNumber(withCountry || '917002740268');
+  }, []);
 
   useEffect(() => {
     const cached = productService.getCachedProductsSync();
@@ -254,9 +265,42 @@ export default function ContactPage() {
 
           </div>
 
-          {/* Quick FAQ Helper Box */}
+          {/* Right Column: WhatsApp Help & Quick FAQ */}
           <div className="lg:col-span-5 space-y-6">
             
+            {/* WhatsApp Direct Help Card */}
+            <div className="bg-gradient-to-br from-[#0c2317] via-[#0d0d0d] to-[#0d0d0d] border border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="flex items-center gap-2.5 text-[#25D366]">
+                <WhatsAppIcon className="w-6 h-6 text-[#25D366]" />
+                <h3 className="font-serif font-black uppercase text-base text-white tracking-wide">
+                  WhatsApp Instant Help
+                </h3>
+              </div>
+
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Need immediate help with size recommendations, delivery timelines, or custom name printing? Chat with our specialist team directly on WhatsApp.
+              </p>
+
+              <div className="pt-1">
+                <a
+                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need help with an order / jersey query.')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold uppercase rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
+                >
+                  <WhatsAppIcon className="w-4 h-4" />
+                  <span>Chat on WhatsApp</span>
+                </a>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-[11px] text-zinc-400 font-mono">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Online & quick reply</span>
+              </div>
+            </div>
+
             <div className="bg-[#0d0d0d] border border-[#242424] rounded-3xl p-6 sm:p-8 space-y-5">
               <div className="flex items-center gap-2 text-[#f4c84a]">
                 <HelpCircle className="w-5 h-5" />
