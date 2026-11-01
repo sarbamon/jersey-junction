@@ -115,16 +115,6 @@ export const Footer: React.FC<FooterProps> = ({
                   </Link>
                 </li>
                 <li>
-                  <a
-                    href="https://wa.me/916001142358?text=Hi%20Jersey%20Junction%20Support!%20I%20need%20help%20with%20an%20order."
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-500 hover:text-emerald-400 font-bold transition-colors duration-200 flex items-center gap-1.5"
-                  >
-                    <span>Agent Help & Support</span>
-                  </a>
-                </li>
-                <li>
                   <Link href="/terms" className="text-slate-600 dark:text-[#a1a1a1] hover:text-[#d4af37] transition-colors duration-200 block">
                     Terms & Conditions
                   </Link>
