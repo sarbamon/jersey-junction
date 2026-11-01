@@ -9,8 +9,6 @@ import {
   Truck, 
   Sparkles, 
   ChevronRight, 
-  CheckCircle2, 
-  Shirt, 
   Flame, 
   ArrowRight,
   Mail
@@ -122,63 +120,6 @@ export default function AboutPage() {
             <p className="text-xs text-gray-400 leading-relaxed">
               Secure express air shipping dispatched in 24-48 hours. Receive automatic tracking updates right to your phone so you never miss matchday kickoff.
             </p>
-          </div>
-        </div>
-
-        {/* Player vs Fan Cut Comparison Box */}
-        <div className="bg-[#0d0d0d] border border-[#242424] rounded-3xl p-6 sm:p-10 space-y-6">
-          <div className="border-b border-[#202020] pb-4 space-y-1">
-            <h2 className="font-serif font-black text-xl sm:text-2xl uppercase tracking-tight text-[#f4c84a] flex items-center gap-2">
-              <Shirt className="w-6 h-6" />
-              <span>Player Version vs Fan Version Explained</span>
-            </h2>
-            <p className="text-xs text-gray-400">
-              Choosing the right fit is essential for ultimate matchday comfort.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs leading-relaxed">
-            <div className="bg-[#141414] border border-[#2a2a2a] p-6 rounded-2xl space-y-3">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#f4c84a]">
-                ATHLETIC PRO FIT
-              </span>
-              <h4 className="font-serif font-bold text-white text-base uppercase">Player Version</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#f4c84a] shrink-0 mt-0.5" />
-                  <span>Exact cut worn by players on the field.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#f4c84a] shrink-0 mt-0.5" />
-                  <span>Heat-applied lightweight silicone badges and sponsor graphics.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#f4c84a] shrink-0 mt-0.5" />
-                  <span>Slim, contoured athletic silhouette (order 1 size up if you prefer loose).</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-[#141414] border border-[#2a2a2a] p-6 rounded-2xl space-y-3">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-gray-400">
-                CLASSIC STANDARD FIT
-              </span>
-              <h4 className="font-serif font-bold text-white text-base uppercase">Fan Version</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Standard relaxed cut designed for everyday comfort.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Durable embroidered club crests and badges.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>True to size regular fit suitable for street or stadium wear.</span>
-                </li>
-              </ul>
-            </div>
           </div>
         </div>
 
