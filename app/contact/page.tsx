@@ -275,7 +275,7 @@ export default function ContactPage() {
               <div className="flex items-center gap-2.5 text-[#25D366]">
                 <WhatsAppIcon className="w-6 h-6 text-[#25D366]" />
                 <h3 className="font-serif font-black uppercase text-base text-white tracking-wide">
-                  WhatsApp Instant Help
+                  WhatsApp Help
                 </h3>
               </div>
 
