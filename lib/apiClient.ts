@@ -72,7 +72,7 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const errorMessage = data.error || data.message || `API error with status ${response.status}`;
+      const errorMessage = data.error || data.message || 'An error occurred. Please try again.';
       return {
         success: false,
         error: errorMessage,

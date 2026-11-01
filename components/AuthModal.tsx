@@ -238,7 +238,12 @@ export const AuthModal: React.FC = () => {
       });
       handleClose();
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('api error') || msg.toLowerCase().includes('status')) {
+        setError('An error occurred. Please try again.');
+      } else {
+        setError(msg || 'Invalid email or password.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -283,7 +288,12 @@ export const AuthModal: React.FC = () => {
       setResendCooldown(60);
       setSuccessMsg(res.message || `Verification code sent to ${cleanEmail}`);
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Email may already be registered.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('api error') || msg.toLowerCase().includes('status')) {
+        setError('An error occurred. Please try again.');
+      } else {
+        setError(msg || 'Registration failed. Email may already be registered.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +326,12 @@ export const AuthModal: React.FC = () => {
         handleClose();
       }, 1000);
     } catch (err: any) {
-      setError(err.message || 'Invalid or expired verification code. Please try again.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('api error') || msg.toLowerCase().includes('status')) {
+        setError('An error occurred. Please try again.');
+      } else {
+        setError(msg || 'Invalid or expired verification code. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -339,7 +354,12 @@ export const AuthModal: React.FC = () => {
       setResendCooldown(60);
       setSuccessMsg(res.message || 'New 6-digit verification code sent to your email.');
     } catch (err: any) {
-      setError(err.message || 'Failed to resend code. Please try again.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('api error') || msg.toLowerCase().includes('status')) {
+        setError('An error occurred. Please try again.');
+      } else {
+        setError(msg || 'Failed to resend code. Please try again.');
+      }
     } finally {
       setIsResending(false);
     }
