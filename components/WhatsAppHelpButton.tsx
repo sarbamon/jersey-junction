@@ -8,9 +8,7 @@ import {
   Send, 
   RotateCcw, 
   ExternalLink, 
-  Sparkles, 
-  ChevronRight,
-  Bot
+  ChevronRight
 } from 'lucide-react';
 import { settingsService } from '../lib/services/settingsService';
 
@@ -44,13 +42,13 @@ interface ChatMessage {
 }
 
 const INITIAL_CHIPS: ActionChip[] = [
-  { id: 'track', label: '📦 Track Order', query: 'How do I track my order?' },
-  { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-  { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-  { id: 'cod', label: '💵 COD Available?', query: 'Is Cash on Delivery available?' },
-  { id: 'custom', label: '✍️ Custom Printing', query: 'Can I print custom name and number?' },
-  { id: 'returns', label: '↩️ Returns Policy', query: 'What is your return policy?' },
-  { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+  { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
+  { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+  { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+  { id: 'cod', label: 'COD Available?', query: 'Is Cash on Delivery available?' },
+  { id: 'custom', label: 'Custom Printing', query: 'Can I print custom name and number?' },
+  { id: 'returns', label: 'Returns Policy', query: 'What is your return policy?' },
+  { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
 ];
 
 const getCurrentTime = () => {
@@ -83,15 +81,15 @@ function generateBotReply(
     q.includes('representative')
   ) {
     return {
-      text: "Our dedicated support team is active and ready to assist you! 🧑‍💼\n\nClick the button below to connect directly with our live support agent for instant one-on-one help:",
+      text: "Our dedicated support team is active and ready to assist you.\n\nClick the button below to connect directly with our live support agent for instant one-on-one assistance:",
       linkButton: {
         text: "Chat with Live Agent",
         url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need live agent help with an inquiry.')}`
       },
       chips: [
-        { id: 'track', label: '📦 Track Order', query: 'How do I track my order?' },
-        { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-        { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
+        { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
       ]
     };
   }
@@ -108,9 +106,9 @@ function generateBotReply(
     /\b(jj-[a-z0-9]+|ord-[a-z0-9]+|\d{4,8})\b/i.test(q)
   ) {
     return {
-      text: "📦 **Order Tracking & Updates**:\n\n• Orders are dispatched within **24–48 hours** via express couriers (Delhivery, Bluedart, DTDC, Xpressbees).\n• Once dispatched, your live AWB tracking link is sent via SMS & email.\n• Average delivery takes **3 to 7 business days** across India.\n\nYou can check your order status right here using our live order tracker:",
+      text: "**Order Tracking & Updates**:\n\n• Orders are dispatched within **24–48 hours** via express couriers (Delhivery, Bluedart, DTDC, Xpressbees).\n• Once dispatched, your live AWB tracking link is sent via SMS & email.\n• Average delivery takes **3 to 7 business days** across India.\n\nYou can check your order status right here using our live order tracker:",
       eventButton: {
-        text: "🔍 Open Live Order Tracker",
+        text: "Open Live Order Tracker",
         eventName: "jj_open_track_modal"
       },
       linkButton: {
@@ -118,9 +116,9 @@ function generateBotReply(
         url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! Can you please check the status of my order?')}`
       },
       chips: [
-        { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-        { id: 'returns', label: '↩️ Returns Policy', query: 'What is your return policy?' },
-        { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'returns', label: 'Returns Policy', query: 'What is your return policy?' },
+        { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
     };
   }
@@ -141,11 +139,11 @@ function generateBotReply(
     q.includes('fan version')
   ) {
     return {
-      text: "👕 **Sizing & Fit Guide**:\n\n• **Fan Version (Stadium)**: Standard regular fit. True to size — select your usual t-shirt size.\n• **Player Version (Match)**: Athletic slim fit with tapered cut. If you prefer a relaxed or regular fit, we recommend going **1 size up**.\n\n**Approximate Chest Sizing:**\n• Small (S): 38 inches\n• Medium (M): 40 inches\n• Large (L): 42 inches\n• X-Large (XL): 44 inches\n• XXL: 46 inches",
+      text: "**Sizing & Fit Guide**:\n\n• **Fan Version (Stadium)**: Standard regular fit. True to size — select your usual t-shirt size.\n• **Player Version (Match)**: Athletic slim fit with tapered cut. If you prefer a relaxed or regular fit, we recommend going **1 size up**.\n\n**Approximate Chest Sizing:**\n• Small (S): 38 inches\n• Medium (M): 40 inches\n• Large (L): 42 inches\n• X-Large (XL): 44 inches\n• XXL: 46 inches",
       chips: [
-        { id: 'custom', label: '✍️ Custom Printing', query: 'Can I print custom name and number?' },
-        { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-        { id: 'human', label: '🧑‍💼 Ask Agent for Advice', query: 'I need sizing advice from an agent' },
+        { id: 'custom', label: 'Custom Printing', query: 'Can I print custom name and number?' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'human', label: 'Ask Agent for Advice', query: 'I need sizing advice from an agent' },
       ]
     };
   }
@@ -162,11 +160,11 @@ function generateBotReply(
     q.includes('arrive')
   ) {
     return {
-      text: "🚚 **Shipping & Delivery Timelines**:\n\n• **Processing Time**: 24 to 48 hours for standard & custom printed kits.\n• **Estimated Transit**: 3 to 7 business days across India.\n• **Couriers**: Express air shipping via Bluedart, Delhivery, DTDC & Xpressbees.\n• All orders include SMS & email tracking updates directly to your phone.",
+      text: "**Shipping & Delivery Timelines**:\n\n• **Processing Time**: 24 to 48 hours for standard & custom printed kits.\n• **Estimated Transit**: 3 to 7 business days across India.\n• **Couriers**: Express air shipping via Bluedart, Delhivery, DTDC & Xpressbees.\n• All orders include SMS & email tracking updates directly to your phone.",
       chips: [
-        { id: 'track', label: '📦 Track Order', query: 'How do I track my order?' },
-        { id: 'cod', label: '💵 COD Available?', query: 'Is Cash on Delivery available?' },
-        { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+        { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
+        { id: 'cod', label: 'COD Available?', query: 'Is Cash on Delivery available?' },
+        { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
     };
   }
@@ -184,11 +182,11 @@ function generateBotReply(
     q.includes('netbanking')
   ) {
     return {
-      text: "💵 **Payment Methods & Cash on Delivery**:\n\n• **Cash on Delivery (COD)**: Available on eligible pincodes throughout India.\n• **Prepaid Options**: UPI (Google Pay, PhonePe, Paytm), Credit & Debit Cards, Net Banking.\n• 100% secure encrypted checkout with instant digital order confirmation.",
+      text: "**Payment Methods & Cash on Delivery**:\n\n• **Cash on Delivery (COD)**: Available on eligible pincodes throughout India.\n• **Prepaid Options**: UPI (Google Pay, PhonePe, Paytm), Credit & Debit Cards, Net Banking.\n• 100% secure encrypted checkout with instant digital order confirmation.",
       chips: [
-        { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-        { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-        { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+        { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
     };
   }
@@ -205,11 +203,11 @@ function generateBotReply(
     q.includes('badge')
   ) {
     return {
-      text: "✍️ **Custom Name & Number Printing**:\n\n• We use **official league & club typography** (Premier League, UCL, La Liga, etc.).\n• Premium commercial vinyl heat-pressed onto the jersey, highly resistant to wash wear.\n• You can enter any custom name and up to 2-digit number directly when adding to cart or in the **Custom Studio** lab!",
+      text: "**Custom Name & Number Printing**:\n\n• We use **official league & club typography** (Premier League, UCL, La Liga, etc.).\n• Premium commercial vinyl heat-pressed onto the jersey, highly resistant to wash wear.\n• You can enter any custom name and up to 2-digit number directly when adding to cart or in the **Custom Studio** lab.",
       chips: [
-        { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-        { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-        { id: 'human', label: '🧑‍💼 Custom Jersey Query', query: 'Can I get custom design help from an agent?' },
+        { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'human', label: 'Custom Jersey Query', query: 'Can I get custom design help from an agent?' },
       ]
     };
   }
@@ -225,15 +223,15 @@ function generateBotReply(
     q.includes('defect')
   ) {
     return {
-      text: "↩️ **Returns & Exchanges Policy**:\n\n• **7-Day Hassle-Free Policy**: We exchange or refund items that arrive damaged, defective, or incorrect within 7 days of delivery.\n• Garments must be unworn, unwashed, and in original packaging with tags.\n• *Note: Personalized jerseys with custom names/numbers cannot be returned unless defective.*",
+      text: "**Returns & Exchanges Policy**:\n\n• **7-Day Policy**: We exchange or refund items that arrive damaged, defective, or incorrect within 7 days of delivery.\n• Garments must be unworn, unwashed, and in original packaging with tags.\n• *Note: Personalized jerseys with custom names/numbers cannot be returned unless defective.*",
       linkButton: {
         text: "Contact Agent for Return Request",
         url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I would like to request an exchange or return for my order.')}`
       },
       chips: [
-        { id: 'track', label: '📦 Track Order', query: 'How do I track my order?' },
-        { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-        { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+        { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
+        { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+        { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
     };
   }
@@ -249,11 +247,11 @@ function generateBotReply(
     q.includes('embroidery')
   ) {
     return {
-      text: "⭐ **Fabric & Quality Guarantee**:\n\n• Crafted with 100% breathable, moisture-wicking Dri-FIT polyester.\n• High-definition embroidered club crests, federation crests, and authentic sponsor details.\n• Designed to provide maximum matchday comfort and durability.",
+      text: "**Fabric & Quality Guarantee**:\n\n• Crafted with 100% breathable, moisture-wicking Dri-FIT polyester.\n• High-definition embroidered club crests, federation crests, and authentic sponsor details.\n• Designed to provide maximum matchday comfort and durability.",
       chips: [
-        { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-        { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-        { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+        { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
     };
   }
@@ -268,23 +266,23 @@ function generateBotReply(
     q.includes('help')
   ) {
     return {
-      text: "Hello! 👋 Welcome to Jersey Junction.\n\nI'm your 24/7 Virtual Support Assistant. How can I help you today? Choose one of the quick topics below or ask any question:",
+      text: "Hello! Welcome to Jersey Junction.\n\nI am your 24/7 Virtual Support Assistant. How can I help you today? Choose one of the quick topics below or ask any question:",
       chips: INITIAL_CHIPS
     };
   }
 
   // 10. Fallback
   return {
-    text: "Thank you for reaching out! 🙏 I'm here to assist you with anything regarding jerseys, sizing, orders, or delivery.\n\nFeel free to choose a quick topic below, or tap to chat directly with our live support agent:",
+    text: "Thank you for reaching out. I am here to assist you with anything regarding jerseys, sizing, orders, or delivery.\n\nFeel free to choose a quick topic below, or tap to chat directly with our live support agent:",
     linkButton: {
       text: "Chat with Live Agent",
       url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I have a question: ' + userQuery)}`
     },
     chips: [
-      { id: 'track', label: '📦 Track Order', query: 'How do I track my order?' },
-      { id: 'size', label: '📏 Size & Fit Guide', query: 'What size should I choose?' },
-      { id: 'delivery', label: '🚚 Delivery Timelines', query: 'How long does shipping take?' },
-      { id: 'human', label: '🧑‍💼 Chat with Human', query: 'I want to talk to a live human agent' },
+      { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
+      { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+      { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+      { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
     ]
   };
 }
@@ -336,7 +334,7 @@ export function WhatsAppHelpButton() {
     {
       id: 'welcome',
       sender: 'bot',
-      text: "👋 Hi! I'm your **Jersey Junction Virtual Assistant**.\n\nHow can I help you today? Choose one of the quick options below or type your question:",
+      text: "Hi! I am your **Jersey Junction Virtual Assistant**.\n\nHow can I help you today? Choose one of the quick options below or type your question:",
       time: getCurrentTime(),
       chips: INITIAL_CHIPS
     }
@@ -437,7 +435,7 @@ export function WhatsAppHelpButton() {
       {
         id: 'welcome-' + Date.now(),
         sender: 'bot',
-        text: "👋 Hi! I'm your **Jersey Junction Virtual Assistant**.\n\nHow can I help you today? Choose one of the quick options below or type your question:",
+        text: "Hi! I am your **Jersey Junction Virtual Assistant**.\n\nHow can I help you today? Choose one of the quick options below or type your question:",
         time: getCurrentTime(),
         chips: INITIAL_CHIPS
       }
@@ -603,7 +601,7 @@ export function WhatsAppHelpButton() {
         </div>
       )}
 
-      {/* Floating Action Trigger Button & Pill (Matches original section in screenshot) */}
+      {/* Floating Action Trigger Button & Pill */}
       <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 select-none font-sans">
         
         {/* Tooltip Pill */}
