@@ -270,6 +270,25 @@ export const authService = {
     return '/admin';
   },
 
+  updateProfile: async (data: { name?: string; phone?: string }): Promise<AuthUser> => {
+    const res = await apiClient.put<{ user: any; message: string }>('/auth/profile', data);
+    if (!res.success) {
+      throw new Error(res.error || res.message || 'Failed to update profile');
+    }
+    const userData = res.user || res.data?.user;
+    if (typeof window !== 'undefined' && userData) {
+      const stored = localStorage.getItem('jj_user');
+      const prev = stored ? JSON.parse(stored) : {};
+      const updated = {
+        ...prev,
+        name: userData.name || prev.name,
+        phone: userData.phone !== undefined ? userData.phone : prev.phone,
+      };
+      localStorage.setItem('jj_user', JSON.stringify(updated));
+    }
+    return userData;
+  },
+
   fetchMe: async (): Promise<AuthUser | null> => {
     if (typeof window === 'undefined') return null;
     const isDashboard = window.location.pathname.startsWith('/admin');

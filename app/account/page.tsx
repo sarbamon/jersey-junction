@@ -15,17 +15,20 @@ export default function AccountOverviewPage() {
   const [availableCouponsCount, setAvailableCouponsCount] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
     if (currentUser) {
-      const allOrders = orderService.getOrders();
-      const matched = allOrders.filter(o => 
-        o.email.toLowerCase() === currentUser.email.toLowerCase() || 
-        o.customerName.toLowerCase() === currentUser.name.toLowerCase()
-      );
-      setUserOrders(matched);
+      orderService.getUserOrdersAsync(currentUser.email, currentUser.phone).then((matched) => {
+        if (isMounted) {
+          setUserOrders(matched || []);
+        }
+      }).catch(() => {
+        if (isMounted) setUserOrders([]);
+      });
 
       const coupons = couponService.getCoupons();
       setAvailableCouponsCount(coupons.filter(c => c.status === 'Active').length);
     }
+    return () => { isMounted = false; };
   }, [currentUser]);
 
   if (!currentUser) return null;

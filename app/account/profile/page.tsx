@@ -25,23 +25,29 @@ export default function ProfilePage() {
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.name);
-      setPhone(currentUser.phone || '+91 98765 43210');
+      setPhone(currentUser.phone || '');
     }
   }, [currentUser]);
 
   if (!currentUser) return null;
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = {
-      ...currentUser,
-      name,
-      phone
-    };
-    loginUser(updated);
-    setIsEditing(false);
-    setToastMsg('Profile details updated successfully!');
-    setTimeout(() => setToastMsg(''), 3000);
+    try {
+      await authService.updateProfile({ name, phone });
+      const updated = {
+        ...currentUser,
+        name,
+        phone
+      };
+      loginUser(updated);
+      setIsEditing(false);
+      setToastMsg('Profile details updated successfully!');
+      setTimeout(() => setToastMsg(''), 3000);
+    } catch (err: any) {
+      setToastMsg(err.message || 'Failed to update profile');
+      setTimeout(() => setToastMsg(''), 3000);
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {

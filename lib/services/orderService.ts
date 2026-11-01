@@ -3,14 +3,22 @@ import { apiClient } from '../apiClient';
 
 const ORDERS_KEY = 'jj_admin_orders';
 
-// Helper to verify that an order is confirmed/paid:
-// Cash on Delivery orders, or online orders that have completed payment (Paid).
-// Filters out abandoned/pending payment portal attempts.
+// Helper to verify that an order is confirmed/paid/valid to display:
+// 1. Paid online orders (paymentStatus === 'Paid')
+// 2. All Cash on Delivery orders (COD)
+// 3. Any order that has moved beyond initial pending payment (Confirmed, Processing, Shipped, Delivered, Cancelled)
+// Excludes ONLY abandoned payment portal sessions where user opened Razorpay popup but aborted without paying.
 export const isConfirmedOrder = (order: AdminOrder): boolean => {
   if (!order) return false;
-  const isCOD = order.paymentMethod === 'COD' || (order.paymentMethod as string) === 'Cash on Delivery';
-  const isPaid = order.paymentStatus === 'Paid';
-  return isCOD || isPaid;
+  const payMethod = String(order.paymentMethod || '').toLowerCase();
+  const payStatus = String(order.paymentStatus || '').toLowerCase();
+  const ordStatus = String(order.orderStatus || '').toLowerCase();
+
+  const isPaid = payStatus === 'paid';
+  const isCOD = payMethod.includes('cod') || payMethod.includes('cash on delivery') || payStatus === 'cod';
+  const isProcessed = ordStatus !== '' && ordStatus !== 'pending';
+
+  return isPaid || isCOD || isProcessed;
 };
 
 // Safely persist orders to localStorage without exceeding browser storage quota
@@ -79,21 +87,35 @@ export const orderService = {
     return orderService.getOrders();
   },
 
-  async getUserOrdersAsync(email: string): Promise<AdminOrder[]> {
+  async getUserOrdersAsync(email: string, phone?: string): Promise<AdminOrder[]> {
     try {
       if (email) {
-        const res = await apiClient.get<AdminOrder[]>(`/orders/user/${encodeURIComponent(email)}`);
+        let url = `/orders/user/${encodeURIComponent(email.trim())}`;
+        if (phone && phone.trim()) {
+          url += `?phone=${encodeURIComponent(phone.trim())}`;
+        }
+        const res = await apiClient.get<AdminOrder[]>(url);
         if (res.success && Array.isArray(res.data)) {
-          return res.data.filter(isConfirmedOrder);
+          const confirmed = res.data.filter(isConfirmedOrder);
+          safeStoreOrders(confirmed);
+          return confirmed;
         }
       }
     } catch (err) {
       console.error('Error fetching user orders from backend:', err);
     }
-    // Fallback: search local orders by email or customer name
+    // Fallback: search local orders by email, customer name, or phone
     const all = orderService.getOrders();
-    const query = email.toLowerCase();
-    return all.filter((o) => (o.email.toLowerCase() === query || o.customerName.toLowerCase() === query) && isConfirmedOrder(o));
+    const query = (email || '').toLowerCase().trim();
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+    return all.filter((o) => {
+      const oEmail = String(o.email || '').toLowerCase().trim();
+      const oName = String(o.customerName || '').toLowerCase().trim();
+      const oPhone = String(o.phone || '').replace(/\D/g, '');
+      const emailMatches = Boolean(query && (oEmail === query || oName === query));
+      const phoneMatches = Boolean(cleanPhone && cleanPhone.length >= 7 && oPhone && (oPhone.endsWith(cleanPhone) || cleanPhone.endsWith(oPhone)));
+      return (emailMatches || phoneMatches) && isConfirmedOrder(o);
+    });
   },
 
   getOrderById: (id: string): AdminOrder | undefined => {
