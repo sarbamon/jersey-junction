@@ -138,7 +138,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </button>
               </div>
             ) : (
-              items.map((item) => (
+              items.map((item) => {
+                const itemMaxStock = (item.product.sizeStock && typeof item.product.sizeStock[item.size] === 'number')
+                  ? Math.max(0, item.product.sizeStock[item.size])
+                  : (typeof item.product.stock === 'number' ? Math.max(0, item.product.stock) : 99);
+                const isAtMaxStock = item.quantity >= itemMaxStock;
+
+                return (
                 <div
                   key={item.id}
                   className="p-4 bg-slate-50 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-2xl flex gap-4 relative group shadow-sm"
@@ -201,20 +207,33 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                     {/* Quantity & Item Subtotal */}
                     <div className="flex justify-between items-center pt-2">
-                      <div className="flex items-center gap-2 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg p-0.5">
-                        <button
-                          onClick={() => onUpdateQuantity(item.id, -1)}
-                          className="p-1 text-slate-600 hover:text-amber-600 dark:text-zinc-300 dark:hover:text-amber-400"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold w-4 text-center text-slate-900 dark:text-white">{item.quantity}</span>
-                        <button
-                          onClick={() => onUpdateQuantity(item.id, 1)}
-                          className="p-1 text-slate-600 hover:text-amber-600 dark:text-zinc-300 dark:hover:text-amber-400"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg p-0.5">
+                          <button
+                            onClick={() => onUpdateQuantity(item.id, -1)}
+                            className="p-1 text-slate-600 hover:text-amber-600 dark:text-zinc-300 dark:hover:text-amber-400 cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-bold w-4 text-center text-slate-900 dark:text-white">{item.quantity}</span>
+                          <button
+                            onClick={() => !isAtMaxStock && onUpdateQuantity(item.id, 1)}
+                            disabled={isAtMaxStock}
+                            className={`p-1 rounded transition-colors ${
+                              isAtMaxStock
+                                ? 'text-slate-300 dark:text-zinc-600 cursor-not-allowed opacity-40'
+                                : 'text-slate-600 hover:text-amber-600 dark:text-zinc-300 dark:hover:text-amber-400 cursor-pointer'
+                            }`}
+                            title={isAtMaxStock ? `Only ${itemMaxStock} available in stock` : 'Increase quantity'}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {isAtMaxStock && itemMaxStock < 99 && (
+                          <div className="text-[10px] text-amber-500 font-bold font-mono">
+                            Only {itemMaxStock} left
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-sm font-bold text-amber-700 dark:text-amber-400 font-mono">
@@ -223,7 +242,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     </div>
                   </div>
                 </div>
-              ))
+              );
+              })
             )}
           </div>
 

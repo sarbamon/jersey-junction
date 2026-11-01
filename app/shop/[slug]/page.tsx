@@ -256,6 +256,21 @@ export default function ProductDetailPage({ params }: PageProps) {
       setCustomError('Please enter a name for the back print, or select Blank Back.');
       return;
     }
+
+    const sizeMaxStock = (product.sizeStock && typeof product.sizeStock[selectedSize] === 'number')
+      ? Math.max(0, product.sizeStock[selectedSize])
+      : (typeof product.stock === 'number' ? Math.max(0, product.stock) : 99);
+
+    const sizeInCart = cartItems
+      .filter((item) => item.product.id === product.id && item.size === selectedSize)
+      .reduce((sum, item) => sum + item.quantity, 0);
+
+    if (sizeInCart >= sizeMaxStock) {
+      setCustomError(`Only ${sizeMaxStock} unit(s) available in stock for size ${selectedSize}. You already have all of them in your bag.`);
+      setIsCartOpen(true);
+      return;
+    }
+
     setCustomError('');
 
     addToCart(
@@ -274,6 +289,21 @@ export default function ProductDetailPage({ params }: PageProps) {
       setCustomError('Please enter a name for the back print, or select Blank Back.');
       return;
     }
+
+    const sizeMaxStock = (product.sizeStock && typeof product.sizeStock[selectedSize] === 'number')
+      ? Math.max(0, product.sizeStock[selectedSize])
+      : (typeof product.stock === 'number' ? Math.max(0, product.stock) : 99);
+
+    const sizeInCart = cartItems
+      .filter((item) => item.product.id === product.id && item.size === selectedSize)
+      .reduce((sum, item) => sum + item.quantity, 0);
+
+    if (sizeInCart >= sizeMaxStock) {
+      setCustomError(`Only ${sizeMaxStock} unit(s) available in stock for size ${selectedSize}. You already have all of them in your bag.`);
+      setIsCartOpen(true);
+      return;
+    }
+
     setCustomError('');
 
     addToCart(

@@ -202,14 +202,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const cartItemId = `${product.id}-${size}-${version}-${customName}-${customNumber}-${patches.map((p) => p.id).join('-')}`;
 
     setCartItems((prev) => {
+      const maxStock = (product.sizeStock && typeof product.sizeStock[size] === 'number')
+        ? Math.max(0, product.sizeStock[size])
+        : (typeof product.stock === 'number' ? Math.max(0, product.stock) : 99);
+
       const existing = prev.find((item) => item.id === cartItemId);
       if (existing) {
+        if (existing.quantity >= maxStock) {
+          return prev;
+        }
+        const nextQty = Math.min(existing.quantity + 1, maxStock);
         return prev.map((item) =>
           item.id === cartItemId
-            ? { ...item, quantity: item.quantity + 1, totalPrice: (item.quantity + 1) * unitPrice }
+            ? { ...item, quantity: nextQty, totalPrice: nextQty * unitPrice }
             : item
         );
       }
+
+      if (maxStock <= 0) {
+        return prev;
+      }
+
       return [
         ...prev,
         {
@@ -235,10 +248,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev
         .map((item) => {
           if (item.id === cartItemId) {
+            const maxStock = (item.product.sizeStock && typeof item.product.sizeStock[item.size] === 'number')
+              ? Math.max(0, item.product.sizeStock[item.size])
+              : (typeof item.product.stock === 'number' ? Math.max(0, item.product.stock) : 99);
+
+            if (delta > 0 && item.quantity >= maxStock) {
+              return item;
+            }
+
             const newQty = item.quantity + delta;
-            return newQty > 0
-              ? { ...item, quantity: newQty, totalPrice: newQty * item.unitPrice }
-              : null;
+            if (newQty <= 0) return null;
+            const cappedQty = Math.min(newQty, maxStock);
+            return { ...item, quantity: cappedQty, totalPrice: cappedQty * item.unitPrice };
           }
           return item;
         })

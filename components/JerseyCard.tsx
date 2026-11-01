@@ -24,12 +24,18 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
   isWishlisted = false,
   onToggleWishlist
 }) => {
-  const { addToCart } = useStore();
+  const { cartItems, addToCart } = useStore();
   const [viewMode, setViewMode] = useState<'back' | 'front'>('back');
   const [isHovered, setIsHovered] = useState(false);
 
   const isOutOfStock = product.status === 'Out of Stock' || (product.stock !== undefined && product.stock <= 0);
   const isLowStock = !isOutOfStock && product.stock !== undefined && product.stock > 0 && product.stock <= 5;
+
+  const totalInCart = cartItems
+    .filter((item) => item.product.id === product.id)
+    .reduce((sum, item) => sum + item.quantity, 0);
+  const maxProductStock = typeof product.stock === 'number' ? product.stock : 99;
+  const isAllStockInCart = !isOutOfStock && totalInCart >= maxProductStock;
 
   const priceConverted = Math.round(product.price * activeCurrency.rate);
   const origPriceConverted = product.originalPrice 
@@ -39,7 +45,7 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
   const handleQuickAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isOutOfStock) return;
+    if (isOutOfStock || isAllStockInCart) return;
     addToCart(
       product,
       product.availableSizes[0] || 'L',
@@ -158,16 +164,24 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={handleQuickAddToCart}
-              disabled={isOutOfStock}
+              disabled={isOutOfStock || isAllStockInCart}
               className={`flex-1 sm:flex-none text-center justify-center px-2.5 py-1.5 font-extrabold text-[10px] sm:text-xs rounded uppercase tracking-wider flex items-center gap-1 transition-all ${
-                isOutOfStock
+                isOutOfStock || isAllStockInCart
                   ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-75'
                   : 'bg-[#f4c84a] hover:bg-[#ffd96a] text-black shadow-sm cursor-pointer hover:scale-105'
               }`}
-              title={isOutOfStock ? 'Product is currently Out of Stock' : 'Add to Cart'}
+              title={
+                isOutOfStock 
+                  ? 'Product is currently Out of Stock' 
+                  : (isAllStockInCart ? `All available units (${maxProductStock}) in your bag` : 'Add to Cart')
+              }
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>{isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</span>
+              <span>
+                {isOutOfStock 
+                  ? 'OUT OF STOCK' 
+                  : (isAllStockInCart ? 'MAX IN BAG' : 'ADD TO CART')}
+              </span>
             </button>
           </div>
         </div>

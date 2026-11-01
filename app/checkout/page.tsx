@@ -1115,29 +1115,50 @@ export default function CheckoutPage() {
                         <div className="text-right font-mono font-bold text-[#f4c84a]">
                           {activeCurrency.symbol}{(item.totalPrice * activeCurrency.rate).toFixed(2)}
                         </div>
-                        <div className="inline-flex items-center gap-1 bg-[#141414] border border-[#282828] rounded-lg p-0.5 shadow-sm">
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.id, -1)}
-                            className="p-1 text-gray-400 hover:text-[#f4c84a] hover:bg-[#202020] rounded transition-colors cursor-pointer"
-                            aria-label="Decrease quantity"
-                            title="Decrease quantity"
-                          >
-                            <Minus className="w-2.5 h-2.5" />
-                          </button>
-                          <span className="text-[11px] font-bold font-mono min-w-[14px] text-center text-white">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.id, 1)}
-                            className="p-1 text-gray-400 hover:text-[#f4c84a] hover:bg-[#202020] rounded transition-colors cursor-pointer"
-                            aria-label="Increase quantity"
-                            title="Increase quantity"
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                          </button>
-                        </div>
+                        {(() => {
+                          const itemMaxStock = (item.product.sizeStock && typeof item.product.sizeStock[item.size] === 'number')
+                            ? Math.max(0, item.product.sizeStock[item.size])
+                            : (typeof item.product.stock === 'number' ? Math.max(0, item.product.stock) : 99);
+                          const isAtMaxStock = item.quantity >= itemMaxStock;
+
+                          return (
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="inline-flex items-center gap-1 bg-[#141414] border border-[#282828] rounded-lg p-0.5 shadow-sm">
+                                <button
+                                  type="button"
+                                  onClick={() => updateQuantity(item.id, -1)}
+                                  className="p-1 text-gray-400 hover:text-[#f4c84a] hover:bg-[#202020] rounded transition-colors cursor-pointer"
+                                  aria-label="Decrease quantity"
+                                  title="Decrease quantity"
+                                >
+                                  <Minus className="w-2.5 h-2.5" />
+                                </button>
+                                <span className="text-[11px] font-bold font-mono min-w-[14px] text-center text-white">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => !isAtMaxStock && updateQuantity(item.id, 1)}
+                                  disabled={isAtMaxStock}
+                                  className={`p-1 rounded transition-colors ${
+                                    isAtMaxStock
+                                      ? 'text-gray-600 cursor-not-allowed opacity-40'
+                                      : 'text-gray-400 hover:text-[#f4c84a] hover:bg-[#202020] cursor-pointer'
+                                  }`}
+                                  aria-label="Increase quantity"
+                                  title={isAtMaxStock ? `Only ${itemMaxStock} available in stock` : 'Increase quantity'}
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                              {isAtMaxStock && itemMaxStock < 99 && (
+                                <span className="text-[9px] text-amber-500 font-mono font-bold">
+                                  Only {itemMaxStock} left
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
