@@ -208,7 +208,7 @@ export default function AdminSettingsPage() {
                 type="text"
                 value={settings.storeWhatsapp || ''}
                 onChange={(e) => setSettings({ ...settings, storeWhatsapp: e.target.value })}
-                placeholder="+91 70027 40268"
+                placeholder="+91 60011 42358"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
               />
             </div>

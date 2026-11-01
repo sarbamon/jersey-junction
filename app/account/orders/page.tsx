@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Eye, Clock, CheckCircle2, Truck, Search, Loader2 } from 'lucide-react';
+import { ShoppingBag, Eye, Clock, CheckCircle2, Truck } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
 import { orderService } from '../../../lib/services/orderService';
 import { AdminOrder, OrderStatus } from '../../../lib/types/admin';
@@ -15,9 +15,6 @@ export default function MyOrdersPage() {
   const [filter, setFilter] = useState<string>('all');
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<AdminOrder | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState<boolean>(false);
-  const [lookupId, setLookupId] = useState<string>('');
-  const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
-  const [lookupMessage, setLookupMessage] = useState<string>('');
 
   useEffect(() => {
     let isMounted = true;
@@ -36,34 +33,6 @@ export default function MyOrdersPage() {
   }, [currentUser]);
 
   if (!currentUser) return null;
-
-  const handleLookupOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = lookupId.trim();
-    if (!clean) return;
-
-    setIsLookingUp(true);
-    setLookupMessage('');
-
-    try {
-      const found = await orderService.getOrderByIdAsync(clean);
-      if (found) {
-        setOrders((prev) => {
-          const exists = prev.some((o) => o.id === found.id || o.id.replace('#', '') === found.id.replace('#', ''));
-          if (exists) return prev;
-          return [found, ...prev];
-        });
-        setLookupMessage(`Order ${found.id} located successfully!`);
-        setLookupId('');
-      } else {
-        setLookupMessage(`No order found matching "${clean}". Please verify your Order ID.`);
-      }
-    } catch {
-      setLookupMessage(`Could not retrieve order "${clean}".`);
-    } finally {
-      setIsLookingUp(false);
-    }
-  };
 
   const filterTabs = [
     { label: 'All', value: 'all' },
@@ -109,42 +78,6 @@ export default function MyOrdersPage() {
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Quick Order Lookup Banner */}
-      <div className="bg-[#111114] border border-[#242424] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1 text-left w-full sm:w-auto">
-          <div className="text-xs font-bold text-white flex items-center gap-1.5">
-            <Search className="w-3.5 h-3.5 text-[#f4c84a]" />
-            <span>Missing an order or ordered with another email?</span>
-          </div>
-          <p className="text-[11px] text-gray-400">
-            Enter your Order ID (e.g. #JJ8514) to quickly locate and track your shipment.
-          </p>
-          {lookupMessage && (
-            <div className={`text-[11px] font-bold ${lookupMessage.includes('successfully') ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {lookupMessage}
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleLookupOrder} className="flex items-center gap-2 w-full sm:w-auto">
-          <input
-            type="text"
-            value={lookupId}
-            onChange={(e) => setLookupId(e.target.value)}
-            placeholder="e.g. #JJ8514"
-            className="bg-[#0b0c10] border border-[#333] focus:border-[#f4c84a] text-white px-3.5 py-2 rounded-xl text-xs outline-none font-mono placeholder:text-gray-600 w-full sm:w-44"
-          />
-          <button
-            type="submit"
-            disabled={isLookingUp || !lookupId.trim()}
-            className="px-4 py-2 bg-[#f4c84a] hover:bg-[#e0b438] disabled:opacity-50 text-black font-extrabold uppercase rounded-xl text-xs flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
-          >
-            {isLookingUp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-            <span>Find</span>
-          </button>
-        </form>
       </div>
 
       {/* Orders List */}

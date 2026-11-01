@@ -116,7 +116,7 @@ export const Footer: React.FC<FooterProps> = ({
                 </li>
                 <li>
                   <a
-                    href="https://wa.me/917002740268?text=Hi%20Jersey%20Junction%20Support!%20I%20need%20help%20with%20an%20order."
+                    href="https://wa.me/916001142358?text=Hi%20Jersey%20Junction%20Support!%20I%20need%20help%20with%20an%20order."
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-emerald-500 hover:text-emerald-400 font-bold transition-colors duration-200 flex items-center gap-1.5"

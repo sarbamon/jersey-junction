@@ -324,7 +324,7 @@ function FormattedMessageText({ text }: { text: string }) {
 export function WhatsAppHelpButton() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [whatsappNumber, setWhatsappNumber] = useState<string>('917002740268');
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('916001142358');
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -343,10 +343,10 @@ export function WhatsAppHelpButton() {
   useEffect(() => {
     const loadNum = () => {
       const s = settingsService.getSettings();
-      const raw = s.storeWhatsapp || s.storePhone || '917002740268';
+      const raw = s.storeWhatsapp || s.storePhone || '916001142358';
       const clean = raw.replace(/\D/g, '');
       const withCountry = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
-      setWhatsappNumber(withCountry || '917002740268');
+      setWhatsappNumber(withCountry || '916001142358');
     };
 
     loadNum();

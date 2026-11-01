@@ -55,14 +55,14 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('917002740268');
+  const [whatsappNumber, setWhatsappNumber] = useState('916001142358');
 
   useEffect(() => {
     const s = settingsService.getSettings();
-    const raw = s.storeWhatsapp || s.storePhone || '917002740268';
+    const raw = s.storeWhatsapp || s.storePhone || '916001142358';
     const clean = raw.replace(/\D/g, '');
     const withCountry = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
-    setWhatsappNumber(withCountry || '917002740268');
+    setWhatsappNumber(withCountry || '916001142358');
   }, []);
 
   useEffect(() => {
