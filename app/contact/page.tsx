@@ -283,7 +283,7 @@ export default function ContactPage() {
                 Need direct help with sizing recommendations, delivery timelines, or custom name printing? Connect directly with our live support agent.
               </p>
 
-              <div className="pt-1 space-y-2">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent('jj_open_agent_bot'))}
@@ -292,19 +292,6 @@ export default function ContactPage() {
                   <Headset className="w-4 h-4" />
                   <span>Launch Agent Bot</span>
                 </button>
-                <a
-                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need agent help with an order / jersey query.')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
-                >
-                  <span>Direct WhatsApp Line</span>
-                </a>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 text-[11px] text-zinc-400 font-mono">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Agent Online & Quick Reply</span>
               </div>
             </div>
 
