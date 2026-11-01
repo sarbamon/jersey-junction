@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2, Phone, Eye, EyeOff, CheckCircle2, KeyRound } from 'lucide-react';
+import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, ShieldCheck, Loader2, Phone, Eye, EyeOff, CheckCircle2, KeyRound } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../lib/services/authService';
 import { customerService } from '../lib/services/customerService';
@@ -38,7 +38,7 @@ export const AuthModal: React.FC = () => {
   const router = useRouter();
   const { isAuthOpen, setIsAuthOpen, loginUser, currentUser, logoutUser } = useStore();
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'verify-signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,6 +49,10 @@ export const AuthModal: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const otpInputRef = useRef<HTMLInputElement>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '690427721204-ku71qit1vt4a7pjnfcn13beqbquj2bpg.apps.googleusercontent.com';
 
@@ -95,6 +99,25 @@ export const AuthModal: React.FC = () => {
     }
   }, [currentUser, isAuthOpen, setIsAuthOpen]);
 
+  // Cooldown countdown for OTP resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  // Focus OTP input when switching to verify-signup mode
+  useEffect(() => {
+    if (mode === 'verify-signup') {
+      const timer = setTimeout(() => {
+        otpInputRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
+
   if (!isAuthOpen || currentUser) return null;
 
   const handleClose = () => {
@@ -104,6 +127,9 @@ export const AuthModal: React.FC = () => {
     setIsLoading(false);
     setShowPassword(false);
     setAgreeTerms(false);
+    setOtpCode('');
+    setResendCooldown(0);
+    setIsResending(false);
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -242,20 +268,80 @@ export const AuthModal: React.FC = () => {
 
     setIsLoading(true);
     setError('');
+    setSuccessMsg('');
 
     try {
-      const authUser = await authService.registerCustomer(cleanName, cleanEmail, cleanPassword, cleanPhone);
-      loginUser({
-        name: authUser.name,
-        email: authUser.email,
-        role: authUser.role,
-        phone: cleanPhone
+      const res = await authService.sendSignupOtp({
+        name: cleanName,
+        email: cleanEmail,
+        password: cleanPassword,
+        phone: cleanPhone,
       });
-      handleClose();
+
+      setMode('verify-signup');
+      setOtpCode('');
+      setResendCooldown(60);
+      setSuccessMsg(res.message || `Verification code sent to ${cleanEmail}`);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Email may already be registered.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerifySignupOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanOtp = otpCode.trim();
+    const cleanEmail = email.trim();
+
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setError('Please enter the complete 6-digit verification code.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const authUser = await authService.verifySignupOtp(cleanEmail, cleanOtp);
+      loginUser({
+        name: authUser.name,
+        email: authUser.email,
+        role: authUser.role,
+        phone: authUser.phone || phone.trim() || '',
+      });
+      setSuccessMsg('Account verified successfully! Welcome to Jersey Junction.');
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Invalid or expired verification code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendSignupOtp = async () => {
+    if (resendCooldown > 0 || isResending) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError('Email address is missing.');
+      return;
+    }
+
+    setIsResending(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await authService.resendSignupOtp(cleanEmail);
+      setResendCooldown(60);
+      setSuccessMsg(res.message || 'New 6-digit verification code sent to your email.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code. Please try again.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -284,79 +370,197 @@ export const AuthModal: React.FC = () => {
         {/* Modal Header */}
         <div className="text-center space-y-1">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400 border border-amber-400/20 mb-2">
-            <UserRound className="w-6 h-6" />
+            {mode === 'verify-signup' ? (
+              <ShieldCheck className="w-6 h-6" />
+            ) : (
+              <UserRound className="w-6 h-6" />
+            )}
           </div>
           <h2 className="font-serif text-2xl font-black uppercase text-white tracking-tight">
-            {mode === 'signup'
-              ? 'CREATE AN ACCOUNT'
-              : mode === 'forgot'
-                ? 'RESET PASSWORD'
-                : 'CUSTOMER LOGIN'}
+            {mode === 'verify-signup'
+              ? 'VERIFY YOUR EMAIL'
+              : mode === 'signup'
+                ? 'CREATE AN ACCOUNT'
+                : mode === 'forgot'
+                  ? 'RESET PASSWORD'
+                  : 'CUSTOMER LOGIN'}
           </h2>
+          {mode === 'verify-signup' && (
+            <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+              We sent a 6-digit verification code to <span className="text-amber-400 font-bold">{email}</span>. Enter it below to complete your registration.
+            </p>
+          )}
         </div>
 
         {/* Mode Switcher Tabs */}
-            {mode === 'forgot' ? (
-              <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800 text-xs font-bold">
-                <span className="text-amber-400 font-mono text-[11px] px-2 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5" />
-                  Password Recovery
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
-                  className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-[11px] cursor-pointer"
-                >
-                  Back to Sign In
-                </button>
+        {mode === 'verify-signup' ? (
+          <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800 text-xs font-bold">
+            <span className="text-amber-400 font-mono text-[11px] px-2 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Step 2 of 2: Code Verification
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('signup');
+                setError('');
+                setSuccessMsg('');
+              }}
+              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-[11px] cursor-pointer"
+            >
+              Edit Details
+            </button>
+          </div>
+        ) : mode === 'forgot' ? (
+          <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800 text-xs font-bold">
+            <span className="text-amber-400 font-mono text-[11px] px-2 flex items-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5" />
+              Password Recovery
+            </span>
+            <button
+              type="button"
+              onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
+              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-[11px] cursor-pointer"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
+            <button
+              onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); setShowPassword(false); setAgreeTerms(false); }}
+              className={`flex-1 py-2 rounded-lg transition-all ${mode === 'login' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setMode('signup'); setError(''); setSuccessMsg(''); setShowPassword(false); setAgreeTerms(false); }}
+              className={`flex-1 py-2 rounded-lg transition-all ${mode === 'signup' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
+
+        {/* Official Google OAuth Sign-In Button (hidden in forgot and verify modes) */}
+        {mode !== 'forgot' && mode !== 'verify-signup' && (
+          <>
+            {/* Google Sign-In Button */}
+            <button
+              type="button"
+              onClick={handleGoogleSignInClick}
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-3 cursor-pointer shadow-md group hover:border-zinc-700 text-xs disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              ) : (
+                <GoogleIcon />
+              )}
+              <span>{mode === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}</span>
+            </button>
+
+            {/* OR Divider */}
+            <div className="flex items-center gap-3 my-1">
+              <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
+              <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider">OR WITH EMAIL</span>
+              <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
+            </div>
+          </>
+        )}
+
+        {/* Verification OTP Form */}
+        {mode === 'verify-signup' ? (
+          <form onSubmit={handleVerifySignupOtp} className="space-y-5 text-xs">
+            <div>
+              <label className="font-bold text-zinc-400 block mb-2 uppercase text-center tracking-wider text-[11px]">
+                ENTER 6-DIGIT VERIFICATION CODE
+              </label>
+              <div className="relative">
+                <input
+                  ref={otpInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                  placeholder="000000"
+                  value={otpCode}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpCode(val);
+                    if (error) setError('');
+                  }}
+                  className="w-full bg-black/60 border-2 border-zinc-800 hover:border-zinc-700 focus:border-amber-400 rounded-2xl py-3.5 px-4 text-center text-2xl sm:text-3xl font-mono font-black tracking-[0.4em] text-amber-400 focus:outline-none transition-all shadow-inner"
+                />
               </div>
-            ) : (
-              <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
-                <button
-                  onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); setShowPassword(false); setAgreeTerms(false); }}
-                  className={`flex-1 py-2 rounded-lg transition-all ${mode === 'login' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => { setMode('signup'); setError(''); setSuccessMsg(''); setShowPassword(false); setAgreeTerms(false); }}
-                  className={`flex-1 py-2 rounded-lg transition-all ${mode === 'signup' ? 'bg-amber-400 text-black shadow-md' : 'text-zinc-400 hover:text-white'}`}
-                >
-                  Sign Up
-                </button>
+              <p className="text-[11px] text-zinc-500 text-center mt-2">
+                Valid for 10 minutes &bull; Check your Spam/Junk folder if not in inbox
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-semibold flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Official Google OAuth Sign-In Button (hidden in forgot mode) */}
-            {mode !== 'forgot' && (
-              <>
-                {/* Google Sign-In Button */}
-                <button
-                  type="button"
-                  onClick={handleGoogleSignInClick}
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-3 cursor-pointer shadow-md group hover:border-zinc-700 text-xs disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                  ) : (
-                    <GoogleIcon />
-                  )}
-                  <span>{mode === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}</span>
-                </button>
-
-
-                {/* OR Divider */}
-                <div className="flex items-center gap-3 my-1">
-                  <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
-                  <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider">OR WITH EMAIL</span>
-                  <div className="h-[1px] flex-1 bg-zinc-800/80"></div>
-                </div>
-              </>
+            {successMsg && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{successMsg}</span>
+              </div>
             )}
 
-            {/* Form Fields for Email & Password */}
-            <form onSubmit={mode === 'signup' ? handleUserSignUp : mode === 'forgot' ? handleResetPassword : handleUserLogin} className="space-y-4 text-xs">
+            <button
+              type="submit"
+              disabled={isLoading || otpCode.length !== 6}
+              className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold rounded-xl transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-black" />
+              ) : (
+                <>
+                  <span>VERIFY & SIGN IN</span>
+                  <ArrowRight className="w-4 h-4 text-black" />
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <button
+                type="button"
+                onClick={handleResendSignupOtp}
+                disabled={resendCooldown > 0 || isResending}
+                className="text-amber-400 hover:text-amber-300 font-bold transition-colors disabled:opacity-40 disabled:hover:text-amber-400 cursor-pointer disabled:cursor-not-allowed"
+              >
+                {isResending ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending...
+                  </span>
+                ) : resendCooldown > 0 ? (
+                  `Resend Code (${resendCooldown}s)`
+                ) : (
+                  'Resend Verification Code'
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signup');
+                  setError('');
+                  setSuccessMsg('');
+                }}
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Change Details
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={mode === 'signup' ? handleUserSignUp : mode === 'forgot' ? handleResetPassword : handleUserLogin} className="space-y-4 text-xs">
 
               {mode === 'signup' && (
                 <>
@@ -504,6 +708,7 @@ export const AuthModal: React.FC = () => {
                 )}
               </button>
             </form>
+        )}
 
       </div>
     </div>

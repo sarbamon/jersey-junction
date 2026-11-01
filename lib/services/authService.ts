@@ -85,7 +85,63 @@ export const authService = {
     return user;
   },
 
-  // Customer Register (Real MongoDB Database creation)
+  // Send 6-digit verification code to customer email for signup
+  sendSignupOtp: async (data: { name: string; email: string; password: string; phone?: string }): Promise<{ success: boolean; message?: string }> => {
+    const res = await apiClient.post('/auth/register-send-otp', data);
+    if (!res.success) {
+      throw new Error(res.error || res.message || 'Failed to send verification code. Please try again.');
+    }
+    return { success: true, message: res.message };
+  },
+
+  // Verify 6-digit code and create customer account
+  verifySignupOtp: async (email: string, otp: string): Promise<AuthUser> => {
+    const res = await apiClient.post('/auth/register-verify-otp', {
+      email: (email || '').trim().toLowerCase(),
+      otp: (otp || '').trim(),
+    });
+
+    if (!res.success || !res.token) {
+      throw new Error(res.error || 'Verification failed. Please check the code.');
+    }
+
+    const user: AuthUser = {
+      id: res.user?.id || res.user?._id,
+      email: res.user?.email || email,
+      name: res.user?.name || email.split('@')[0],
+      role: res.user?.role || 'user',
+      phone: res.user?.phone || '',
+      token: res.token,
+    };
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(user));
+      localStorage.setItem(CUSTOMER_TOKEN_KEY, res.token);
+      localStorage.setItem('jj_user', JSON.stringify({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone || ''
+      }));
+    }
+
+    return user;
+  },
+
+  // Resend fresh 6-digit verification code
+  resendSignupOtp: async (email: string): Promise<{ success: boolean; message?: string }> => {
+    const res = await apiClient.post('/auth/register-resend-otp', {
+      email: (email || '').trim().toLowerCase(),
+    });
+
+    if (!res.success) {
+      throw new Error(res.error || res.message || 'Failed to resend code');
+    }
+
+    return { success: true, message: res.message };
+  },
+
+  // Customer Register (Direct / legacy creation)
   registerCustomer: async (name: string, email: string, pass: string, phone?: string): Promise<AuthUser> => {
     const res = await apiClient.post('/auth/register', { name, email, password: pass, phone });
 
