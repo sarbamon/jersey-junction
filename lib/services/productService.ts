@@ -116,25 +116,7 @@ const ADMIN_CACHE_KEY = 'jj_admin_products_cache_v2';
 
 // Identify any legacy demo or test items
 function isDemoProduct(item: any): boolean {
-  if (!item) return false;
-  const n = (item.name || '').toLowerCase().trim();
-  const s = (item.slug || '').toLowerCase().trim();
-  return (
-    n.startsWith('test') ||
-    s.startsWith('test') ||
-    n === 'arhentina' ||
-    s === 'arhentina' ||
-    n === 'real mader' ||
-    s.startsWith('messi-4373') ||
-    s.startsWith('ronaldo-4868') ||
-    n === 'fdsfds' ||
-    n === 'fdsfsd' ||
-    n === 'fsdfs' ||
-    n === 'dsad' ||
-    n === 'dsada' ||
-    n === 'dsa' ||
-    n === 'dsadsa'
-  );
+  return false;
 }
 
 function getStoredCache(): JerseyProduct[] {

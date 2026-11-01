@@ -39,6 +39,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  for (var i = 0; i < regs.length; i++) {
+                    regs[i].unregister();
+                  }
+                }).catch(function() {});
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-black text-white selection:bg-[hsl(16.9deg_39.66%_64.9%)] selection:text-white">
         <StoreProvider>
           {children}

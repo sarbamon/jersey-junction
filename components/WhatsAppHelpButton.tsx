@@ -42,7 +42,6 @@ interface ChatMessage {
 }
 
 const INITIAL_CHIPS: ActionChip[] = [
-  { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
   { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
   { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
   { id: 'cod', label: 'COD Available?', query: 'Is Cash on Delivery available?' },
@@ -87,9 +86,9 @@ function generateBotReply(
         url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need live agent help with an inquiry.')}`
       },
       chips: [
-        { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
         { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
         { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+        { id: 'returns', label: 'Returns Policy', query: 'What is your return policy?' },
       ]
     };
   }
@@ -106,13 +105,9 @@ function generateBotReply(
     /\b(jj-[a-z0-9]+|ord-[a-z0-9]+|\d{4,8})\b/i.test(q)
   ) {
     return {
-      text: "**Order Tracking & Updates**:\n\n• Orders are dispatched within **24–48 hours** via express couriers (Delhivery, Bluedart, DTDC, Xpressbees).\n• Once dispatched, your live AWB tracking link is sent via SMS & email.\n• Average delivery takes **3 to 7 business days** across India.\n\nYou can check your order status right here using our live order tracker:",
-      eventButton: {
-        text: "Open Live Order Tracker",
-        eventName: "jj_open_track_modal"
-      },
+      text: "**Order Updates & Dispatch**:\n\n• Orders are dispatched within **24–48 hours** via express couriers (Delhivery, Bluedart, DTDC, Xpressbees).\n• Once dispatched, your live AWB tracking link is sent via SMS & email.\n• Average delivery takes **3 to 7 business days** across India.\n\nOur live support agent can also look up your shipment status:",
       linkButton: {
-        text: "Ask Agent About My Order",
+        text: "Ask Agent for Order Status",
         url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! Can you please check the status of my order?')}`
       },
       chips: [
@@ -162,7 +157,7 @@ function generateBotReply(
     return {
       text: "**Shipping & Delivery Timelines**:\n\n• **Processing Time**: 24 to 48 hours for standard & custom printed kits.\n• **Estimated Transit**: 3 to 7 business days across India.\n• **Couriers**: Express air shipping via Bluedart, Delhivery, DTDC & Xpressbees.\n• All orders include SMS & email tracking updates directly to your phone.",
       chips: [
-        { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
+        { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
         { id: 'cod', label: 'COD Available?', query: 'Is Cash on Delivery available?' },
         { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
@@ -229,8 +224,8 @@ function generateBotReply(
         url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I would like to request an exchange or return for my order.')}`
       },
       chips: [
-        { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
         { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
+        { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
         { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
       ]
     };
@@ -279,9 +274,9 @@ function generateBotReply(
       url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I have a question: ' + userQuery)}`
     },
     chips: [
-      { id: 'track', label: 'Track Order', query: 'How do I track my order?' },
       { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
       { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
+      { id: 'returns', label: 'Returns Policy', query: 'What is your return policy?' },
       { id: 'human', label: 'Chat with Human Agent', query: 'I want to talk to a live human agent' },
     ]
   };

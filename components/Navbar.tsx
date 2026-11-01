@@ -21,7 +21,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  Truck,
   Headset
 } from 'lucide-react';
 import { JerseyProduct, Currency } from '../types';
@@ -31,7 +30,6 @@ import { categoryService } from '../lib/services/categoryService';
 import { settingsService } from '../lib/services/settingsService';
 import { AdminCategory, StoreSettings } from '../lib/types/admin';
 import { INITIAL_CATEGORIES } from '../lib/mock/categories';
-import { TrackOrderModal } from './TrackOrderModal';
 
 interface NavbarProps {
   cartCount: number;
@@ -69,7 +67,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
-  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
@@ -101,14 +98,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   React.useEffect(() => {
     setStoreSettings(settingsService.getSettings());
-  }, []);
-
-  React.useEffect(() => {
-    const handleOpenTrackModal = () => setIsTrackOrderOpen(true);
-    window.addEventListener('jj_open_track_modal', handleOpenTrackModal);
-    return () => {
-      window.removeEventListener('jj_open_track_modal', handleOpenTrackModal);
-    };
   }, []);
 
   React.useEffect(() => {
@@ -275,14 +264,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Terms & Conditions</span>
                     <FileText className="w-3.5 h-3.5 text-[hsl(16.9deg_39.66%_64.9%)]" />
                   </Link>
-
-                  <button
-                    onClick={() => { setIsTrackOrderOpen(true); setIsMoreDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-300 dark:text-gray-300 light:text-zinc-800 hover:text-[hsl(16.9deg_39.66%_64.9%)] hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
-                  >
-                    <span>Track Order</span>
-                    <Truck className="w-3.5 h-3.5 text-[hsl(16.9deg_39.66%_64.9%)]" />
-                  </button>
 
                   <button
                     onClick={() => {
@@ -541,18 +522,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             MY ACCOUNT
           </button>
 
-          {/* 7. TRACK ORDER */}
-          <button
-            onClick={() => {
-              setIsTrackOrderOpen(true);
-              setIsMobileMenuOpen(false);
-            }}
-            className="block w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-[#f4c84a] hover:text-white hover:bg-zinc-950 transition-colors cursor-pointer"
-          >
-            TRACK ORDER
-          </button>
-
-          {/* 8. AGENT HELP */}
+          {/* 7. AGENT HELP */}
           <button
             onClick={() => {
               setIsMobileMenuOpen(false);
@@ -568,12 +538,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </>
       )}
-
-      {/* Track Order Live Modal */}
-      <TrackOrderModal
-        isOpen={isTrackOrderOpen}
-        onClose={() => setIsTrackOrderOpen(false)}
-      />
 
     </header>
   );

@@ -79,6 +79,7 @@ export default function AdminProductsPage() {
 
     const matchesCategory = 
       categoryFilter === 'all' ||
+      p.category.toLowerCase() === categoryFilter.toLowerCase() ||
       (categoryFilter.toLowerCase().includes('fan') && p.category.toLowerCase().includes('fan')) ||
       (categoryFilter.toLowerCase().includes('player') && p.category.toLowerCase().includes('player') && !p.category.toLowerCase().includes('fan'));
 
