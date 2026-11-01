@@ -121,7 +121,7 @@ export const Footer: React.FC<FooterProps> = ({
                     rel="noopener noreferrer"
                     className="text-emerald-500 hover:text-emerald-400 font-bold transition-colors duration-200 flex items-center gap-1.5"
                   >
-                    <span>WhatsApp Help & Support</span>
+                    <span>Agent Help & Support</span>
                   </a>
                 </li>
                 <li>

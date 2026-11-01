@@ -277,13 +277,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   <a
-                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need help with an order / jersey query.')}`}
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need agent help with an order / jersey query.')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setIsMoreDropdownOpen(false)}
                     className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
                   >
-                    <span>WhatsApp Help</span>
+                    <span>Agent Help</span>
                     <WhatsAppIcon className="w-3.5 h-3.5 text-[#25D366]" />
                   </a>
                 </div>
@@ -544,15 +544,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             TRACK ORDER
           </button>
 
-          {/* 8. WHATSAPP HELP */}
+          {/* 8. AGENT HELP */}
           <a
-            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need help with an order / jersey query.')}`}
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need agent help with an order / jersey query.')}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setIsMobileMenuOpen(false)}
             className="flex items-center justify-between w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-emerald-400 hover:text-emerald-300 hover:bg-zinc-950 transition-colors cursor-pointer"
           >
-            <span>WHATSAPP HELP</span>
+            <span>AGENT HELP</span>
             <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
           </a>
 

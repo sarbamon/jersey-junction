@@ -62,7 +62,7 @@ export function WhatsAppHelpButton() {
         }`}
       >
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-zinc-200">WhatsApp Help</span>
+        <span className="text-zinc-200">Agent Help</span>
       </a>
 
       {/* Floating Action Button */}
@@ -70,7 +70,7 @@ export function WhatsAppHelpButton() {
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Chat on WhatsApp Support"
+        aria-label="Connect with Agent Help"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"

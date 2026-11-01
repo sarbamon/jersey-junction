@@ -23,8 +23,6 @@ import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
 import { CheckoutModal } from '../../components/CheckoutModal';
 import { AuthModal } from '../../components/AuthModal';
-import { settingsService } from '../../lib/services/settingsService';
-import { WhatsAppIcon } from '../../components/WhatsAppHelpButton';
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -44,15 +42,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [whatsappNumber, setWhatsappNumber] = useState('917002740268');
-
-  React.useEffect(() => {
-    const s = settingsService.getSettings();
-    const raw = s.storeWhatsapp || s.storePhone || '917002740268';
-    const clean = raw.replace(/\D/g, '');
-    const withCountry = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
-    setWhatsappNumber(withCountry || '917002740268');
-  }, []);
 
   const handleLogout = () => {
     logoutUser();
@@ -164,21 +153,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                       </Link>
                     );
                   })}
-
-                  <a
-                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need help with my account or orders.')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="col-span-2 sm:col-span-3 lg:col-span-1 flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer mt-1"
-                  >
-                    <span className="flex items-center gap-2.5 truncate">
-                      <WhatsAppIcon className="w-4 h-4 shrink-0 text-[#25D366]" />
-                      <span className="truncate font-extrabold text-white">WhatsApp Help</span>
-                    </span>
-                    <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-bold hidden lg:block">
-                      LIVE
-                    </span>
-                  </a>
 
                   <button
                     onClick={handleLogout}
