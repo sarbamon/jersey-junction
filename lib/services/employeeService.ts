@@ -79,6 +79,13 @@ export const ADMIN_SECTIONS: SectionDefinition[] = [
     category: 'system',
   },
   {
+    id: 'employees',
+    label: 'Staff & Employees',
+    description: 'Manage employee accounts, assign permissions, and team roles',
+    href: '/admin/employees',
+    category: 'system',
+  },
+  {
     id: 'dashboard',
     label: 'Dashboard & Analytics',
     description: 'Access high-level sales revenue analytics and performance graphs',

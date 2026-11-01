@@ -266,6 +266,7 @@ export const authService = {
     if (authService.hasPermission('reviews')) return '/admin/reviews';
     if (authService.hasPermission('banners')) return '/admin/banners';
     if (authService.hasPermission('settings')) return '/admin/settings';
+    if (authService.hasPermission('employees')) return '/admin/employees';
 
     return '/admin';
   },

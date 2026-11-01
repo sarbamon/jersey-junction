@@ -42,8 +42,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // Role is Employee: Check granular permissions
     if (user.role === 'employee') {
-      // 1. Employees can NEVER access Master Admin sections (Employees or Security)
-      if (pathname.startsWith('/admin/employees') || pathname.startsWith('/admin/security')) {
+      // 1. Employees can NEVER access Master Admin Security (reserved strictly for Master Admin)
+      if (pathname.startsWith('/admin/security')) {
         const fallback = authService.getFirstAllowedRoute();
         router.push(fallback);
         return;
@@ -59,6 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         '/admin/reviews': 'reviews',
         '/admin/banners': 'banners',
         '/admin/settings': 'settings',
+        '/admin/employees': 'employees',
       };
 
       // Check if trying to view root /admin (dashboard) without dashboard permission

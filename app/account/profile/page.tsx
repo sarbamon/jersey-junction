@@ -173,16 +173,9 @@ export default function ProfilePage() {
               <span className="text-gray-300 font-mono">{currentUser.email}</span>
             </div>
 
-            <div className="flex justify-between items-center pb-3 border-b border-[#222]">
-              <span className="text-gray-400 font-bold uppercase">Phone Number</span>
-              <span className="text-gray-300 font-mono">{currentUser.phone || '+91 98765 43210'}</span>
-            </div>
-
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 font-bold uppercase">Account Role</span>
-              <span className="text-[#f4c84a] font-mono font-bold uppercase bg-[#f4c84a]/10 px-2.5 py-0.5 rounded border border-[#f4c84a]/30">
-                {currentUser.role}
-              </span>
+              <span className="text-gray-400 font-bold uppercase">Phone Number</span>
+              <span className="text-gray-300 font-mono">{currentUser.phone || 'Not provided'}</span>
             </div>
           </div>
         )}

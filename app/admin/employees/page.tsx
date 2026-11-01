@@ -36,6 +36,7 @@ import { Toast } from '../../../components/admin/Toast';
 export default function EmployeesManagementPage() {
   const router = useRouter();
   const isBoss = authService.isBoss();
+  const canManageEmployees = isBoss || authService.hasPermission('employees');
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,18 +57,18 @@ export default function EmployeesManagementPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
 
-  // Protect page: Only Boss can view
+  // Protect page: Boss or staff with 'employees' permission can view
   useEffect(() => {
     if (!authService.isAuthenticated()) {
       router.push('/admin/login');
       return;
     }
-    if (!isBoss) {
+    if (!canManageEmployees) {
       router.push(authService.getFirstAllowedRoute());
       return;
     }
     loadEmployees();
-  }, [router, isBoss]);
+  }, [router, canManageEmployees]);
 
   const loadEmployees = async () => {
     setIsLoading(true);
