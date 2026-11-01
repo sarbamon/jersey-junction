@@ -77,6 +77,7 @@ function generateBotReply(
     q.includes('phone') ||
     q.includes('support team') ||
     q.includes('talk to someone') ||
+    q.includes('chat with') ||
     q.includes('representative')
   ) {
     return {
@@ -105,11 +106,7 @@ function generateBotReply(
     /\b(jj-[a-z0-9]+|ord-[a-z0-9]+|\d{4,8})\b/i.test(q)
   ) {
     return {
-      text: "**Order Updates & Dispatch**:\n\n• Orders are dispatched within **24–48 hours** via express couriers (Delhivery, Bluedart, DTDC, Xpressbees).\n• Once dispatched, your live AWB tracking link is sent via SMS & email.\n• Average delivery takes **3 to 7 business days** across India.\n\nOur live support agent can also look up your shipment status:",
-      linkButton: {
-        text: "Ask Agent for Order Status",
-        url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! Can you please check the status of my order?')}`
-      },
+      text: "**Order Updates & Dispatch**:\n\n• Orders are dispatched within **24–48 hours** via express couriers (Delhivery, Bluedart, DTDC, Xpressbees).\n• Once dispatched, your live AWB tracking link is sent via SMS & email.\n• Average delivery takes **3 to 7 business days** across India.",
       chips: [
         { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
         { id: 'returns', label: 'Returns Policy', query: 'What is your return policy?' },
@@ -219,10 +216,6 @@ function generateBotReply(
   ) {
     return {
       text: "**Returns & Exchanges Policy**:\n\n• **7-Day Policy**: We exchange or refund items that arrive damaged, defective, or incorrect within 7 days of delivery.\n• Garments must be unworn, unwashed, and in original packaging with tags.\n• *Note: Personalized jerseys with custom names/numbers cannot be returned unless defective.*",
-      linkButton: {
-        text: "Contact Agent for Return Request",
-        url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I would like to request an exchange or return for my order.')}`
-      },
       chips: [
         { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
         { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
@@ -268,11 +261,7 @@ function generateBotReply(
 
   // 10. Fallback
   return {
-    text: "Thank you for reaching out. I am here to assist you with anything regarding jerseys, sizing, orders, or delivery.\n\nFeel free to choose a quick topic below, or tap to chat directly with our live support agent:",
-    linkButton: {
-      text: "Chat with Live Agent",
-      url: `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I have a question: ' + userQuery)}`
-    },
+    text: "Thank you for reaching out. I am here to assist you with anything regarding jerseys, sizing, orders, or delivery.\n\nFeel free to choose a quick topic below:",
     chips: [
       { id: 'size', label: 'Size & Fit Guide', query: 'What size should I choose?' },
       { id: 'delivery', label: 'Delivery Timelines', query: 'How long does shipping take?' },
@@ -461,7 +450,7 @@ export function WhatsAppHelpButton() {
                 <span className="text-xs font-black uppercase tracking-wider text-white">Jersey Junction Bot</span>
                 <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Agent Online • Instant Help
+                  Agent Online
                 </span>
               </div>
             </div>
