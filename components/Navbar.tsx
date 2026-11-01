@@ -21,7 +21,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  Truck
+  Truck,
+  Headset
 } from 'lucide-react';
 import { JerseyProduct, Currency } from '../types';
 import { CURRENCIES } from '../data/jerseys';
@@ -31,7 +32,6 @@ import { settingsService } from '../lib/services/settingsService';
 import { AdminCategory, StoreSettings } from '../lib/types/admin';
 import { INITIAL_CATEGORIES } from '../lib/mock/categories';
 import { TrackOrderModal } from './TrackOrderModal';
-import { WhatsAppIcon } from './WhatsAppHelpButton';
 
 interface NavbarProps {
   cartCount: number;
@@ -284,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
                   >
                     <span>Agent Help</span>
-                    <WhatsAppIcon className="w-3.5 h-3.5 text-[#25D366]" />
+                    <Headset className="w-3.5 h-3.5 text-emerald-400" />
                   </a>
                 </div>
               )}
@@ -553,7 +553,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center justify-between w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-emerald-400 hover:text-emerald-300 hover:bg-zinc-950 transition-colors cursor-pointer"
           >
             <span>AGENT HELP</span>
-            <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
+            <Headset className="w-5 h-5 text-emerald-400" />
           </a>
 
 

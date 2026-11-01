@@ -12,7 +12,8 @@ import {
   Truck,
   RotateCcw,
   AlertCircle,
-  Loader2
+  Loader2,
+  Headset
 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
@@ -24,7 +25,6 @@ import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
 import { apiClient } from '../../lib/apiClient';
 import { settingsService } from '../../lib/services/settingsService';
-import { WhatsAppIcon } from '../../components/WhatsAppHelpButton';
 
 export default function ContactPage() {
   const router = useRouter();
@@ -272,8 +272,8 @@ export default function ContactPage() {
             <div className="bg-gradient-to-br from-[#0c2317] via-[#0d0d0d] to-[#0d0d0d] border border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
               
-              <div className="flex items-center gap-2.5 text-[#25D366]">
-                <WhatsAppIcon className="w-6 h-6 text-[#25D366]" />
+              <div className="flex items-center gap-2.5 text-emerald-400">
+                <Headset className="w-6 h-6 text-emerald-400" />
                 <h3 className="font-serif font-black uppercase text-base text-white tracking-wide">
                   Agent Help
                 </h3>
@@ -288,9 +288,9 @@ export default function ContactPage() {
                   href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi Jersey Junction Support! I need agent help with an order / jersey query.')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold uppercase rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold uppercase rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
                 >
-                  <WhatsAppIcon className="w-4 h-4" />
+                  <Headset className="w-4 h-4" />
                   <span>Chat with Agent</span>
                 </a>
               </div>
