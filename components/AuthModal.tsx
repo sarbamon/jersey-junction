@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, ShieldCheck, Loader2, Phone, Eye, EyeOff, CheckCircle2, KeyRound } from 'lucide-react';
+import { X, UserRound, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2, Phone, Eye, EyeOff, CheckCircle2, KeyRound } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../lib/services/authService';
 import { customerService } from '../lib/services/customerService';
@@ -52,6 +52,7 @@ export const AuthModal: React.FC = () => {
   const [otpCode, setOtpCode] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const otpInputRef = useRef<HTMLInputElement>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '690427721204-ku71qit1vt4a7pjnfcn13beqbquj2bpg.apps.googleusercontent.com';
@@ -130,6 +131,7 @@ export const AuthModal: React.FC = () => {
     setOtpCode('');
     setResendCooldown(0);
     setIsResending(false);
+    setIsVerified(false);
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -315,16 +317,17 @@ export const AuthModal: React.FC = () => {
 
     try {
       const authUser = await authService.verifySignupOtp(cleanEmail, cleanOtp);
+      setIsVerified(true);
+      setSuccessMsg('Verified');
       loginUser({
         name: authUser.name,
         email: authUser.email,
         role: authUser.role,
         phone: authUser.phone || phone.trim() || '',
       });
-      setSuccessMsg('Account verified successfully! Welcome to Jersey Junction.');
       setTimeout(() => {
         handleClose();
-      }, 1000);
+      }, 1200);
     } catch (err: any) {
       const msg = err.message || '';
       if (msg.toLowerCase().includes('api error') || msg.toLowerCase().includes('status')) {
@@ -389,13 +392,11 @@ export const AuthModal: React.FC = () => {
 
         {/* Modal Header */}
         <div className="text-center space-y-1">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400 border border-amber-400/20 mb-2">
-            {mode === 'verify-signup' ? (
-              <ShieldCheck className="w-6 h-6" />
-            ) : (
+          {mode !== 'verify-signup' && (
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400 border border-amber-400/20 mb-2">
               <UserRound className="w-6 h-6" />
-            )}
-          </div>
+            </div>
+          )}
           <h2 className="font-serif text-2xl font-black uppercase text-white tracking-tight">
             {mode === 'verify-signup'
               ? 'VERIFY YOUR EMAIL'
@@ -405,18 +406,12 @@ export const AuthModal: React.FC = () => {
                   ? 'RESET PASSWORD'
                   : 'CUSTOMER LOGIN'}
           </h2>
-          {mode === 'verify-signup' && (
-            <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-              We sent a 6-digit verification code to <span className="text-amber-400 font-bold">{email}</span>. Enter it below to complete your registration.
-            </p>
-          )}
         </div>
 
         {/* Mode Switcher Tabs */}
         {mode === 'verify-signup' ? (
           <div className="flex items-center justify-between bg-zinc-900 p-2 rounded-xl border border-zinc-800 text-xs font-bold">
-            <span className="text-amber-400 font-mono text-[11px] px-2 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="text-amber-400 font-mono text-[11px] px-2">
               Step 2 of 2: Code Verification
             </span>
             <button
@@ -425,6 +420,7 @@ export const AuthModal: React.FC = () => {
                 setMode('signup');
                 setError('');
                 setSuccessMsg('');
+                setIsVerified(false);
               }}
               className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-[11px] cursor-pointer"
             >
@@ -514,9 +510,6 @@ export const AuthModal: React.FC = () => {
                   className="w-full bg-black/60 border-2 border-zinc-800 hover:border-zinc-700 focus:border-amber-400 rounded-2xl py-3.5 px-4 text-center text-2xl sm:text-3xl font-mono font-black tracking-[0.4em] text-amber-400 focus:outline-none transition-all shadow-inner"
                 />
               </div>
-              <p className="text-[11px] text-zinc-500 text-center mt-2">
-                Valid for 10 minutes &bull; Check your Spam/Junk folder if not in inbox
-              </p>
             </div>
 
             {error && (
@@ -527,18 +520,34 @@ export const AuthModal: React.FC = () => {
             )}
 
             {successMsg && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{successMsg}</span>
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="leading-snug">{successMsg}</div>
+                  {!isVerified && (
+                    <div className="text-[11px] text-emerald-400/80 font-normal leading-relaxed">
+                      Valid for 10 minutes &bull; Check your Spam/Junk folder if not in inbox
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             <button
               type="submit"
-              disabled={isLoading || otpCode.length !== 6}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold rounded-xl transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
+              disabled={isLoading || otpCode.length !== 6 || isVerified}
+              className={`w-full py-3.5 ${
+                isVerified
+                  ? 'bg-emerald-400 text-black font-black'
+                  : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold'
+              } rounded-xl transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50`}
             >
-              {isLoading ? (
+              {isVerified ? (
+                <span className="flex items-center gap-2 text-black font-black uppercase tracking-wider">
+                  <CheckCircle2 className="w-4 h-4 text-black" />
+                  VERIFIED
+                </span>
+              ) : isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-black" />
               ) : (
                 <>
