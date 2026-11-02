@@ -133,6 +133,10 @@ export const settingsService = {
       console.warn('Prevented storing raw base64 image in localStorage. Use hosted URL instead.');
       updated.midBannerImage = current.midBannerImage || INITIAL_SETTINGS.midBannerImage;
     }
+    if (updated.sizeChartImage && typeof updated.sizeChartImage === 'string' && updated.sizeChartImage.startsWith('data:image') && updated.sizeChartImage.length > 5000) {
+      console.warn('Prevented storing raw base64 size chart image in localStorage. Use hosted URL instead.');
+      updated.sizeChartImage = current.sizeChartImage || INITIAL_SETTINGS.sizeChartImage;
+    }
 
     if (typeof window !== 'undefined') {
       try {
@@ -153,7 +157,7 @@ export const settingsService = {
       }
     }
 
-    // Automatically sync store settings (like codEnabled, razorpayEnabled, shipping charge, customJerseyPrice) to backend
+    // Automatically sync store settings to backend
     apiClient.put('/settings', {
       storeName: updated.storeName,
       storeEmail: updated.storeEmail,
@@ -167,6 +171,14 @@ export const settingsService = {
       codEnabled: updated.codEnabled,
       razorpayEnabled: updated.razorpayEnabled,
       customJerseyPrice: updated.customJerseyPrice,
+      sizeChartImage: updated.sizeChartImage || '',
+      midBannerImage: updated.midBannerImage || '',
+      midBannerTag: updated.midBannerTag || '',
+      midBannerTitle: updated.midBannerTitle || '',
+      midBannerSubtitle: updated.midBannerSubtitle || '',
+      midBannerOverlayTag: updated.midBannerOverlayTag || '',
+      midBannerOverlayTitle: updated.midBannerOverlayTitle || '',
+      socials: updated.socials || INITIAL_SETTINGS.socials,
     }).catch(() => {});
 
     // Automatically sync iCarry pickup address ID, name, and pincode with backend

@@ -110,8 +110,13 @@ export default function AdminSettingsPage() {
     setIsUploadingBanner(true);
     try {
       const url = await uploadService.uploadImage(file, 'jerseyjunction_uploads');
-      setSettings((prev) => (prev ? { ...prev, midBannerImage: url } : prev));
-      setToastMsg('Showcase banner picture uploaded successfully!');
+      setSettings((prev) => {
+        if (!prev) return prev;
+        const updated = { ...prev, midBannerImage: url };
+        settingsService.updateSettings(updated);
+        return updated;
+      });
+      setToastMsg('Showcase banner picture uploaded & saved successfully!');
     } catch (err: any) {
       setToastMsg(`Upload failed: ${err.message || 'Image upload error'}`);
     } finally {
@@ -127,8 +132,13 @@ export default function AdminSettingsPage() {
     setIsUploadingSizeChart(true);
     try {
       const url = await uploadService.uploadImage(file, 'jerseyjunction_uploads');
-      setSettings((prev) => (prev ? { ...prev, sizeChartImage: url } : prev));
-      setToastMsg('Size chart picture uploaded to Cloudinary successfully!');
+      setSettings((prev) => {
+        if (!prev) return prev;
+        const updated = { ...prev, sizeChartImage: url };
+        settingsService.updateSettings(updated);
+        return updated;
+      });
+      setToastMsg('Size chart picture uploaded to Cloudinary & saved successfully!');
     } catch (err: any) {
       setToastMsg(`Upload failed: ${err.message || 'Image upload error'}`);
     } finally {
