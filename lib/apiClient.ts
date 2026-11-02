@@ -41,6 +41,8 @@ const getAuthToken = (): string | null => {
   return null;
 };
 
+const LIVE_BACKEND_FALLBACK = 'https://aqua-pheasant-372889.hostingersite.com/api';
+
 async function request<T = any>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
@@ -72,6 +74,23 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      // If local dev proxy failed (e.g. status 500/502/504 because localhost:5000 is not running), fallback to live cloud backend
+      if (
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+        (response.status >= 500 || response.status === 404) &&
+        !url.startsWith(LIVE_BACKEND_FALLBACK)
+      ) {
+        try {
+          const fallbackUrl = `${LIVE_BACKEND_FALLBACK}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+          const fallbackRes = await fetch(fallbackUrl, { ...options, signal, headers, credentials: 'omit' });
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json().catch(() => ({}));
+            return { success: true, ...fallbackData };
+          }
+        } catch (_) {}
+      }
+
       const errorMessage = data.error || data.message || 'An error occurred. Please try again.';
       return {
         success: false,
@@ -85,6 +104,22 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
     };
   } catch (error: any) {
     clearTimeout(timeoutId);
+
+    // If local dev proxy threw a network error (e.g. ECONNRESET when localhost:5000 is down), fallback to live cloud backend
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+      !url.startsWith(LIVE_BACKEND_FALLBACK)
+    ) {
+      try {
+        const fallbackUrl = `${LIVE_BACKEND_FALLBACK}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+        const fallbackRes = await fetch(fallbackUrl, { ...options, signal, headers, credentials: 'omit' });
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json().catch(() => ({}));
+          return { success: true, ...fallbackData };
+        }
+      } catch (_) {}
+    }
 
     // Fast auto-retry if network drop/error and retries remain
     if (retries > 0 && error.name !== 'AbortError') {

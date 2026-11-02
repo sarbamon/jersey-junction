@@ -92,11 +92,35 @@ export const uploadService = {
       throw new Error('Failed to process image data');
     }
 
-    const res = await fetch(`${API_URL}/upload`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64Image, folder }),
-    });
+    let res: Response | null = null;
+    try {
+      res = await fetch(`${API_URL}/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Image, folder }),
+      });
+    } catch (_) {}
+
+    // If local dev server on port 5000 is not running, fallback directly to live Hostinger backend
+    if (!res || !res.ok) {
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        try {
+          const fallbackRes = await fetch('https://aqua-pheasant-372889.hostingersite.com/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Image, folder }),
+          });
+          if (fallbackRes.ok) {
+            const data = await fallbackRes.json();
+            if (data.success && data.url) return data.url;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (!res) {
+      throw new Error('Upload server is unreachable. Please check backend connection.');
+    }
 
     const contentType = res.headers.get('content-type') || '';
     if (!res.ok) {
