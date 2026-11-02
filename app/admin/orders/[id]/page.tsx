@@ -229,7 +229,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 <span>{order.shippingFee === 0 ? 'FREE' : `₹${order.shippingFee}`}</span>
               </div>
 
-              {order.discountAmount > 0 && (
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-zinc-400">Coupon Status</span>
+                {order.discountAmount > 0 || order.couponCode ? (
+                  <span className="text-emerald-400 font-bold flex items-center gap-1 font-mono">
+                    <span>🎟️</span>
+                    <span>Applied: {order.couponCode || 'PROMO'} (-₹{order.discountAmount})</span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-500 font-mono text-[11px]">No coupon applied</span>
+                )}
+              </div>
+
+              {order.discountAmount > 0 && !order.couponCode && (
                 <div className="flex justify-between text-emerald-400">
                   <span>Coupon Discount</span>
                   <span>-₹{order.discountAmount}</span>
