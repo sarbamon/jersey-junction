@@ -11,6 +11,7 @@ import { apiClient } from '../apiClient';
 
 const SETTINGS_KEY = 'jj_admin_settings';
 let isRealtimeSyncStarted = false;
+let lastSettingsFetchTimestamp = 0;
 
 function applyIncomingSettings(fresh: Partial<StoreSettings>): StoreSettings {
   const local = settingsService.getSettings();
@@ -60,11 +61,18 @@ export const settingsService = {
     }
   },
 
-  fetchSettingsAsync: async (): Promise<StoreSettings> => {
+  fetchSettingsAsync: async (force = false): Promise<StoreSettings> => {
     const local = settingsService.getSettings();
+    const now = Date.now();
+    // Throttle redundant calls within 6 seconds unless forced
+    if (!force && now - lastSettingsFetchTimestamp < 6000) {
+      return local;
+    }
+    lastSettingsFetchTimestamp = now;
+
     try {
       // Add cache-busting timestamp to avoid proxy or CDN caching
-      const res = await apiClient.get<StoreSettings>(`/settings?_t=${Date.now()}`);
+      const res = await apiClient.get<StoreSettings>(`/settings?_t=${now}`);
       if (res && res.success && res.data) {
         return applyIncomingSettings(res.data);
       }
@@ -79,9 +87,9 @@ export const settingsService = {
     isRealtimeSyncStarted = true;
 
     // 1. Immediate initial fresh fetch
-    settingsService.fetchSettingsAsync().catch(() => {});
+    settingsService.fetchSettingsAsync(true).catch(() => {});
 
-    // 2. Cross-tab real-time sync (within same browser)
+    // 2. Cross-tab real-time sync (within same browser - 0 network calls!)
     window.addEventListener('storage', (e) => {
       if (e.key === SETTINGS_KEY && e.newValue) {
         try {
@@ -91,15 +99,14 @@ export const settingsService = {
       }
     });
 
-    // 3. Tab visibility / focus instant revalidation
-    window.addEventListener('focus', () => {
-      settingsService.fetchSettingsAsync().catch(() => {});
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
+    // 3. Tab visibility / focus instant revalidation when user returns to tab
+    const handleRevalidate = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         settingsService.fetchSettingsAsync().catch(() => {});
       }
-    });
+    };
+    window.addEventListener('focus', handleRevalidate);
+    document.addEventListener('visibilitychange', handleRevalidate);
 
     // 4. Server-Sent Events (SSE) for instantaneous sub-100ms push
     try {
@@ -118,10 +125,12 @@ export const settingsService = {
       };
     } catch (_) {}
 
-    // 5. High-frequency background polling (every 3.5s) as bulletproof guarantee
+    // 5. Gentle background polling (every 3 minutes, only when tab is active/visible)
     setInterval(() => {
-      settingsService.fetchSettingsAsync().catch(() => {});
-    }, 3500);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        settingsService.fetchSettingsAsync().catch(() => {});
+      }
+    }, 180000);
   },
 
   updateSettings: (updates: Partial<StoreSettings>): StoreSettings => {

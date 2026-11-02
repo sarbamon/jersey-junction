@@ -98,13 +98,23 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
     loadRealNotifications();
     checkForNewOrders();
 
-    // Fast poll every 12 seconds for live orders
+    // Check for new orders every 60 seconds (only if tab is currently visible)
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
       checkForNewOrders();
-      loadRealNotifications();
-    }, 12000);
+    }, 60000);
 
-    // Immediate cross-tab/local order event listeners
+    // Immediate tab visibility listener when admin switches back to tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkForNewOrders();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Immediate cross-tab/local order event listeners (0 network latency!)
     const handleLocalOrderPlaced = (e: any) => {
       const order = e.detail;
       if (order && (!knownOrderIdsRef.current || !knownOrderIdsRef.current.has(order.id))) {
@@ -126,6 +136,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileSidebar })
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('jj_new_order_placed', handleLocalOrderPlaced);
       window.removeEventListener('storage', handleStorage);
     };
