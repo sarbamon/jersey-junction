@@ -20,8 +20,7 @@ import {
   FileText,
   Mail,
   Phone,
-  MapPin,
-  Headset
+  MapPin
 } from 'lucide-react';
 import { JerseyProduct, Currency } from '../types';
 import { CURRENCIES } from '../data/jerseys';
@@ -264,17 +263,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Terms & Conditions</span>
                     <FileText className="w-3.5 h-3.5 text-[hsl(16.9deg_39.66%_64.9%)]" />
                   </Link>
-
-                  <button
-                    onClick={() => {
-                      setIsMoreDropdownOpen(false);
-                      window.dispatchEvent(new CustomEvent('jj_open_agent_bot'));
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-[#111] dark:hover:bg-[#111] light:hover:bg-zinc-100 flex items-center justify-between cursor-pointer"
-                  >
-                    <span>Agent Help</span>
-                    <Headset className="w-3.5 h-3.5 text-emerald-400" />
-                  </button>
                 </div>
               )}
             </div>
@@ -522,17 +510,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             MY ACCOUNT
           </button>
 
-          {/* 7. AGENT HELP */}
-          <button
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              window.dispatchEvent(new CustomEvent('jj_open_agent_bot'));
-            }}
-            className="flex items-center justify-between w-full px-6 py-4 text-left font-serif text-[15px] sm:text-base font-black tracking-wider uppercase text-emerald-400 hover:text-emerald-300 hover:bg-zinc-950 transition-colors cursor-pointer"
-          >
-            <span>AGENT HELP</span>
-            <Headset className="w-5 h-5 text-emerald-400" />
-          </button>
+
 
 
           </div>

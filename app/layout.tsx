@@ -4,7 +4,6 @@ import "./globals.css";
 import { StoreProvider } from "../context/StoreContext";
 import { AuthModal } from "../components/AuthModal";
 import { NewUserTutorial } from "../components/NewUserTutorial";
-import { WhatsAppHelpButton } from "../components/WhatsAppHelpButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,7 +58,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <AuthModal />
           <NewUserTutorial />
-          <WhatsAppHelpButton />
         </StoreProvider>
       </body>
     </html>

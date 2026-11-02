@@ -265,33 +265,37 @@ export default function ContactPage() {
 
           </div>
 
-          {/* Right Column: Agent Help & Quick FAQ */}
+          {/* Right Column: Direct Support & Quick FAQ */}
           <div className="lg:col-span-5 space-y-6">
             
-            {/* Agent Direct Help Card */}
-            <div className="bg-gradient-to-br from-[#0c2317] via-[#0d0d0d] to-[#0d0d0d] border border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-              
-              <div className="flex items-center gap-2.5 text-emerald-400">
-                <Headset className="w-6 h-6 text-emerald-400" />
+            {/* Direct Support Card */}
+            <div className="bg-[#0d0d0d] border border-[#242424] rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2.5 text-[#f4c84a]">
+                <Headset className="w-6 h-6 text-[#f4c84a]" />
                 <h3 className="font-serif font-black uppercase text-base text-white tracking-wide">
-                  Agent Help
+                  Direct Support
                 </h3>
               </div>
 
               <p className="text-xs text-zinc-300 leading-relaxed">
-                Need direct help with sizing recommendations, delivery timelines, or custom name printing? Connect directly with our live support agent.
+                Need immediate help with sizing recommendations, delivery updates, or custom name printing? Reach out to our customer care team directly.
               </p>
 
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent('jj_open_agent_bot'))}
+              <div className="pt-1 space-y-2.5">
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold uppercase rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
                 >
-                  <Headset className="w-4 h-4" />
-                  <span>Launch Agent Bot</span>
-                </button>
+                  <span>Chat on WhatsApp</span>
+                </a>
+                <a
+                  href="mailto:support@jerseyjunction.shop"
+                  className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-[#161616] hover:bg-[#202020] border border-[#2e2e2e] hover:border-[#f4c84a] text-zinc-300 font-bold uppercase rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  <span>Email: support@jerseyjunction.shop</span>
+                </a>
               </div>
             </div>
 
