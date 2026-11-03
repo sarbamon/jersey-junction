@@ -77,7 +77,7 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
   const externalUrl =
     trackingData?.externalTrackingUrl ||
     (order.trackingNumber
-      ? `https://www.icarry.in/track-shipment&awb=${encodeURIComponent(order.trackingNumber)}`
+      ? `https://www.icarry.in/track-shipment?awb=${encodeURIComponent(order.trackingNumber)}`
       : 'https://www.icarry.in/track-shipment');
 
   const copyAwb = () => {

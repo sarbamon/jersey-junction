@@ -398,7 +398,7 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
                       onOpenTracking(bookedOrder);
                     } else {
                       window.open(
-                        `https://www.icarry.in/track-shipment&awb=${encodeURIComponent(bookingSuccessData.awb)}`,
+                        `https://www.icarry.in/track-shipment?awb=${encodeURIComponent(bookingSuccessData.awb)}`,
                         '_blank'
                       );
                     }
