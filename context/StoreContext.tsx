@@ -86,14 +86,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Start real-time settings engine (SSE + instant polling + cross-tab sync)
       settingsService.startRealtimeSync();
 
+      // Listen for banned customer event dispatched anywhere in the app
+      const handleBanned = () => {
+        setCurrentUser(null);
+      };
+      window.addEventListener('jj_customer_banned', handleBanned);
+
       // Verify token with backend database
       authService.fetchMe().then((me) => {
         if (me && me.role === 'user') {
+          if (me.isBanned || me.status === 'Banned') {
+            setCurrentUser(null);
+            try {
+              localStorage.removeItem('jj_user');
+            } catch (_) {}
+            return;
+          }
           setCurrentUser({
             name: me.name,
             email: me.email,
             role: me.role,
-            phone: me.phone || ''
+            phone: me.phone || '',
+            isBanned: me.isBanned,
+            status: me.status,
+            banReason: me.banReason,
           });
         } else if (!me) {
           // If token was rejected/banned, ensure user state is completely cleared

@@ -37,6 +37,7 @@ export default function CheckoutPage() {
     setActiveCurrency,
     addToCart,
     currentUser,
+    logoutUser,
     setIsCartOpen,
     setIsAuthOpen,
     appliedCouponCode,
@@ -130,14 +131,21 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  // Require login on checkout page
+  // Require login on checkout page & immediately kick out banned accounts
   useEffect(() => {
     if (!currentUser) {
       setIsAuthOpen(true);
     } else {
+      if (currentUser.isBanned || currentUser.status === 'Banned') {
+        const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
+        alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+        logoutUser();
+        router.push('/');
+        return;
+      }
       setIsAuthOpen(false);
     }
-  }, [currentUser, setIsAuthOpen]);
+  }, [currentUser, setIsAuthOpen, router, logoutUser]);
 
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
@@ -415,6 +423,13 @@ export default function CheckoutPage() {
       setIsAuthOpen(true);
       return;
     }
+    if (currentUser.isBanned || currentUser.status === 'Banned') {
+      const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
+      alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+      logoutUser();
+      router.push('/');
+      return;
+    }
     setIsProcessing(true);
     try {
       const freshSettings = await settingsService.fetchSettingsAsync().catch(() => null);
@@ -541,6 +556,13 @@ export default function CheckoutPage() {
       setIsAuthOpen(true);
       return;
     }
+    if (currentUser.isBanned || currentUser.status === 'Banned') {
+      const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
+      alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+      logoutUser();
+      router.push('/');
+      return;
+    }
     setIsProcessing(true);
     const newIdNum = Math.floor(1000 + Math.random() * 9000);
     const newId = `#JJ${newIdNum}`;
@@ -608,6 +630,13 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (!currentUser) {
       setIsAuthOpen(true);
+      return;
+    }
+    if (currentUser.isBanned || currentUser.status === 'Banned') {
+      const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
+      alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+      logoutUser();
+      router.push('/');
       return;
     }
     if (cartItems.length === 0) {

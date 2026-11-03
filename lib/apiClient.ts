@@ -41,8 +41,6 @@ const getAuthToken = (): string | null => {
   return null;
 };
 
-const LIVE_BACKEND_FALLBACK = 'https://aqua-pheasant-372889.hostingersite.com/api';
-
 async function request<T = any>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
@@ -74,21 +72,30 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      // If local dev proxy failed (e.g. status 500/502/504 because localhost:5000 is not running), fallback to live cloud backend
-      if (
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-        (response.status >= 500 || response.status === 404) &&
-        !url.startsWith(LIVE_BACKEND_FALLBACK)
-      ) {
-        try {
-          const fallbackUrl = `${LIVE_BACKEND_FALLBACK}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-          const fallbackRes = await fetch(fallbackUrl, { ...options, signal, headers, credentials: 'omit' });
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json().catch(() => ({}));
-            return { success: true, ...fallbackData };
+      // Check if user account has been banned/suspended by store administration
+      const isBannedResponse =
+        response.status === 403 &&
+        (data.isBanned ||
+          String(data.error || data.message || '').toLowerCase().includes('suspended') ||
+          String(data.error || data.message || '').toLowerCase().includes('banned'));
+
+      if (isBannedResponse && typeof window !== 'undefined') {
+        const violationReason = data.error || data.message || 'Violation of Store Terms & Conditions';
+        localStorage.removeItem('jj_customer_token');
+        localStorage.removeItem('jj_customer_user');
+        localStorage.removeItem('jj_user');
+        window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason: violationReason } }));
+
+        setTimeout(() => {
+          window.alert(`🚨 Account Suspended / Banned\n\nReason: ${violationReason}\n\nYou have been logged out. Please contact store support if you believe this was an error.`);
+          if (
+            window.location.pathname.startsWith('/checkout') ||
+            window.location.pathname.startsWith('/orders') ||
+            window.location.pathname.startsWith('/profile')
+          ) {
+            window.location.href = '/';
           }
-        } catch (_) {}
+        }, 50);
       }
 
       const errorMessage = data.error || data.message || 'An error occurred. Please try again.';
@@ -104,22 +111,6 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
     };
   } catch (error: any) {
     clearTimeout(timeoutId);
-
-    // If local dev proxy threw a network error (e.g. ECONNRESET when localhost:5000 is down), fallback to live cloud backend
-    if (
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-      !url.startsWith(LIVE_BACKEND_FALLBACK)
-    ) {
-      try {
-        const fallbackUrl = `${LIVE_BACKEND_FALLBACK}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-        const fallbackRes = await fetch(fallbackUrl, { ...options, signal, headers, credentials: 'omit' });
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json().catch(() => ({}));
-          return { success: true, ...fallbackData };
-        }
-      } catch (_) {}
-    }
 
     // Fast auto-retry if network drop/error and retries remain
     if (retries > 0 && error.name !== 'AbortError') {

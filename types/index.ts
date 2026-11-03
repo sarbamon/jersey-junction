@@ -101,4 +101,7 @@ export interface UserProfile {
   email: string;
   role: 'user' | 'admin' | 'employee';
   phone?: string;
+  isBanned?: boolean;
+  status?: string;
+  banReason?: string;
 }

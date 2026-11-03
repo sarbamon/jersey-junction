@@ -9,6 +9,9 @@ export interface AuthUser {
   phone?: string;
   permissions?: string[];
   employeeTitle?: string;
+  isBanned?: boolean;
+  status?: string;
+  banReason?: string;
 }
 
 const ADMIN_AUTH_KEY = 'jj_admin_auth_user';
@@ -367,7 +370,30 @@ export const authService = {
           permissions: Array.isArray(userData.permissions) ? userData.permissions : [],
           employeeTitle: userData.employeeTitle || (userData.role === 'admin' ? 'Administrator' : 'Employee'),
           token,
+          isBanned: Boolean(userData.isBanned || userData.status === 'Banned'),
+          status: userData.status,
+          banReason: userData.banReason || '',
         };
+
+        if (user.role === 'user' && user.isBanned) {
+          localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+          localStorage.removeItem(CUSTOMER_AUTH_KEY);
+          localStorage.removeItem('jj_user');
+          if (typeof window !== 'undefined') {
+            const reason = user.banReason || 'Violation of Store Terms';
+            setTimeout(() => {
+              window.alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou have been logged out.`);
+              if (
+                window.location.pathname.startsWith('/checkout') ||
+                window.location.pathname.startsWith('/orders') ||
+                window.location.pathname.startsWith('/profile')
+              ) {
+                window.location.href = '/';
+              }
+            }, 50);
+          }
+          return null;
+        }
         if (user.role === 'admin' || user.role === 'employee') {
           localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(user));
         } else {
