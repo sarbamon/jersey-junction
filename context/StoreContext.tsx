@@ -95,6 +95,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             role: me.role,
             phone: me.phone || ''
           });
+        } else if (!me) {
+          // If token was rejected/banned, ensure user state is completely cleared
+          setCurrentUser(null);
+          try {
+            localStorage.removeItem('jj_user');
+          } catch (_) {}
         }
       }).catch(() => {});
     } catch (e) {

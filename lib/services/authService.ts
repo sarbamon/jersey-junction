@@ -375,6 +375,13 @@ export const authService = {
         }
         return user;
       }
+
+      if (!res.success && (res.error?.includes('Suspended') || res.error?.includes('suspended') || res.error?.includes('Banned') || (res as any).isBanned)) {
+        localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+        localStorage.removeItem(CUSTOMER_AUTH_KEY);
+        localStorage.removeItem('jj_user');
+        return null;
+      }
     } catch (err) {
       console.warn('Failed to refresh /auth/me profile:', err);
     }
