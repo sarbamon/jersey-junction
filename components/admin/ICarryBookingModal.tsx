@@ -32,6 +32,18 @@ interface ICarryBookingModalProps {
   onOpenTracking?: (order: AdminOrder) => void;
 }
 
+// Helper to get exact user order amount from total or item sum
+const computeOrderAmount = (ord: AdminOrder): number => {
+  if (ord.totalAmount !== undefined && ord.totalAmount !== null && Number(ord.totalAmount) > 0) {
+    return Math.round(Number(ord.totalAmount));
+  }
+  if (Array.isArray(ord.items) && ord.items.length > 0) {
+    const sum = ord.items.reduce((acc, item) => acc + (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1), 0);
+    if (sum > 0) return Math.round(sum);
+  }
+  return 0;
+};
+
 export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
   order,
   isOpen,
@@ -47,7 +59,7 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
   const [originPincode, setOriginPincode] = useState<string>('400052');
   const [mode, setMode] = useState<string>('Surface');
   const [weightGrams, setWeightGrams] = useState<number>(order.packageWeight ? Math.round(order.packageWeight * 1000) : 500);
-  const [invoiceValue, setInvoiceValue] = useState<number>(order.totalAmount || 1388);
+  const [invoiceValue, setInvoiceValue] = useState<number>(computeOrderAmount(order));
   const [dimensions, setDimensions] = useState({ length: 25, breadth: 10, height: 9.2 });
   const [parcelContents, setParcelContents] = useState<string>('Jersey');
 
@@ -143,8 +155,10 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
       state: order.shippingAddress?.state || '',
     });
 
-    setInvoiceValue(order.totalAmount || 1388);
+    setInvoiceValue(computeOrderAmount(order));
     setWeightGrams(order.packageWeight ? Math.round(order.packageWeight * 1000) : 500);
+    setDimensions({ length: 25, breadth: 10, height: 9.2 });
+    setParcelContents('Jersey');
 
     // Load backend config without auto-estimating
     icarryService.getConfig().then((cfg) => {
@@ -616,7 +630,7 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
                         value={invoiceValue}
                         onChange={(e) => setInvoiceValue(parseInt(e.target.value) || 0)}
                         className="w-full bg-black border border-zinc-700 focus:border-amber-400 rounded-xl px-3.5 py-2 text-white font-mono text-xs focus:outline-none"
-                        placeholder="1388"
+                        placeholder={String(computeOrderAmount(order) || 0)}
                       />
                     </div>
                   </div>
