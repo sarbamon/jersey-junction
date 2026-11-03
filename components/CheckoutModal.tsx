@@ -99,6 +99,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
   }, [isOpen]);
 
+  // Close checkout modal when customer is banned
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleBanned = () => {
+      onClose();
+    };
+    window.addEventListener('jj_customer_banned', handleBanned);
+    return () => window.removeEventListener('jj_customer_banned', handleBanned);
+  }, [isOpen, onClose]);
+
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showAddressForm, setShowAddressForm] = useState(false);

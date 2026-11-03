@@ -4,6 +4,7 @@ import "./globals.css";
 import { StoreProvider } from "../context/StoreContext";
 import { AuthModal } from "../components/AuthModal";
 import { NewUserTutorial } from "../components/NewUserTutorial";
+import { BannedAccountModal } from "../components/BannedAccountModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <AuthModal />
           <NewUserTutorial />
+          <BannedAccountModal />
         </StoreProvider>
       </body>
     </html>

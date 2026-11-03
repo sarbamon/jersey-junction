@@ -119,6 +119,15 @@ export const AuthModal: React.FC = () => {
     }
   }, [mode]);
 
+  // Close auth modal when user is banned and banned alert pops up
+  useEffect(() => {
+    const handleBanned = () => {
+      handleClose();
+    };
+    window.addEventListener('jj_customer_banned', handleBanned);
+    return () => window.removeEventListener('jj_customer_banned', handleBanned);
+  }, []);
+
   if (!isAuthOpen || currentUser) return null;
 
   const handleClose = () => {

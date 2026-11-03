@@ -85,17 +85,6 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}, ret
         localStorage.removeItem('jj_customer_user');
         localStorage.removeItem('jj_user');
         window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason: violationReason } }));
-
-        setTimeout(() => {
-          window.alert(`🚨 Account Suspended / Banned\n\nReason: ${violationReason}\n\nYou have been logged out. Please contact store support if you believe this was an error.`);
-          if (
-            window.location.pathname.startsWith('/checkout') ||
-            window.location.pathname.startsWith('/orders') ||
-            window.location.pathname.startsWith('/profile')
-          ) {
-            window.location.href = '/';
-          }
-        }, 50);
       }
 
       const errorMessage = data.error || data.message || 'An error occurred. Please try again.';

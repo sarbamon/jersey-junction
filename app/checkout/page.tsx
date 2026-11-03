@@ -138,7 +138,7 @@ export default function CheckoutPage() {
     } else {
       if (currentUser.isBanned || currentUser.status === 'Banned') {
         const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
-        alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+        window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason } }));
         logoutUser();
         router.push('/');
         return;
@@ -425,7 +425,7 @@ export default function CheckoutPage() {
     }
     if (currentUser.isBanned || currentUser.status === 'Banned') {
       const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
-      alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+      window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason } }));
       logoutUser();
       router.push('/');
       return;
@@ -558,7 +558,7 @@ export default function CheckoutPage() {
     }
     if (currentUser.isBanned || currentUser.status === 'Banned') {
       const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
-      alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+      window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason } }));
       logoutUser();
       router.push('/');
       return;
@@ -634,7 +634,7 @@ export default function CheckoutPage() {
     }
     if (currentUser.isBanned || currentUser.status === 'Banned') {
       const reason = currentUser.banReason || 'Violation of Store Terms & Conditions';
-      alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou cannot place orders. You have been logged out.`);
+      window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason } }));
       logoutUser();
       router.push('/');
       return;

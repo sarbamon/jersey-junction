@@ -380,17 +380,8 @@ export const authService = {
           localStorage.removeItem(CUSTOMER_AUTH_KEY);
           localStorage.removeItem('jj_user');
           if (typeof window !== 'undefined') {
-            const reason = user.banReason || 'Violation of Store Terms';
-            setTimeout(() => {
-              window.alert(`🚨 Account Suspended / Banned\n\nReason: ${reason}\n\nYou have been logged out.`);
-              if (
-                window.location.pathname.startsWith('/checkout') ||
-                window.location.pathname.startsWith('/orders') ||
-                window.location.pathname.startsWith('/profile')
-              ) {
-                window.location.href = '/';
-              }
-            }, 50);
+            const reason = user.banReason || 'Violation of Store Terms & Conditions';
+            window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason } }));
           }
           return null;
         }
@@ -406,6 +397,10 @@ export const authService = {
         localStorage.removeItem(CUSTOMER_TOKEN_KEY);
         localStorage.removeItem(CUSTOMER_AUTH_KEY);
         localStorage.removeItem('jj_user');
+        if (typeof window !== 'undefined') {
+          const reason = res.error || 'Violation of Store Terms & Conditions';
+          window.dispatchEvent(new CustomEvent('jj_customer_banned', { detail: { reason } }));
+        }
         return null;
       }
     } catch (err) {
