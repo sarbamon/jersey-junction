@@ -14,25 +14,23 @@ import { CancelOrderModal } from '../../../components/admin/CancelOrderModal';
 import { OrderProductsModal } from '../../../components/admin/OrderProductsModal';
 import { OrderProductImage } from '../../../components/OrderProductImage';
 
-const getCanonicalStatus = (status: string, shippingStatus?: string, cancellationReason?: string): OrderStatus => {
+const getCanonicalStatus = (status: string, cancellationReason?: string): OrderStatus => {
   const s = String(status || '').toLowerCase().trim();
-  const ship = String(shippingStatus || '').toLowerCase().trim();
   const reason = String(cancellationReason || '').trim();
 
-  // If orderStatus, courier shippingStatus, or cancellationReason indicates cancellation:
+  // An order is only Cancelled if orderStatus is explicitly Cancelled or failed/returned,
+  // or a cancellation reason exists and it has not been unlinked/reprocessed.
   if (
     s.includes('cancel') ||
     s.includes('fail') ||
     s === 'returned' ||
-    ship.includes('cancel') ||
-    ship.includes('rto') ||
-    (reason && s !== 'delivered')
+    (reason && s !== 'delivered' && s !== 'order processed' && s !== 'in transit')
   ) {
     return 'Cancelled';
   }
-  if (s === 'delivered' || ship.includes('delivered')) return 'Delivered';
-  if (s.includes('out for delivery') || ship.includes('out for delivery')) return 'Out for Delivery';
-  if (s.includes('ship') || s.includes('transit') || ship.includes('in transit') || ship.includes('dispatched')) return 'In Transit';
+  if (s === 'delivered') return 'Delivered';
+  if (s.includes('out for delivery')) return 'Out for Delivery';
+  if (s.includes('ship') || s.includes('transit')) return 'In Transit';
   if (s.includes('pack') || s.includes('process') || s.includes('not picked') || s.includes('softdata')) return 'Order Processed';
   return 'Order Received';
 };
@@ -94,15 +92,35 @@ export default function AdminOrdersPage() {
   };
 
   const handleDeleteShipment = async (order: AdminOrder) => {
-    if (!confirm(`Are you sure you want to unlink and remove the courier shipment for order ${order.id}?`)) {
+    if (!confirm(`Are you sure you want to delete and unlink the courier shipment (AWB: ${order.trackingNumber || 'N/A'}) from order ${order.id}?\n\nThis removes the iCarry shipment only. The order will remain active so you can book again.`)) {
       return;
     }
+
+    // Optimistically unlink the courier shipment immediately so UI shows 'Not Booked' and keeps order active
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === order.id
+          ? {
+              ...o,
+              trackingNumber: '',
+              icarryShipmentId: '',
+              courierName: '',
+              labelUrl: '',
+              shippingStatus: 'Not Booked',
+              orderStatus: o.orderStatus === 'Shipped' || o.orderStatus === 'Cancelled' ? 'Order Processed' : o.orderStatus,
+              cancellationReason: '',
+            }
+          : o
+      )
+    );
+
     try {
       await icarryService.cancelShipment(order.id);
-      setToastMsg(`Courier shipment removed from order ${order.id}`);
+      setToastMsg(`iCarry shipment deleted from order ${order.id}. Order is active and ready to re-book.`);
       loadOrders();
     } catch (err: any) {
       setToastMsg(`Failed to remove shipment: ${err.message || 'Error'}`);
+      loadOrders();
     }
   };
 
@@ -163,11 +181,11 @@ export default function AdminOrdersPage() {
     return orders.filter((o) => {
       const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
       const isPaid = o.paymentStatus === 'Paid';
-      const isCancelled = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason) === 'Cancelled';
+      const isCancelled = getCanonicalStatus(o.orderStatus, o.cancellationReason) === 'Cancelled';
       const isRefunded = o.paymentStatus === 'Refunded';
       if (!isCOD && !isPaid && !isCancelled && !isRefunded) return false;
 
-      const s = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason).toLowerCase();
+      const s = getCanonicalStatus(o.orderStatus, o.cancellationReason).toLowerCase();
       if (tabValue === 'all') return true;
       if (tabValue === 'active') return s !== 'delivered' && s !== 'cancelled';
       if (tabValue === 'cancelled') return s === 'cancelled';
@@ -180,7 +198,7 @@ export default function AdminOrdersPage() {
     // Exclude any unpaid orders where payment portal was just opened
     const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
     const isPaid = o.paymentStatus === 'Paid';
-    const isCancelled = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason) === 'Cancelled';
+    const isCancelled = getCanonicalStatus(o.orderStatus, o.cancellationReason) === 'Cancelled';
     const isRefunded = o.paymentStatus === 'Refunded';
     if (!isCOD && !isPaid && !isCancelled && !isRefunded) return false;
 
@@ -197,10 +215,10 @@ export default function AdminOrdersPage() {
 
     let matchesStatus = true;
     if (statusFilter === 'active') {
-      const s = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason).toLowerCase();
+      const s = getCanonicalStatus(o.orderStatus, o.cancellationReason).toLowerCase();
       matchesStatus = s !== 'delivered' && s !== 'cancelled';
     } else if (statusFilter !== 'all') {
-      matchesStatus = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason).toLowerCase() === statusFilter.toLowerCase();
+      matchesStatus = getCanonicalStatus(o.orderStatus, o.cancellationReason).toLowerCase() === statusFilter.toLowerCase();
     }
 
     const matchesPayment = paymentFilter === 'all' || o.paymentStatus.toLowerCase() === paymentFilter.toLowerCase();
@@ -389,8 +407,8 @@ export default function AdminOrdersPage() {
               ) : (
                 filteredOrders.map((o) => {
                   const isSelected = selectedIds.includes(o.id);
-                  const isBooked = Boolean(o.trackingNumber || o.shippingStatus === 'Booked');
-                  const canonical = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason);
+                  const isBooked = Boolean(o.trackingNumber || (o.shippingStatus && o.shippingStatus !== 'Not Booked' && o.shippingStatus !== 'Cancelled'));
+                  const canonical = getCanonicalStatus(o.orderStatus, o.cancellationReason);
                   const isOrderCancelled = canonical === 'Cancelled';
                   const isSoftdataOrNotPicked = (o.shippingStatus?.toLowerCase().includes('softdata') || o.shippingStatus?.toLowerCase().includes('not picked')) && !isOrderCancelled;
 
