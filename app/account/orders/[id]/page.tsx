@@ -362,27 +362,17 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
 
       {/* LIVE COURIER TRACKING CARD (For dispatched / booked orders) */}
       {(order.trackingNumber || order.shippingStatus === 'Booked') && (
-        <div className="bg-[#0d0d0d] border border-amber-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-[#242424] pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
-                <Truck className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold uppercase text-white tracking-wide">
-                  Live Courier Tracking
-                </h3>
-                <p className="text-[11px] text-zinc-400 font-mono">
-                  Partner: <strong className="text-amber-400">{courier}</strong>
-                </p>
-              </div>
-            </div>
+        <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-5 sm:p-6 space-y-5 shadow-xl">
+          <div className="flex items-center justify-between pb-3 border-b border-[#242424]">
+            <h3 className="text-lg font-bold font-serif text-white">
+              Live Tracking
+            </h3>
 
             <button
               type="button"
               onClick={() => fetchTracking(order.id)}
               disabled={isLoadingTracking}
-              className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
               title="Refresh tracking status"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTracking ? 'animate-spin text-amber-400' : ''}`} />
@@ -390,59 +380,63 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-            <div className="p-3 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
-              <span className="text-zinc-500 text-[10px] uppercase font-bold block">AWB Tracking Number</span>
-              <div className="flex items-center justify-between">
-                <strong className="text-white text-xs tracking-wider">{awb}</strong>
+          {/* Status Box */}
+          <div className="p-4 rounded-xl border border-[#242424] bg-black/50 space-y-1 text-xs">
+            <div className="text-sm font-bold text-white">
+              Status:{' '}
+              <span className="text-[#3b82f6] font-bold">
+                {liveStatus}
+              </span>
+            </div>
+            <div className="text-gray-400">
+              Courier:{' '}
+              <span className="uppercase text-gray-300 font-mono">
+                {courier}
+              </span>
+            </div>
+            {awb && (
+              <div className="text-[11px] text-gray-500 font-mono pt-1 flex items-center justify-between">
+                <span>AWB: <strong className="text-gray-300">{awb}</strong></span>
                 <button
                   onClick={copyAwb}
-                  className="p-1 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded transition-colors"
+                  className="hover:text-white transition-colors cursor-pointer"
                   title="Copy Tracking Number"
                 >
                   {copiedAwb ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-black/60 border border-zinc-800 space-y-1">
-              <span className="text-zinc-500 text-[10px] uppercase font-bold block">Current Live Status</span>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-                <strong className="text-emerald-400 text-xs uppercase">{liveStatus}</strong>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Scans Activity Log */}
-          {trackingData?.history && trackingData.history.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-[#222]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                Carrier Scan Activity Log
-              </span>
-              <div className="p-3 rounded-xl bg-black/50 border border-zinc-800 space-y-3">
-                <div className="relative pl-5 space-y-3 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-zinc-800">
-                  {trackingData.history.map((step, idx) => (
-                    <div key={idx} className="relative text-xs">
-                      <div
-                        className={`absolute -left-5 top-1 h-3 w-3 rounded-full border-2 ${
-                          idx === 0
-                            ? 'bg-amber-400 border-amber-300 ring-2 ring-amber-400/20'
-                            : 'bg-zinc-900 border-zinc-600'
-                        }`}
-                      />
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <strong className="text-white font-medium">{formatShippingStatusText(step.status)}</strong>
-                        <span className="text-zinc-500 text-[10px] font-mono">{step.timestamp}</span>
-                      </div>
-                      {step.location && (
-                        <span className="text-zinc-400 text-[10px] font-mono block">{step.location}</span>
-                      )}
+          {trackingData?.history && trackingData.history.length > 0 ? (
+            <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#242424]">
+              {trackingData.history.map((step, idx) => (
+                <div key={idx} className="relative">
+                  <div
+                    className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full ${
+                      idx === 0
+                        ? 'bg-[#3b82f6] ring-4 ring-[#3b82f6]/20'
+                        : 'bg-white'
+                    }`}
+                  />
+                  <div className="space-y-0.5 text-xs">
+                    <div className="text-gray-400 font-mono text-[11px]">
+                      {step.timestamp}
                     </div>
-                  ))}
+                    <div className="font-bold text-white text-xs sm:text-sm">
+                      {step.location || step.details || 'In Transit'}
+                    </div>
+                    <div className="text-gray-400 text-xs">
+                      {formatShippingStatusText(step.status)}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-xs text-gray-400">
+              {isLoadingTracking ? 'Fetching live courier tracking scans...' : 'Shipment booked with courier. Live scans will appear once picked up.'}
             </div>
           )}
         </div>
