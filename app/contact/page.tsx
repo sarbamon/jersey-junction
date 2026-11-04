@@ -4,14 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
+  Send,
   ChevronRight, 
   MessageSquare, 
   CheckCircle2,
   HelpCircle,
   Truck,
   RotateCcw,
-  Loader2,
-  ExternalLink
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
@@ -21,6 +22,7 @@ import { JerseyProduct } from '../../types';
 import { SizeGuideModal } from '../../components/SizeGuideModal';
 import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
+import { apiClient } from '../../lib/apiClient';
 import { settingsService } from '../../lib/services/settingsService';
 import { orderService } from '../../lib/services/orderService';
 import { AdminOrder } from '../../lib/types/admin';
@@ -48,12 +50,13 @@ export default function ContactPage() {
 
   // Form State
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [subject, setSubject] = useState('Order & Shipping Inquiry');
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [whatsappSentUrl, setWhatsappSentUrl] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('916001142358');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // User Account Orders
   const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
@@ -76,6 +79,7 @@ export default function ContactPage() {
     let isMounted = true;
     if (currentUser) {
       if (currentUser.name && !name) setName(currentUser.name);
+      if (currentUser.email && !email) setEmail(currentUser.email);
 
       setIsLoadingOrders(true);
       orderService
@@ -109,42 +113,39 @@ export default function ContactPage() {
   }, [currentUser]);
 
   useEffect(() => {
-    const s = settingsService.getSettings();
-    const raw = s.storeWhatsapp || s.storePhone || '916001142358';
-    const clean = raw.replace(/\D/g, '');
-    const withCountry = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
-    setWhatsappNumber(withCountry || '916001142358');
-  }, []);
-
-  useEffect(() => {
     const cached = productService.getCachedProductsSync();
     if (cached.length > 0) setProducts(cached);
     productService.getActiveProducts().then(setProducts).catch(() => {});
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !message.trim()) return;
 
-    const lines = [
-      `*New Inquiry - Jersey Junction*`,
-      `*Name:* ${name.trim()}`,
-      orderNumber.trim() ? `*Order ID:* ${orderNumber.trim()}` : null,
-      `*Subject:* ${subject.trim()}`,
-      ``,
-      `*Message:*`,
-      message.trim(),
-    ].filter(Boolean).join('\n');
+    setIsSubmitting(true);
+    setErrorMessage('');
+    try {
+      const res = await apiClient.post('/contact', {
+        name: name.trim(),
+        email: email.trim() || currentUser?.email || 'customer@jerseyjunction.shop',
+        orderNumber: orderNumber.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+      });
 
-    const clean = whatsappNumber.replace(/\D/g, '') || '916001142358';
-    const target = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
-    const waUrl = `https://wa.me/${target}?text=${encodeURIComponent(lines)}`;
-
-    setWhatsappSentUrl(waUrl);
-    setIsSubmitted(true);
-
-    if (typeof window !== 'undefined') {
-      window.open(waUrl, '_blank');
+      if (res.success) {
+        setIsSubmitted(true);
+        setName('');
+        setEmail('');
+        setOrderNumber('');
+        setMessage('');
+      } else {
+        setErrorMessage(res.message || res.error || 'Failed to deliver message. Please try again or email support@jerseyjunction.shop directly.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Unable to connect to support server. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -193,43 +194,27 @@ export default function ContactPage() {
           <div className="lg:col-span-7 bg-[#0d0d0d] border border-[#242424] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
             <div className="border-b border-[#202020] pb-4 space-y-1">
               <h2 className="font-serif font-black text-xl sm:text-2xl uppercase tracking-tight text-white flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                <MessageSquare className="w-5 h-5 text-[#f4c84a]" />
                 <span>Send Us A Message</span>
               </h2>
               <p className="text-xs text-gray-400">
-                Fill out the form below to chat directly with our team on WhatsApp.
+                Fill out the form below and our support team will get back to you promptly.
               </p>
             </div>
 
             {isSubmitted ? (
-              <div className="bg-[#141414] border border-emerald-500/30 rounded-2xl p-8 text-center space-y-4 animate-fade-in shadow-2xl">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-                <h3 className="font-serif font-black text-xl text-white uppercase tracking-tight">WhatsApp Chat Initiated!</h3>
+              <div className="bg-[#141414] border border-[#f4c84a]/30 rounded-2xl p-8 text-center space-y-4 animate-fade-in shadow-2xl">
+                <CheckCircle2 className="w-12 h-12 text-[#f4c84a] mx-auto animate-bounce" />
+                <h3 className="font-serif font-black text-xl text-white uppercase tracking-tight">Message Sent Successfully!</h3>
                 <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
-                  We opened WhatsApp with your inquiry details. You can now chat directly with our support team.
+                  Thank you for reaching out to Jersey Junction. Your message has been sent to our customer care team. We will review your inquiry and reply promptly.
                 </p>
-                {whatsappSentUrl && (
-                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a
-                      href={whatsappSentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold uppercase rounded-xl text-xs transition-transform hover:scale-105 inline-flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30"
-                    >
-                      <span>Open WhatsApp Again</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <button
-                      onClick={() => {
-                        setIsSubmitted(false);
-                        setMessage('');
-                      }}
-                      className="px-6 py-2.5 bg-[#202020] hover:bg-[#282828] text-white border border-[#333] font-bold uppercase rounded-xl text-xs transition-colors cursor-pointer"
-                    >
-                      Send Another Message
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={() => setIsSubmitted(false)}
+                  className="px-6 py-2.5 bg-[#f4c84a] hover:bg-amber-400 text-black font-extrabold uppercase rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Send Another Message
+                </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -243,26 +228,23 @@ export default function ContactPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Lionel Messi"
-                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-emerald-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors"
+                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-gray-300 uppercase">Subject *</label>
-                    <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-emerald-500 rounded-xl px-4 py-3 text-white focus:outline-none transition-colors cursor-pointer"
-                    >
-                      <option value="Order & Shipping Inquiry">Order & Shipping Inquiry</option>
-                      <option value="Size & Fit Assistance">Size & Fit Assistance</option>
-                      <option value="Custom Name & Number Request">Custom Name & Number Request</option>
-                      <option value="Returns & Exchange Request">Returns & Exchange Request</option>
-                      <option value="Wholesale & Bulk Teams">Wholesale & Bulk Teams</option>
-                      <option value="Other Questions">Other Questions</option>
-                    </select>
+                    <label className="font-bold text-gray-300 uppercase">Email Address (Optional)</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="e.g. you@domain.com"
+                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors font-mono"
+                    />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 {/* Order ID: auto-fetched from user account or entered manually */}
                 {userOrders.length > 0 ? (
@@ -350,6 +332,23 @@ export default function ContactPage() {
                   </div>
                 )}
 
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-300 uppercase">Subject *</label>
+                    <select
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white focus:outline-none transition-colors cursor-pointer"
+                    >
+                      <option value="Order & Shipping Inquiry">Order & Shipping Inquiry</option>
+                      <option value="Size & Fit Assistance">Size & Fit Assistance</option>
+                      <option value="Custom Name & Number Request">Custom Name & Number Request</option>
+                      <option value="Returns & Exchange Request">Returns & Exchange Request</option>
+                      <option value="Wholesale & Bulk Teams">Wholesale & Bulk Teams</option>
+                      <option value="Other Questions">Other Questions</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   <label className="font-bold text-gray-300 uppercase">Message *</label>
                   <textarea
@@ -358,21 +357,27 @@ export default function ContactPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Describe your inquiry with detail..."
-                    className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-emerald-500 rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none transition-colors resize-none leading-relaxed"
+                    className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none transition-colors resize-none leading-relaxed"
                   />
                 </div>
+
+                {errorMessage && (
+                  <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="leading-snug">{errorMessage}</p>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-extrabold uppercase rounded-xl text-xs flex items-center justify-center gap-2.5 cursor-pointer transition-all shadow-lg shadow-emerald-950/60 hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-600 text-black font-extrabold uppercase rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg hover:scale-105 disabled:opacity-50"
                   >
-                    <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.65-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.456 5.711 1.457h.004c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                      </svg>
-                      <span>Send on WhatsApp</span>
-                    </button>
-                  </div>
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
+                    <span>{isSubmitting ? 'Sending Message...' : 'Send Message'}</span>
+                  </button>
+                </div>
 
               </form>
             )}
@@ -401,21 +406,11 @@ export default function ContactPage() {
 
                 <div className="pt-3 space-y-1">
                   <h4 className="font-bold text-white flex items-center gap-2">
-                    <RotateCcw className="w-3.5 h-3.5 text-[#f4c84a] shrink-0" />
-                    <span>What is your return policy?</span>
+                    <MessageSquare className="w-3.5 h-3.5 text-[#f4c84a] shrink-0" />
+                    <span>How fast will I receive a reply?</span>
                   </h4>
                   <p className="text-gray-400 leading-relaxed pl-5">
-                    Defective or incorrect items can be returned within 7 days of delivery with original tags intact.
-                  </p>
-                </div>
-
-                <div className="pt-3 space-y-1">
-                  <h4 className="font-bold text-white flex items-center gap-2">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>How fast is WhatsApp support?</span>
-                  </h4>
-                  <p className="text-gray-400 leading-relaxed pl-5">
-                    Our team is active from 10:00 AM to 9:00 PM IST daily on WhatsApp for tracking, sizing, and order assistance.
+                    Our support team reviews customer inquiries daily and typically responds within 24 hours.
                   </p>
                 </div>
               </div>
