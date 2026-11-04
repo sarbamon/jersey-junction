@@ -109,6 +109,19 @@ export const AuthModal: React.FC = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  const handleClose = () => {
+    setIsAuthOpen(false);
+    setError('');
+    setSuccessMsg('');
+    setIsLoading(false);
+    setShowPassword(false);
+    setAgreeTerms(false);
+    setOtpCode('');
+    setResendCooldown(0);
+    setIsResending(false);
+    setIsVerified(false);
+  };
+
   // Focus OTP input when switching to verify-signup mode
   useEffect(() => {
     if (mode === 'verify-signup') {
@@ -129,19 +142,6 @@ export const AuthModal: React.FC = () => {
   }, []);
 
   if (!isAuthOpen || currentUser) return null;
-
-  const handleClose = () => {
-    setIsAuthOpen(false);
-    setError('');
-    setSuccessMsg('');
-    setIsLoading(false);
-    setShowPassword(false);
-    setAgreeTerms(false);
-    setOtpCode('');
-    setResendCooldown(0);
-    setIsResending(false);
-    setIsVerified(false);
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
