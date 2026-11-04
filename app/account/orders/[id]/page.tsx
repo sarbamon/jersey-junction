@@ -82,17 +82,14 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  const steps = [
-    { status: 'Pending', label: 'Order Placed' },
-    { status: 'Confirmed', label: 'Confirmed' },
-    { status: 'Processing', label: 'Processing' },
-    { status: 'Packed', label: 'Packed' },
-    { status: 'Shipped', label: 'Shipped' },
-    { status: 'Out for Delivery', label: 'Out for Delivery' },
-    { status: 'Delivered', label: 'Delivered' }
-  ];
+  const getTrackingStatus = (status: string) => {
+    const s = String(status || '').toLowerCase().trim();
+    if (s.includes('cancel')) return 'CANCELLED';
+    if (s.includes('out for delivery') || s.includes('ship') || s.includes('transit')) return 'IN TRANSIT';
+    if (s.includes('deliver')) return 'DELIVERED';
+    return 'PROCESSING';
+  };
 
-  const currentIdx = steps.findIndex(s => s.status === order.orderStatus);
   const awb = trackingData?.trackingNumber || order.trackingNumber || '';
   const courier = trackingData?.courier || order.courierName || 'Assigned Courier';
   const liveStatus = formatShippingStatusText(trackingData?.shippingStatus || order.shippingStatus || 'Booked');
@@ -230,34 +227,16 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* Visual Order Lifecycle Stepper */}
+      {/* Order Status Tracking */}
       <div className="bg-[#0d0d0d] border border-[#242424] p-6 rounded-2xl space-y-4">
         <h2 className="text-xs font-bold font-serif uppercase tracking-wider text-[#f4c84a] border-b border-[#222] pb-3">
           ORDER STATUS TRACKING
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {steps.map((s, idx) => {
-            const isDone = idx <= currentIdx;
-            const isCurrent = idx === currentIdx;
-            return (
-              <div
-                key={s.status}
-                className={`p-3 rounded-xl border text-center space-y-1 transition-all ${
-                  isCurrent 
-                    ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-[#f4c84a]' 
-                    : (isDone ? 'bg-[#141414] border-gray-700 text-gray-200' : 'bg-black border-[#222] text-gray-600')
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full mx-auto flex items-center justify-center font-bold text-[10px] ${
-                  isCurrent ? 'bg-[#f4c84a] text-black' : (isDone ? 'bg-emerald-500 text-white' : 'bg-[#222] text-gray-500')
-                }`}>
-                  {idx + 1}
-                </div>
-                <div className="font-bold text-[11px] uppercase">{s.label}</div>
-              </div>
-            );
-          })}
+        <div className="p-4 rounded-xl border border-[#f4c84a]/40 bg-[#f4c84a]/10 text-center">
+          <div className="text-sm sm:text-base font-black font-mono tracking-wider text-[#f4c84a] uppercase">
+            {getTrackingStatus(order.orderStatus)}
+          </div>
         </div>
       </div>
 
