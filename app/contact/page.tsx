@@ -25,10 +25,13 @@ import { CustomJerseyStudio } from '../../components/CustomJerseyStudio';
 import { CartDrawer } from '../../components/CartDrawer';
 import { apiClient } from '../../lib/apiClient';
 import { settingsService } from '../../lib/services/settingsService';
+import { orderService } from '../../lib/services/orderService';
+import { AdminOrder } from '../../lib/types/admin';
 
 export default function ContactPage() {
   const router = useRouter();
   const { 
+    currentUser,
     wishlist, 
     activeCurrency, 
     cartItems, 
@@ -56,6 +59,60 @@ export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('916001142358');
+
+  // User Account Orders
+  const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
+  const [isManualOrder, setIsManualOrder] = useState(false);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+
+  // Pre-fill Order ID from URL query parameters if present (e.g. /contact?orderId=JJ1001)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlOrderId = params.get('orderId') || params.get('order');
+      if (urlOrderId) {
+        setOrderNumber(urlOrderId.startsWith('#') ? urlOrderId : `#${urlOrderId}`);
+      }
+    }
+  }, []);
+
+  // Fetch orders from logged-in user account & auto-fill credentials
+  useEffect(() => {
+    let isMounted = true;
+    if (currentUser) {
+      if (currentUser.name && !name) setName(currentUser.name);
+      if (currentUser.email && !email) setEmail(currentUser.email);
+
+      setIsLoadingOrders(true);
+      orderService
+        .getUserOrdersAsync(currentUser.email, currentUser.phone)
+        .then((orders) => {
+          if (isMounted) {
+            if (orders && orders.length > 0) {
+              setUserOrders(orders);
+            } else {
+              const local = orderService.getOrders();
+              if (local.length > 0) setUserOrders(local);
+            }
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            const local = orderService.getOrders();
+            if (local.length > 0) setUserOrders(local);
+          }
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingOrders(false);
+        });
+    } else {
+      const local = orderService.getOrders();
+      if (local.length > 0) setUserOrders(local);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     const s = settingsService.getSettings();
@@ -202,16 +259,91 @@ export default function ContactPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="font-bold text-gray-300 uppercase">Order ID (Optional)</label>
-                    <input
-                      type="text"
-                      value={orderNumber}
-                      onChange={(e) => setOrderNumber(e.target.value)}
-                      placeholder="e.g. #JJ-10492"
-                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors font-mono"
-                    />
-                  </div>
+                  {/* Order ID: auto-fetched from user account or entered manually */}
+                  {userOrders.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-gray-300 uppercase flex items-center gap-1.5 text-xs">
+                          <span>Order ID (Optional)</span>
+                          {isLoadingOrders && <Loader2 className="w-3 h-3 animate-spin text-[#f4c84a]" />}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setIsManualOrder(!isManualOrder)}
+                          className="text-[11px] text-[#f4c84a] hover:underline cursor-pointer font-medium"
+                        >
+                          {isManualOrder ? 'Select from my orders' : 'Enter manually'}
+                        </button>
+                      </div>
+
+                      {isManualOrder ? (
+                        <input
+                          type="text"
+                          value={orderNumber}
+                          onChange={(e) => setOrderNumber(e.target.value)}
+                          placeholder="e.g. #JJ-10492"
+                          className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors font-mono"
+                        />
+                      ) : (
+                        <div className="relative">
+                          <select
+                            value={orderNumber}
+                            onChange={(e) => {
+                              if (e.target.value === '__custom__') {
+                                setIsManualOrder(true);
+                                setOrderNumber('');
+                              } else {
+                                setOrderNumber(e.target.value);
+                              }
+                            }}
+                            className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white focus:outline-none transition-colors font-mono cursor-pointer"
+                          >
+                            <option value="">Select from your orders ({userOrders.length})...</option>
+                            {userOrders.map((o) => (
+                              <option key={o.id} value={o.id}>
+                                {o.id} • {o.items?.[0]?.name ? `${o.items[0].name.slice(0, 24)}...` : 'Jersey Order'} ({o.date})
+                              </option>
+                            ))}
+                            <option value="__custom__">+ Enter another Order ID manually</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Quick Clickable Chips for Recent Orders */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <span className="text-[10px] text-gray-500 font-mono">My orders:</span>
+                        {userOrders.slice(0, 3).map((o) => (
+                          <button
+                            key={o.id}
+                            type="button"
+                            onClick={() => {
+                              setOrderNumber(o.id);
+                              setIsManualOrder(false);
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-mono border transition-all cursor-pointer ${
+                              orderNumber === o.id
+                                ? 'bg-[#f4c84a] text-black border-[#f4c84a] font-bold shadow-xs'
+                                : 'bg-[#181818] text-gray-300 border-[#2a2a2a] hover:border-[#f4c84a] hover:text-white'
+                            }`}
+                            title={`Select order ${o.id}`}
+                          >
+                            {o.id}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="font-bold text-gray-300 uppercase">Order ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={orderNumber}
+                        onChange={(e) => setOrderNumber(e.target.value)}
+                        placeholder="e.g. #JJ-10492"
+                        className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors font-mono"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="font-bold text-gray-300 uppercase">Subject *</label>
