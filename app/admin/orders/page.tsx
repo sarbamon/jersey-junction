@@ -12,6 +12,7 @@ import { ICarryBookingModal } from '../../../components/admin/ICarryBookingModal
 import { LiveTrackingModal } from '../../../components/admin/LiveTrackingModal';
 import { CancelOrderModal } from '../../../components/admin/CancelOrderModal';
 import { OrderProductsModal } from '../../../components/admin/OrderProductsModal';
+import { EditTrackingModal } from '../../../components/admin/EditTrackingModal';
 import { OrderProductImage } from '../../../components/OrderProductImage';
 
 const getCanonicalStatus = (status: string, cancellationReason?: string): OrderStatus => {
@@ -49,6 +50,8 @@ export default function AdminOrdersPage() {
   const [cancelTargetOrder, setCancelTargetOrder] = useState<AdminOrder | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [editingTrackingOrder, setEditingTrackingOrder] = useState<AdminOrder | null>(null);
+  const [isEditTrackingModalOpen, setIsEditTrackingModalOpen] = useState(false);
   const [viewingProductsOrder, setViewingProductsOrder] = useState<AdminOrder | null>(null);
   const [isSyncingAwb, setIsSyncingAwb] = useState<string | null>(null);
 
@@ -120,6 +123,40 @@ export default function AdminOrdersPage() {
       loadOrders();
     } catch (err: any) {
       setToastMsg(`Failed to remove shipment: ${err.message || 'Error'}`);
+      loadOrders();
+    }
+  };
+
+  const handleSaveTrackingDetails = async (trackingNumber: string, courierName: string, trackingUrl: string) => {
+    if (!editingTrackingOrder) return;
+    const id = editingTrackingOrder.id;
+
+    // 1. Optimistic update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === id
+          ? {
+              ...o,
+              trackingNumber,
+              courierName,
+              labelUrl: trackingUrl,
+              shippingStatus: o.shippingStatus === 'Not Booked' || !o.shippingStatus ? 'Booked' : o.shippingStatus,
+            }
+          : o
+      )
+    );
+
+    try {
+      await orderService.updateOrder(id, {
+        trackingNumber,
+        courierName,
+        labelUrl: trackingUrl,
+        shippingStatus: editingTrackingOrder.shippingStatus === 'Not Booked' || !editingTrackingOrder.shippingStatus ? 'Booked' : editingTrackingOrder.shippingStatus,
+      });
+      setToastMsg(`Tracking details updated for order ${id}`);
+      loadOrders();
+    } catch (err: any) {
+      setToastMsg(`Failed to save tracking info: ${err.message || 'Error'}`);
       loadOrders();
     }
   };
@@ -575,11 +612,11 @@ export default function AdminOrdersPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedOrderForICarry(o);
-                                  setIsICarryModalOpen(true);
+                                  setEditingTrackingOrder(o);
+                                  setIsEditTrackingModalOpen(true);
                                 }}
                                 className="text-[#d97706] hover:text-[#b45309] hover:underline cursor-pointer"
-                                title="Modify weight, dimensions or courier"
+                                title="Edit tracking number & courier"
                               >
                                 EDIT
                               </button>
@@ -716,6 +753,17 @@ export default function AdminOrdersPage() {
         isOpen={Boolean(viewingProductsOrder)}
         onClose={() => setViewingProductsOrder(null)}
         order={viewingProductsOrder}
+      />
+
+      {/* Edit Tracking Modal matching reference image */}
+      <EditTrackingModal
+        order={editingTrackingOrder}
+        isOpen={isEditTrackingModalOpen}
+        onClose={() => {
+          setIsEditTrackingModalOpen(false);
+          setEditingTrackingOrder(null);
+        }}
+        onSave={handleSaveTrackingDetails}
       />
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}
