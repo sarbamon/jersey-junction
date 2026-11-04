@@ -314,8 +314,8 @@ html.light .text-zinc-400 {
 
 html.light .text-gray-500,
 html.light .text-zinc-500,
-html.light .text-[#a1a1a1],
-html.light .text-[#888888] {
+html.light .text-\[\#a1a1a1\],
+html.light .text-\[\#888888\] {
   color: #4b5563 !important;
 }
 
