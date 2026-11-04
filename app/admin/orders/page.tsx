@@ -50,14 +50,13 @@ export default function AdminOrdersPage() {
   }, []);
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
-    // If cancelling, open the cancellation reason popup modal first
+    // If cancelling, open the cancellation reason popup modal first (NEVER call updateOrderStatusAsync directly)
     if (newStatus === 'Cancelled') {
-      const target = orders.find(o => o.id === orderId);
-      if (target) {
-        setCancelTargetOrder(target);
-        setIsCancelModalOpen(true);
-        return;
-      }
+      const cleanOrderId = String(orderId || '').replace(/^#+/, '').toLowerCase();
+      const target = orders.find(o => String(o.id || '').replace(/^#+/, '').toLowerCase() === cleanOrderId) || ({ id: orderId } as AdminOrder);
+      setCancelTargetOrder(target);
+      setIsCancelModalOpen(true);
+      return;
     }
 
     // 1. Optimistic UI update so dropdown updates immediately without snapping back
@@ -75,7 +74,7 @@ export default function AdminOrdersPage() {
   };
 
   const handleConfirmCancel = async (reason: string) => {
-    if (!cancelTargetOrder) return;
+    if (!cancelTargetOrder || isCancelling) return;
     setIsCancelling(true);
     try {
       setOrders((prev) =>

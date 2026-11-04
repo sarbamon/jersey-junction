@@ -249,13 +249,6 @@ export const orderService = {
       };
     }
 
-    apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { 
-      orderStatus: newStatus,
-      cancellationReason: newStatus === 'Cancelled' ? cancellationReason : undefined
-    }).catch((err) => {
-      console.error('Failed to update status on backend API:', err);
-    });
-
     return updatedOrder;
   },
 

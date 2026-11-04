@@ -33,18 +33,26 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
   const [selectedPreset, setSelectedPreset] = useState<string>(COMMON_REASONS[0]);
   const [customReason, setCustomReason] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading || isSubmitting) return;
+
     const finalReason = customReason.trim() || selectedPreset;
     if (!finalReason) {
       setErrorMsg('Please select or enter a cancellation reason.');
       return;
     }
     setErrorMsg('');
-    await onConfirm(finalReason);
+    setIsSubmitting(true);
+    try {
+      await onConfirm(finalReason);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -148,10 +156,10 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
               className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold uppercase tracking-wider transition-all shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isLoading ? (
+              {isLoading || isSubmitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Cancelling...</span>

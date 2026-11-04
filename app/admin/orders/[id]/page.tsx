@@ -73,7 +73,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleConfirmCancel = async (reason: string) => {
-    if (!order) return;
+    if (!order || isCancelling) return;
     setIsCancelling(true);
     try {
       setOrder((prev) => (prev ? { ...prev, orderStatus: 'Cancelled', cancellationReason: reason } : null));
