@@ -484,6 +484,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         order={order}
         isOpen={isTrackingModalOpen}
         onClose={() => setIsTrackingModalOpen(false)}
+        onOrderUpdated={(id, status, reason) => {
+          setOrder((prev) => (prev ? { ...prev, orderStatus: status, shippingStatus: 'Cancelled', cancellationReason: reason || prev.cancellationReason } : prev));
+          orderService.updateOrderStatusAsync(id, status, reason).catch(() => {});
+        }}
       />
 
       {/* Cancel Order Reason Modal */}

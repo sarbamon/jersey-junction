@@ -219,21 +219,32 @@ export const icarryService = {
       if (res.success && res.data) {
         const raw = res.data;
         const normalizeStatus = (str?: string) => {
-          if (!str) return 'Shipping getting ready';
+          if (!str) return 'Pending Pickup';
+          if (/cancel|seller\s*cancelled/i.test(str)) return 'Cancelled';
           if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(str)) {
-            return 'Shipping getting ready';
+            return 'Pending Pickup';
           }
           return str;
         };
 
+        // Detect if any scan event indicates cancellation (e.g. "Seller cancelled the order")
+        const hasCancelScan = (raw.history || []).some((h) =>
+          /cancel/i.test(h.status || '') || /cancel/i.test(h.details || '')
+        );
+        const isCancelled = hasCancelScan || /cancel/i.test(raw.shippingStatus || '') || /cancel/i.test(raw.orderStatus || '');
+
+        const effectiveShippingStatus = isCancelled ? 'Cancelled' : normalizeStatus(raw.shippingStatus);
+        const effectiveOrderStatus = isCancelled ? 'Cancelled' : (raw.orderStatus || 'In Transit');
+
         return {
           ...raw,
-          shippingStatus: normalizeStatus(raw.shippingStatus),
+          shippingStatus: effectiveShippingStatus,
+          orderStatus: effectiveOrderStatus,
           externalTrackingUrl: '', // Stripped so users stay within site
           history: (raw.history || []).map((step) => ({
             ...step,
-            status: normalizeStatus(step.status),
-            details: normalizeStatus(step.details),
+            status: step.status,
+            details: step.details,
           })),
         };
       }

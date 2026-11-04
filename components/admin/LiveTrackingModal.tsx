@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Copy, Check, AlertCircle } from 'lucide-react';
 import { icarryService, TrackingResult } from '@/lib/services/icarryService';
-import { AdminOrder } from '@/lib/types/admin';
+import { AdminOrder, OrderStatus } from '@/lib/types/admin';
 
 const formatShippingStatusText = (status?: string): string => {
   if (!status) return 'Pending Pickup';
+  if (/cancel|seller\s*cancelled/i.test(status)) return 'Cancelled';
   if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
     return 'Pending Pickup';
   }
@@ -17,12 +18,14 @@ interface LiveTrackingModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: AdminOrder | null;
+  onOrderUpdated?: (orderId: string, newStatus: OrderStatus, reason?: string) => void;
 }
 
 export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
   isOpen,
   onClose,
   order,
+  onOrderUpdated,
 }) => {
   const [trackingData, setTrackingData] = useState<TrackingResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -37,6 +40,17 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
       const data = await icarryService.trackShipment(order.id);
       if (data) {
         setTrackingData(data);
+        // If scans show cancellation, propagate to parent state
+        const hasCancel = (data.history || []).some(
+          (h) => /cancel/i.test(h.status || '') || /cancel/i.test(h.details || '')
+        );
+        if (hasCancel || data.shippingStatus === 'Cancelled') {
+          const cancelStep = (data.history || []).find((h) => /cancel/i.test(h.status || '') || /cancel/i.test(h.details || ''));
+          const reason = cancelStep?.details || cancelStep?.status || 'Seller cancelled the order';
+          if (onOrderUpdated) {
+            onOrderUpdated(order.id, 'Cancelled', reason);
+          }
+        }
       } else {
         setError('No live tracking scans found yet. Shipment may have just been booked.');
       }
@@ -62,7 +76,21 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
   const awb = trackingData?.trackingNumber || order.trackingNumber || '';
   const courier = (trackingData?.courier || order.courierName || 'DELHIVERY SURFACE').toUpperCase();
   const rawStatus = trackingData?.shippingStatus || order.shippingStatus || 'Pending Pickup';
-  const status = formatShippingStatusText(rawStatus);
+
+  // Check if scan events indicate cancellation
+  const hasCancelScan = Boolean(
+    trackingData?.history?.some((step) =>
+      /cancel|seller\s*cancelled/i.test(step.status || '') || /cancel|seller\s*cancelled/i.test(step.details || '')
+    )
+  );
+
+  const isOrderCancelled =
+    hasCancelScan ||
+    /cancel/i.test(rawStatus) ||
+    /cancel/i.test(order.orderStatus || '') ||
+    /cancel/i.test(order.shippingStatus || '');
+
+  const displayStatus = isOrderCancelled ? 'Cancelled' : formatShippingStatusText(rawStatus);
 
   const copyAwb = () => {
     if (awb && awb !== 'PENDING') {
@@ -114,8 +142,8 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
           <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-1 shadow-xs">
             <div className="text-sm font-bold text-slate-900">
               Status:{' '}
-              <span className="text-[#2563eb] font-bold">
-                {status}
+              <span className={`font-bold ${isOrderCancelled ? 'text-red-600' : 'text-[#2563eb]'}`}>
+                {displayStatus}
               </span>
             </div>
             <div className="text-xs text-slate-500 font-mono">
@@ -145,27 +173,34 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
           {/* Vertical Scan Timeline matching reference Image 2 */}
           {trackingData?.history && trackingData.history.length > 0 ? (
             <div className="relative pl-6 space-y-6 before:absolute before:left-[4px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200">
-              {trackingData.history.map((step, idx) => (
-                <div key={idx} className="relative">
-                  {/* Milestone Dot: Solid black dot matching reference Image 2 */}
-                  <div
-                    className="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-slate-900 ring-4 ring-white"
-                  />
+              {trackingData.history.map((step, idx) => {
+                const isStepCancelled = /cancel|seller\s*cancelled/i.test(step.status || '') || /cancel|seller\s*cancelled/i.test(step.details || '');
+                return (
+                  <div key={idx} className="relative">
+                    {/* Milestone Dot: Red if cancelled scan, otherwise solid black dot */}
+                    <div
+                      className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full ring-4 ${
+                        isStepCancelled
+                          ? 'bg-red-600 ring-red-100'
+                          : 'bg-slate-900 ring-white'
+                      }`}
+                    />
 
-                  {/* Scan Info */}
-                  <div className="space-y-0.5 text-xs">
-                    <div className="text-slate-500 font-sans text-xs">
-                      {step.timestamp}
-                    </div>
-                    <div className="font-bold text-slate-900 text-sm">
-                      {step.location || step.details || 'In Transit'}
-                    </div>
-                    <div className="text-slate-500 text-xs font-medium">
-                      {step.status || step.details}
+                    {/* Scan Info */}
+                    <div className="space-y-0.5 text-xs">
+                      <div className="text-slate-500 font-sans text-xs">
+                        {step.timestamp}
+                      </div>
+                      <div className={`font-bold text-sm ${isStepCancelled ? 'text-red-700' : 'text-slate-900'}`}>
+                        {step.location || step.details || 'In Transit'}
+                      </div>
+                      <div className={`text-xs ${isStepCancelled ? 'text-red-600 font-semibold' : 'text-slate-500 font-medium'}`}>
+                        {step.status || step.details}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-6 text-slate-400 text-xs space-y-2">

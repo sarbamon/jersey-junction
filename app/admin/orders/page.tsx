@@ -14,12 +14,25 @@ import { CancelOrderModal } from '../../../components/admin/CancelOrderModal';
 import { OrderProductsModal } from '../../../components/admin/OrderProductsModal';
 import { OrderProductImage } from '../../../components/OrderProductImage';
 
-const getCanonicalStatus = (status: string): OrderStatus => {
+const getCanonicalStatus = (status: string, shippingStatus?: string, cancellationReason?: string): OrderStatus => {
   const s = String(status || '').toLowerCase().trim();
-  if (s.includes('cancel') || s.includes('fail') || s === 'returned') return 'Cancelled';
-  if (s === 'delivered') return 'Delivered';
-  if (s.includes('out for delivery')) return 'Out for Delivery';
-  if (s.includes('ship') || s.includes('transit')) return 'In Transit';
+  const ship = String(shippingStatus || '').toLowerCase().trim();
+  const reason = String(cancellationReason || '').trim();
+
+  // If orderStatus, courier shippingStatus, or cancellationReason indicates cancellation:
+  if (
+    s.includes('cancel') ||
+    s.includes('fail') ||
+    s === 'returned' ||
+    ship.includes('cancel') ||
+    ship.includes('rto') ||
+    (reason && s !== 'delivered')
+  ) {
+    return 'Cancelled';
+  }
+  if (s === 'delivered' || ship.includes('delivered')) return 'Delivered';
+  if (s.includes('out for delivery') || ship.includes('out for delivery')) return 'Out for Delivery';
+  if (s.includes('ship') || s.includes('transit') || ship.includes('in transit') || ship.includes('dispatched')) return 'In Transit';
   if (s.includes('pack') || s.includes('process') || s.includes('not picked') || s.includes('softdata')) return 'Order Processed';
   return 'Order Received';
 };
@@ -59,6 +72,15 @@ export default function AdminOrdersPage() {
     try {
       const res = await icarryService.trackShipment(order.id);
       if (res) {
+        // If live scans or status say cancelled, immediately update order to Cancelled
+        if (res.shippingStatus === 'Cancelled' || res.orderStatus === 'Cancelled') {
+          const cancelStep = (res.history || []).find((h) => /cancel/i.test(h.status || '') || /cancel/i.test(h.details || ''));
+          const reason = cancelStep?.details || cancelStep?.status || 'Seller cancelled the order';
+          setOrders((prev) =>
+            prev.map((o) => (o.id === order.id ? { ...o, orderStatus: 'Cancelled', shippingStatus: 'Cancelled', cancellationReason: reason } : o))
+          );
+          await orderService.updateOrderStatusAsync(order.id, 'Cancelled', reason).catch(() => {});
+        }
         setToastMsg(`Tracking synced: ${res.shippingStatus || 'Scanned'} for AWB ${order.trackingNumber}`);
         loadOrders();
       } else {
@@ -141,11 +163,11 @@ export default function AdminOrdersPage() {
     return orders.filter((o) => {
       const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
       const isPaid = o.paymentStatus === 'Paid';
-      const isCancelled = getCanonicalStatus(o.orderStatus) === 'Cancelled';
+      const isCancelled = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason) === 'Cancelled';
       const isRefunded = o.paymentStatus === 'Refunded';
       if (!isCOD && !isPaid && !isCancelled && !isRefunded) return false;
 
-      const s = getCanonicalStatus(o.orderStatus).toLowerCase();
+      const s = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason).toLowerCase();
       if (tabValue === 'all') return true;
       if (tabValue === 'active') return s !== 'delivered' && s !== 'cancelled';
       if (tabValue === 'cancelled') return s === 'cancelled';
@@ -158,7 +180,7 @@ export default function AdminOrdersPage() {
     // Exclude any unpaid orders where payment portal was just opened
     const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
     const isPaid = o.paymentStatus === 'Paid';
-    const isCancelled = getCanonicalStatus(o.orderStatus) === 'Cancelled';
+    const isCancelled = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason) === 'Cancelled';
     const isRefunded = o.paymentStatus === 'Refunded';
     if (!isCOD && !isPaid && !isCancelled && !isRefunded) return false;
 
@@ -175,10 +197,10 @@ export default function AdminOrdersPage() {
 
     let matchesStatus = true;
     if (statusFilter === 'active') {
-      const s = getCanonicalStatus(o.orderStatus).toLowerCase();
+      const s = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason).toLowerCase();
       matchesStatus = s !== 'delivered' && s !== 'cancelled';
     } else if (statusFilter !== 'all') {
-      matchesStatus = getCanonicalStatus(o.orderStatus).toLowerCase() === statusFilter.toLowerCase();
+      matchesStatus = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason).toLowerCase() === statusFilter.toLowerCase();
     }
 
     const matchesPayment = paymentFilter === 'all' || o.paymentStatus.toLowerCase() === paymentFilter.toLowerCase();
@@ -368,7 +390,9 @@ export default function AdminOrdersPage() {
                 filteredOrders.map((o) => {
                   const isSelected = selectedIds.includes(o.id);
                   const isBooked = Boolean(o.trackingNumber || o.shippingStatus === 'Booked');
-                  const isSoftdataOrNotPicked = o.shippingStatus?.toLowerCase().includes('softdata') || o.shippingStatus?.toLowerCase().includes('not picked');
+                  const canonical = getCanonicalStatus(o.orderStatus, o.shippingStatus, o.cancellationReason);
+                  const isOrderCancelled = canonical === 'Cancelled';
+                  const isSoftdataOrNotPicked = (o.shippingStatus?.toLowerCase().includes('softdata') || o.shippingStatus?.toLowerCase().includes('not picked')) && !isOrderCancelled;
 
                   return (
                     <tr
@@ -574,10 +598,10 @@ export default function AdminOrdersPage() {
                       <td className="py-4 px-4 whitespace-nowrap align-top">
                         <div className="space-y-1.5 flex flex-col items-start min-w-[150px]">
                           <select
-                            value={isSoftdataOrNotPicked ? 'Not Picked' : getCanonicalStatus(o.orderStatus)}
+                            value={isOrderCancelled ? 'Cancelled' : (isSoftdataOrNotPicked ? 'Not Picked' : canonical)}
                             onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
                             className={`bg-white border rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-none cursor-pointer w-full shadow-sm ${
-                              getCanonicalStatus(o.orderStatus) === 'Cancelled'
+                              isOrderCancelled
                                 ? 'border-red-400 text-red-600 focus:ring-2 focus:ring-red-200'
                                 : 'border-slate-300 text-slate-800 focus:ring-2 focus:ring-amber-400'
                             }`}
@@ -603,9 +627,9 @@ export default function AdminOrdersPage() {
                             </div>
                           )}
 
-                          {getCanonicalStatus(o.orderStatus) === 'Cancelled' && o.cancellationReason && (
+                          {isOrderCancelled && (
                             <div className="mt-1.5 text-xs text-red-600 font-semibold max-w-[170px] leading-tight">
-                              Reason: {o.cancellationReason}
+                              Reason: {o.cancellationReason || 'Seller cancelled the order'}
                             </div>
                           )}
                         </div>
@@ -646,6 +670,12 @@ export default function AdminOrdersPage() {
         onClose={() => {
           setIsTrackingModalOpen(false);
           setSelectedOrderForTracking(null);
+        }}
+        onOrderUpdated={(id, status, reason) => {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === id ? { ...o, orderStatus: status, shippingStatus: 'Cancelled', cancellationReason: reason || o.cancellationReason } : o))
+          );
+          orderService.updateOrderStatusAsync(id, status, reason).catch(() => {});
         }}
       />
 
