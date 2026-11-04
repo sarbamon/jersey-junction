@@ -1,5 +1,6 @@
 import { apiClient } from '../apiClient';
 import { AdminCustomer } from '../types/admin';
+import { orderService } from './orderService';
 
 const CUSTOMERS_KEY = 'jj_admin_customers';
 
@@ -58,16 +59,16 @@ export const customerService = {
         const realUsers: AdminCustomer[] = res.data
           .filter((u: any) => !isDemoCustomer(u))
           .map((u: any, idx: number) => ({
-            id: u._id || u.id || `cust-${idx + 1}`,
+            id: u.id || u._id || `cust-${idx + 1}`,
             name: u.name || 'Registered User',
             email: u.email || '',
             phone: u.phone || '',
             city: u.city || 'India',
             state: u.state || '',
             country: u.country || 'India',
-            ordersCount: u.ordersCount || 0,
-            totalSpent: u.totalSpent || 0,
-            joinedDate: u.createdAt ? u.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            ordersCount: Number(u.ordersCount) || 0,
+            totalSpent: Number(u.totalSpent) || 0,
+            joinedDate: u.joinedDate || (u.createdAt ? u.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]),
             status: u.isBanned || u.status === 'Banned' ? 'Banned' : (u.status || 'Active'),
             isBanned: Boolean(u.isBanned || u.status === 'Banned'),
             banReason: u.banReason || '',
@@ -80,6 +81,55 @@ export const customerService = {
     } catch (err) {
       console.warn('Failed to fetch customers from backend:', err);
     }
+
+    // Secondary fallback: derive customers from store orders if offline or backend unavailable
+    try {
+      const orders = orderService.getOrders();
+      if (orders && orders.length > 0) {
+        const byEmail = new Map<string, AdminCustomer>();
+        for (const o of orders) {
+          const email = (o.email || '').toLowerCase().trim();
+          if (!email || isDemoCustomer({ email, name: o.customerName })) continue;
+          if (!byEmail.has(email)) {
+            byEmail.set(email, {
+              id: `cust-${email.replace(/[^a-z0-9]/g, '')}`,
+              name: o.customerName || email.split('@')[0],
+              email: email,
+              phone: o.phone || o.shippingAddress?.phone || '',
+              city: o.shippingAddress?.city || 'India',
+              state: o.shippingAddress?.state || '',
+              country: o.shippingAddress?.country || 'India',
+              ordersCount: 0,
+              totalSpent: 0,
+              joinedDate: o.date || new Date().toISOString().split('T')[0],
+              status: 'Active',
+              isBanned: false,
+              banReason: '',
+            });
+          }
+          const c = byEmail.get(email)!;
+          c.ordersCount += 1;
+          c.totalSpent += (o.totalAmount || 0);
+          if (!c.phone && (o.phone || o.shippingAddress?.phone)) {
+            c.phone = o.phone || o.shippingAddress?.phone || '';
+          }
+          if (c.city === 'India' && o.shippingAddress?.city) {
+            c.city = o.shippingAddress.city;
+            c.state = o.shippingAddress.state || '';
+          }
+        }
+        const derived = Array.from(byEmail.values());
+        if (derived.length > 0) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(derived));
+          }
+          return derived;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     return local;
   },
 
@@ -88,9 +138,14 @@ export const customerService = {
     return customers.find(c => c.id === id || (c as any)._id === id);
   },
 
-  banCustomer: async (id: string, isBanned: boolean, reason?: string): Promise<{ success: boolean; message?: string }> => {
+  banCustomer: async (id: string, isBanned: boolean, reason?: string, customer?: AdminCustomer): Promise<{ success: boolean; message?: string }> => {
     try {
-      const res = await apiClient.put(`/auth/users/${id}/ban`, { isBanned, reason });
+      const res = await apiClient.put(`/auth/users/${id}/ban`, {
+        isBanned,
+        reason,
+        email: customer?.email,
+        name: customer?.name,
+      });
       if (res.success) {
         if (typeof window !== 'undefined') {
           const local = getLocalCustomers().map(c => 
@@ -108,9 +163,9 @@ export const customerService = {
     }
   },
 
-  adminResetPassword: async (id: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+  adminResetPassword: async (id: string, newPassword: string, email?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const res = await apiClient.put(`/auth/users/${id}/reset-password`, { newPassword });
+      const res = await apiClient.put(`/auth/users/${id}/reset-password`, { newPassword, email });
       if (res.success) {
         return { success: true, message: res.message || 'Password reset successfully' };
       }

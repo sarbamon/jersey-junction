@@ -10,6 +10,7 @@ export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [resetPasswordCustomer, setResetPasswordCustomer] = useState<AdminCustomer | null>(null);
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -19,8 +20,16 @@ export default function AdminCustomersPage() {
     setTimeout(() => setToastMsg(null), 4000);
   };
 
+  const loadCustomers = () => {
+    setIsLoading(true);
+    customerService.getCustomers()
+      .then((data) => setCustomers(data))
+      .catch(() => setCustomers(customerService.getCustomersSync()))
+      .finally(() => setIsLoading(false));
+  };
+
   useEffect(() => {
-    customerService.getCustomers().then(setCustomers);
+    loadCustomers();
   }, []);
 
   const filteredCustomers = customers.filter(c => 
@@ -45,7 +54,7 @@ export default function AdminCustomersPage() {
     }
 
     setActionLoading(true);
-    const res = await customerService.banCustomer(c.id, !isCurrentlyBanned, reason);
+    const res = await customerService.banCustomer(c.id, !isCurrentlyBanned, reason, c);
     if (res.success) {
       setCustomers(prev => prev.map(cust => 
         cust.id === c.id 
@@ -72,7 +81,7 @@ export default function AdminCustomersPage() {
     }
 
     setActionLoading(true);
-    const res = await customerService.adminResetPassword(resetPasswordCustomer.id, newPasswordInput);
+    const res = await customerService.adminResetPassword(resetPasswordCustomer.id, newPasswordInput, resetPasswordCustomer.email);
     if (res.success) {
       showToast('success', `Password successfully updated for ${resetPasswordCustomer.name}`);
       setResetPasswordCustomer(null);
@@ -100,6 +109,16 @@ export default function AdminCustomersPage() {
             View registered user profiles, order frequency, total spending, and VIP statuses.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={loadCustomers}
+          disabled={isLoading}
+          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold rounded-xl text-xs cursor-pointer flex items-center gap-2 transition-colors disabled:opacity-50 shrink-0 self-start sm:self-center border border-zinc-700/60 shadow-xs"
+          title="Refresh Customers Directory"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
+          <span>Refresh Directory</span>
+        </button>
       </div>
 
       {/* Search Bar */}
@@ -133,7 +152,16 @@ export default function AdminCustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 font-medium">
-              {filteredCustomers.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-zinc-400 text-xs">
+                    <div className="flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                      <span>Loading customer directory...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs">
                     No customer accounts found matching search term.
