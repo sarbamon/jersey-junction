@@ -53,7 +53,7 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [whatsappSentUrl, setWhatsappSentUrl] = useState('');
-  const [whatsappNumber, setWhatsappNumber] = useState('917002740268');
+  const [whatsappNumber, setWhatsappNumber] = useState('916001142358');
 
   // User Account Orders
   const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
@@ -110,10 +110,10 @@ export default function ContactPage() {
 
   useEffect(() => {
     const s = settingsService.getSettings();
-    const raw = s.storeWhatsapp || s.storePhone || '917002740268';
+    const raw = s.storeWhatsapp || s.storePhone || '916001142358';
     const clean = raw.replace(/\D/g, '');
     const withCountry = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
-    setWhatsappNumber(withCountry || '917002740268');
+    setWhatsappNumber(withCountry || '916001142358');
   }, []);
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export default function ContactPage() {
       message.trim(),
     ].filter(Boolean).join('\n');
 
-    const clean = whatsappNumber.replace(/\D/g, '') || '917002740268';
+    const clean = whatsappNumber.replace(/\D/g, '') || '916001142358';
     const target = clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean);
     const waUrl = `https://wa.me/${target}?text=${encodeURIComponent(lines)}`;
 
