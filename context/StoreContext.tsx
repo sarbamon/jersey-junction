@@ -9,6 +9,49 @@ import { settingsService } from '../lib/services/settingsService';
 
 export type Theme = 'dark' | 'light';
 
+export interface AppliedCouponData {
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrder?: number;
+  maxDiscount?: number;
+  discountAmount?: number;
+}
+
+export function calculateCouponDiscount(
+  subtotal: number,
+  coupon: AppliedCouponData | null | undefined,
+  fallbackPercentage: number = 0
+): number {
+  if (!subtotal || subtotal <= 0) return 0;
+  if (!coupon && fallbackPercentage <= 0) return 0;
+
+  if (coupon) {
+    if (coupon.minOrder && coupon.minOrder > 0 && subtotal < coupon.minOrder) {
+      return 0;
+    }
+
+    if (coupon.discountType === 'percentage') {
+      const percentage = Number(coupon.discountValue) || 0;
+      const rawDiscount = (subtotal * percentage) / 100;
+      const maxCap = Number(coupon.maxDiscount) || 0;
+      if (maxCap > 0 && rawDiscount > maxCap) {
+        return Math.round(maxCap);
+      }
+      return Math.round(rawDiscount);
+    } else if (coupon.discountType === 'fixed') {
+      const fixedVal = Number(coupon.discountValue) || 0;
+      return Math.round(Math.min(subtotal, fixedVal));
+    }
+  }
+
+  if (fallbackPercentage > 0) {
+    return Math.round((subtotal * fallbackPercentage) / 100);
+  }
+
+  return 0;
+}
+
 interface StoreContextType {
   cartItems: CartItem[];
   wishlist: JerseyProduct[];
@@ -24,6 +67,7 @@ interface StoreContextType {
   discountPercentage: number;
   setDiscountPercentage: (discount: number) => void;
   appliedCouponCode: string | null;
+  appliedCoupon: AppliedCouponData | null;
   appliedCouponMsg: string;
   removeCoupon: () => void;
   setActiveCurrency: (currency: Currency) => void;
@@ -52,6 +96,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCouponData | null>(null);
   const [appliedCouponMsg, setAppliedCouponMsg] = useState<string>('');
   const [theme, setTheme] = useState<Theme>('dark');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -307,6 +352,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeCoupon = () => {
+    setAppliedCoupon(null);
     setAppliedCouponCode(null);
     setDiscountPercentage(0);
     setAppliedCouponMsg('');
@@ -317,11 +363,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const result = await couponService.validateCoupon(code, rawSubtotal);
 
     if (result.valid) {
-      setAppliedCouponCode(code.trim().toUpperCase());
+      const cleanCode = code.trim().toUpperCase();
+      const couponData: AppliedCouponData = {
+        code: cleanCode,
+        discountType: (result.coupon?.discountType as any) || 'percentage',
+        discountValue: Number(result.coupon?.discountValue ?? result.discountPercentage) || 0,
+        minOrder: Number(result.coupon?.minOrder) || 0,
+        maxDiscount: Number(result.coupon?.maxDiscount) || 0,
+        discountAmount: Number(result.discountAmount) || 0,
+      };
+      setAppliedCoupon(couponData);
+      setAppliedCouponCode(cleanCode);
       setDiscountPercentage(result.discountPercentage);
       setAppliedCouponMsg(result.message);
       return { success: true, message: result.message };
     } else {
+      setAppliedCoupon(null);
       setAppliedCouponCode(null);
       setDiscountPercentage(0);
       setAppliedCouponMsg(result.message);
@@ -346,6 +403,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         discountPercentage,
         setDiscountPercentage,
         appliedCouponCode,
+        appliedCoupon,
         appliedCouponMsg,
         removeCoupon,
         setActiveCurrency,

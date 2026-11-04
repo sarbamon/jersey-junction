@@ -8,7 +8,7 @@ import confettiFn from 'canvas-confetti';
 import { Lock, Check, CreditCard, ArrowRight, ChevronRight, ShoppingBag, ShieldCheck, Truck, Smartphone, Banknote, Shield, CheckCircle2, MapPin, User, Tag, Ticket, X, AlertCircle, Loader2, Sparkles, Percent, Mail, RefreshCw, Minus, Plus } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
-import { useStore } from '../../context/StoreContext';
+import { useStore, calculateCouponDiscount } from '../../context/StoreContext';
 import { orderService } from '../../lib/services/orderService';
 import { paymentService } from '../../lib/services/paymentService';
 import { productService } from '../../lib/services/productService';
@@ -41,6 +41,7 @@ export default function CheckoutPage() {
     setIsCartOpen,
     setIsAuthOpen,
     appliedCouponCode,
+    appliedCoupon,
     discountPercentage,
     appliedCouponMsg,
     applyCoupon,
@@ -53,9 +54,6 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
-  const [isCouponsModalOpen, setIsCouponsModalOpen] = useState(false);
-  const [availableCoupons, setAvailableCoupons] = useState<AdminCoupon[]>([]);
-  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
 
   // Auto-reset to Step 1 if cart is empty
   useEffect(() => {
@@ -335,10 +333,8 @@ export default function CheckoutPage() {
 
   const rawSubtotalINR = baseJerseysTotalINR + customPrintingTotalINR + patchesTotalINR;
 
-  // Authoritative discount amount
-  const discountAmountINR = appliedCouponCode && discountPercentage > 0
-    ? Math.round((rawSubtotalINR * discountPercentage) / 100)
-    : 0;
+  // Authoritative discount amount (strictly enforcing Max Discount Cap)
+  const discountAmountINR = calculateCouponDiscount(rawSubtotalINR, appliedCoupon, discountPercentage);
 
   const expressPrice = typeof storeSettings?.expressShippingCharge === 'number'
     ? storeSettings.expressShippingCharge
@@ -372,25 +368,11 @@ export default function CheckoutPage() {
         setCouponError(res.message || 'Invalid coupon code.');
       } else {
         setCouponInput('');
-        setIsCouponsModalOpen(false);
       }
     } catch (err: any) {
       setCouponError(err.message || 'Failed to apply coupon.');
     } finally {
       setIsApplyingCoupon(false);
-    }
-  };
-
-  const handleOpenCouponsModal = async () => {
-    setIsCouponsModalOpen(true);
-    setIsLoadingCoupons(true);
-    try {
-      const list = await couponService.fetchCoupons();
-      setAvailableCoupons(list.filter((c) => c.status === 'Active'));
-    } catch {
-      setAvailableCoupons([]);
-    } finally {
-      setIsLoadingCoupons(false);
     }
   };
 
@@ -1202,15 +1184,6 @@ export default function CheckoutPage() {
                       <Ticket className="w-3.5 h-3.5 text-[#f4c84a]" />
                       <span>Discount Coupon</span>
                     </span>
-
-                    <button
-                      type="button"
-                      onClick={handleOpenCouponsModal}
-                      className="text-[11px] text-[#f4c84a] hover:text-[#ffd96a] font-bold underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      <span>View Available Coupons</span>
-                    </button>
                   </div>
 
                   {appliedCouponCode ? (
@@ -1222,7 +1195,9 @@ export default function CheckoutPage() {
                             COUPON &ldquo;<span className="text-emerald-400 font-bold">{appliedCouponCode}</span>&rdquo; APPLIED
                           </div>
                           <div className="text-[10px] text-emerald-400/90 font-mono">
-                            {discountPercentage > 0 ? `${discountPercentage}% Discount Applied (-${activeCurrency.symbol}${discountAmountConverted})` : appliedCouponMsg}
+                            {discountAmountINR > 0
+                              ? `${appliedCoupon?.discountValue || discountPercentage}${appliedCoupon?.discountType === 'percentage' ? '%' : ' FLAT'} Discount Applied${appliedCoupon?.maxDiscount && appliedCoupon.maxDiscount > 0 ? ` (Capped at ₹${appliedCoupon.maxDiscount})` : ''} (-${activeCurrency.symbol}${discountAmountConverted})`
+                              : appliedCouponMsg}
                           </div>
                         </div>
                       </div>
@@ -1363,103 +1338,6 @@ export default function CheckoutPage() {
         onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
         onSelectSport={() => router.push('/shop')}
       />
-
-      {/* Available Coupons Modal */}
-      {isCouponsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0e0e0e] border border-[#2b2b2b] rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-[#222] pb-4">
-              <div className="flex items-center gap-2 text-[#f4c84a]">
-                <Ticket className="w-5 h-5" />
-                <h3 className="font-serif font-black text-base text-white uppercase tracking-wider">
-                  Available Promo Coupons
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCouponsModalOpen(false)}
-                className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {isLoadingCoupons ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-400">
-                <Loader2 className="w-6 h-6 animate-spin text-[#f4c84a]" />
-                <span className="text-xs font-mono">Loading active coupons...</span>
-              </div>
-            ) : availableCoupons.length === 0 ? (
-              <div className="py-8 text-center space-y-2">
-                <Ticket className="w-8 h-8 text-gray-600 mx-auto" />
-                <p className="text-xs text-gray-400">No promo coupons available right now.</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                {availableCoupons.map((coupon) => {
-                  const isCurrent = appliedCouponCode === coupon.code;
-                  return (
-                    <div
-                      key={coupon.id || coupon.code}
-                      className={`p-4 rounded-2xl border transition-all space-y-2.5 ${
-                        isCurrent
-                          ? 'bg-emerald-500/10 border-emerald-500/40 shadow'
-                          : 'bg-[#151515] border-[#292929] hover:border-[#f4c84a]/50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-sm text-[#f4c84a] tracking-wider uppercase bg-[#f4c84a]/10 border border-[#f4c84a]/30 px-2 py-0.5 rounded-md">
-                              {coupon.code}
-                            </span>
-                            {isCurrent && (
-                              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
-                                Applied
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs font-bold text-white mt-1">
-                            {coupon.discountType === 'percentage'
-                              ? `${coupon.discountValue}% OFF`
-                              : `₹${coupon.discountValue} OFF`}
-                            {coupon.minOrder > 0 && ` on orders above ₹${coupon.minOrder}`}
-                          </div>
-                        </div>
-
-                        {!isCurrent ? (
-                          <button
-                            type="button"
-                            onClick={() => handleApplyCoupon(undefined, coupon.code)}
-                            disabled={isApplyingCoupon}
-                            className="px-3.5 py-1.5 bg-[#f4c84a] hover:bg-[#ffd96a] text-black font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow shrink-0"
-                          >
-                            Apply
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={removeCoupon}
-                            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-[11px] uppercase rounded-xl transition-all cursor-pointer shrink-0"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-
-                      {coupon.expiryDate && (
-                        <div className="text-[10px] text-gray-500 font-mono">
-                          Expires: {coupon.expiryDate}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <SizeGuideModal isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
       <CustomJerseyStudio isOpen={isCustomStudioOpen} onClose={() => setIsCustomStudioOpen(false)} activeCurrency={activeCurrency} onAddToCart={addToCart} />

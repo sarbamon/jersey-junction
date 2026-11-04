@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Tag, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { JerseyViewerSVG } from './JerseyViewerSVG';
-import { useStore } from '../context/StoreContext';
+import { useStore, calculateCouponDiscount } from '../context/StoreContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -34,6 +34,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     currentUser, 
     setIsAuthOpen,
     discountPercentage, 
+    appliedCoupon,
     applyCoupon, 
     appliedCouponCode, 
     appliedCouponMsg, 
@@ -60,7 +61,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const rawSubtotalUSD = items.reduce((acc, item) => acc + item.totalPrice, 0);
   const activeDiscount = discountPercentage || propDiscountPercentage || 0;
-  const discountUSD = (rawSubtotalUSD * activeDiscount) / 100;
+  const discountUSD = calculateCouponDiscount(rawSubtotalUSD, appliedCoupon, activeDiscount);
   const finalSubtotalUSD = Math.max(0, rawSubtotalUSD - discountUSD);
 
   const freeShippingThresholdUSD = 75;
@@ -256,7 +257,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2.5 text-xs">
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
                     <Tag className="w-3.5 h-3.5" />
-                    <span>COUPON &ldquo;{appliedCouponCode}&rdquo; APPLIED ({activeDiscount}% OFF)</span>
+                    <span>
+                      COUPON &ldquo;{appliedCouponCode}&rdquo; APPLIED
+                      {appliedCoupon?.maxDiscount && appliedCoupon.maxDiscount > 0
+                        ? ` (Capped at ₹${appliedCoupon.maxDiscount})`
+                        : ` (${activeDiscount}% OFF)`}
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -304,9 +310,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <span>Subtotal</span>
                   <span className="text-slate-900 dark:text-zinc-100 font-medium">{activeCurrency.symbol}{(rawSubtotalUSD * activeCurrency.rate).toFixed(2)}</span>
                 </div>
-                {discountPercentage > 0 && (
+                {discountUSD > 0 && (
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <span>Discount ({discountPercentage}%)</span>
+                    <span>
+                      Coupon Discount
+                      {appliedCoupon?.maxDiscount && appliedCoupon.maxDiscount > 0
+                        ? ` (Max ₹${appliedCoupon.maxDiscount})`
+                        : ` (${activeDiscount}%)`}
+                    </span>
                     <span>-{activeCurrency.symbol}{(discountUSD * activeCurrency.rate).toFixed(2)}</span>
                   </div>
                 )}

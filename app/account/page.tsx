@@ -6,13 +6,11 @@ import Image from 'next/image';
 import { ShoppingBag, Clock, Heart, Ticket, ArrowRight, Eye, ChevronRight } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { orderService } from '../../lib/services/orderService';
-import { couponService } from '../../lib/services/couponService';
 import { AdminOrder } from '../../lib/types/admin';
 
 export default function AccountOverviewPage() {
   const { currentUser, wishlist } = useStore();
   const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
-  const [availableCouponsCount, setAvailableCouponsCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -24,9 +22,6 @@ export default function AccountOverviewPage() {
       }).catch(() => {
         if (isMounted) setUserOrders([]);
       });
-
-      const coupons = couponService.getCoupons();
-      setAvailableCouponsCount(coupons.filter(c => c.status === 'Active').length);
     }
     return () => { isMounted = false; };
   }, [currentUser]);
@@ -49,8 +44,8 @@ export default function AccountOverviewPage() {
         </h1>
       </div>
 
-      {/* 4 Summary Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* 3 Summary Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
         <Link href="/account/orders" className="bg-[#0d0d0d] border border-[#242424] p-4 rounded-2xl hover:border-[#f4c84a]/50 transition-colors group">
           <div className="flex items-center justify-between text-gray-400 mb-2">
@@ -74,14 +69,6 @@ export default function AccountOverviewPage() {
             <Heart className="w-4 h-4 text-[#f4c84a]" />
           </div>
           <div className="text-2xl font-black font-mono text-white">{wishlist.length}</div>
-        </Link>
-
-        <Link href="/account/coupons" className="bg-[#0d0d0d] border border-[#242424] p-4 rounded-2xl hover:border-[#f4c84a]/50 transition-colors group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Coupons</span>
-            <Ticket className="w-4 h-4 text-[#f4c84a]" />
-          </div>
-          <div className="text-2xl font-black font-mono text-[#f4c84a]">{availableCouponsCount}</div>
         </Link>
 
       </div>

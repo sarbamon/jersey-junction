@@ -52,7 +52,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     { label: 'Overview', href: '/account', icon: LayoutDashboard },
     { label: 'My Orders', href: '/account/orders', icon: ShoppingBag },
     { label: 'Wishlist', href: '/account/wishlist', icon: Heart },
-    { label: 'Coupons', href: '/account/coupons', icon: Ticket },
     { label: 'Profile', href: '/account/profile', icon: User },
     { label: 'Addresses', href: '/account/addresses', icon: MapPin },
   ];
