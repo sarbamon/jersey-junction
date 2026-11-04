@@ -210,10 +210,16 @@ export const orderService = {
         note: timelineNote,
       });
 
+      const isUncancelling = order.orderStatus === 'Cancelled' && newStatus !== 'Cancelled';
+      const newShippingStatus = (order.shippingStatus === 'Cancelled' && newStatus !== 'Cancelled')
+        ? (order.trackingNumber ? 'In Transit' : 'Not Booked')
+        : (newStatus === 'Cancelled' ? 'Cancelled' : order.shippingStatus);
+
       updatedOrder = {
         ...order,
         orderStatus: newStatus,
-        cancellationReason: newStatus === 'Cancelled' ? (cancellationReason || order.cancellationReason) : order.cancellationReason,
+        shippingStatus: newShippingStatus,
+        cancellationReason: newStatus === 'Cancelled' ? (cancellationReason || order.cancellationReason || 'Cancelled') : '',
         timeline: newTimeline,
       };
 
@@ -243,7 +249,7 @@ export const orderService = {
         paymentMethod: 'Credit Card',
         paymentStatus: 'Paid',
         orderStatus: newStatus,
-        cancellationReason: newStatus === 'Cancelled' ? cancellationReason : undefined,
+        cancellationReason: newStatus === 'Cancelled' ? cancellationReason : '',
         date: new Date().toISOString().split('T')[0],
         timeline: [],
       };
@@ -257,7 +263,8 @@ export const orderService = {
     try {
       const res = await apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { 
         orderStatus: newStatus,
-        cancellationReason: newStatus === 'Cancelled' ? cancellationReason : undefined
+        cancellationReason: newStatus === 'Cancelled' ? cancellationReason : '',
+        clearCancellation: newStatus !== 'Cancelled'
       });
       if (res.success && res.data) {
         return res.data;

@@ -17,22 +17,17 @@ import { OrderProductImage } from '../../../components/OrderProductImage';
 
 const getCanonicalStatus = (status: string, cancellationReason?: string): OrderStatus => {
   const s = String(status || '').toLowerCase().trim();
-  const reason = String(cancellationReason || '').trim();
 
-  // An order is only Cancelled if orderStatus is explicitly Cancelled or failed/returned,
-  // or a cancellation reason exists and it has not been unlinked/reprocessed.
-  if (
-    s.includes('cancel') ||
-    s.includes('fail') ||
-    s === 'returned' ||
-    (reason && s !== 'delivered' && s !== 'order processed' && s !== 'in transit')
-  ) {
+  // An order is only Cancelled if orderStatus is explicitly Cancelled, failed, or returned.
+  if (s.includes('cancel') || s.includes('fail') || s === 'returned') {
     return 'Cancelled';
   }
   if (s === 'delivered') return 'Delivered';
   if (s.includes('out for delivery')) return 'Out for Delivery';
   if (s.includes('ship') || s.includes('transit')) return 'In Transit';
   if (s.includes('pack') || s.includes('process') || s.includes('not picked') || s.includes('softdata')) return 'Order Processed';
+  if (s === 'order received') return 'Order Received';
+  if (cancellationReason && !s) return 'Cancelled';
   return 'Order Received';
 };
 
@@ -131,7 +126,7 @@ export default function AdminOrdersPage() {
     if (!editingTrackingOrder) return;
     const id = editingTrackingOrder.id;
 
-    // 1. Optimistic update
+    // 1. Optimistic update - saving tracking sets orderStatus to In Transit and clears cancellation
     setOrders((prev) =>
       prev.map((o) =>
         o.id === id
@@ -140,7 +135,9 @@ export default function AdminOrdersPage() {
               trackingNumber,
               courierName,
               labelUrl: trackingUrl,
-              shippingStatus: o.shippingStatus === 'Not Booked' || !o.shippingStatus ? 'Booked' : o.shippingStatus,
+              shippingStatus: 'In Transit',
+              orderStatus: 'In Transit',
+              cancellationReason: '',
             }
           : o
       )
@@ -151,9 +148,11 @@ export default function AdminOrdersPage() {
         trackingNumber,
         courierName,
         labelUrl: trackingUrl,
-        shippingStatus: editingTrackingOrder.shippingStatus === 'Not Booked' || !editingTrackingOrder.shippingStatus ? 'Booked' : editingTrackingOrder.shippingStatus,
+        shippingStatus: 'In Transit',
+        orderStatus: 'In Transit',
+        cancellationReason: '',
       });
-      setToastMsg(`Tracking details updated for order ${id}`);
+      setToastMsg(`Tracking details added for order ${id}. Order restored to In Transit.`);
       loadOrders();
     } catch (err: any) {
       setToastMsg(`Failed to save tracking info: ${err.message || 'Error'}`);
@@ -172,8 +171,20 @@ export default function AdminOrdersPage() {
     }
 
     // 1. Optimistic UI update so dropdown updates immediately without snapping back
+    // When changing away from Cancelled, clear cancellationReason and reset shippingStatus
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus } : o))
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const resetShipping = (o.shippingStatus === 'Cancelled' || !o.shippingStatus)
+          ? (o.trackingNumber ? 'In Transit' : 'Not Booked')
+          : o.shippingStatus;
+        return {
+          ...o,
+          orderStatus: newStatus,
+          cancellationReason: '',
+          shippingStatus: resetShipping,
+        };
+      })
     );
 
     try {
@@ -634,17 +645,30 @@ export default function AdminOrdersPage() {
                         ) : (
                           <div className="space-y-1.5">
                             <span className="text-xs font-mono text-slate-400 block font-medium">Not Booked</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedOrderForICarry(o);
-                                setIsICarryModalOpen(true);
-                              }}
-                              className="px-3 py-1.5 bg-[#f4c84a] hover:bg-[#e0b438] text-slate-950 font-bold text-xs rounded-lg transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                              <span>Book Shipment</span>
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForICarry(o);
+                                  setIsICarryModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 bg-[#f4c84a] hover:bg-[#e0b438] text-slate-950 font-bold text-xs rounded-lg transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>Book Shipment</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingTrackingOrder(o);
+                                  setIsEditTrackingModalOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg transition-all inline-flex items-center gap-1 cursor-pointer shadow-xs hover:border-slate-400 shrink-0"
+                                title="Add Tracking / AWB Manually"
+                              >
+                                <span>+ Add Manually</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </td>
@@ -683,8 +707,18 @@ export default function AdminOrdersPage() {
                           )}
 
                           {isOrderCancelled && (
-                            <div className="mt-1.5 text-xs text-red-600 font-semibold max-w-[170px] leading-tight">
-                              Reason: {o.cancellationReason || 'Seller cancelled the order'}
+                            <div className="mt-1.5 space-y-1 max-w-[170px]">
+                              <div className="text-xs text-red-600 font-semibold leading-tight">
+                                Reason: {o.cancellationReason || 'Seller cancelled the order'}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(o.id, 'In Transit')}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                title="Restore order to In Transit"
+                              >
+                                <span>↩ Un-cancel Order</span>
+                              </button>
                             </div>
                           )}
                         </div>

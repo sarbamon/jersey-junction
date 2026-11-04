@@ -26,7 +26,7 @@ export const EditTrackingModal: React.FC<EditTrackingModalProps> = ({
   useEffect(() => {
     if (order && isOpen) {
       setTrackingNumber(order.trackingNumber || '');
-      setCourierName(order.courierName || 'DELHIVERY SURFACE');
+      setCourierName(order.courierName || '');
       setTrackingUrl(order.labelUrl || '');
       setErrorMsg('');
     }
@@ -45,7 +45,7 @@ export const EditTrackingModal: React.FC<EditTrackingModalProps> = ({
     setIsSaving(true);
     setErrorMsg('');
     try {
-      await onSave(cleanAwb, courierName.trim() || 'DELHIVERY SURFACE', trackingUrl.trim());
+      await onSave(cleanAwb, courierName.trim() || 'BlueDart', trackingUrl.trim());
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to update tracking details.');
@@ -68,7 +68,7 @@ export const EditTrackingModal: React.FC<EditTrackingModalProps> = ({
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-base font-extrabold font-sans uppercase tracking-tight text-slate-900">
-                EDIT TRACKING INFO
+                {order.trackingNumber ? 'EDIT TRACKING INFO' : 'ADD TRACKING MANUALLY'}
               </h2>
               <p className="text-xs text-slate-500 font-mono mt-0.5">
                 Order <span className="font-semibold text-slate-700">#{order.id.replace('#', '')}</span>
@@ -110,7 +110,7 @@ export const EditTrackingModal: React.FC<EditTrackingModalProps> = ({
                 setTrackingNumber(e.target.value);
                 if (errorMsg) setErrorMsg('');
               }}
-              placeholder="e.g. 16249323805492"
+              placeholder={order.trackingNumber ? "e.g. 16249323805492" : "e.g. 1234567890 or AWB98765"}
               className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all shadow-xs"
             />
           </div>
@@ -124,7 +124,7 @@ export const EditTrackingModal: React.FC<EditTrackingModalProps> = ({
               type="text"
               value={courierName}
               onChange={(e) => setCourierName(e.target.value)}
-              placeholder="e.g. DELHIVERY SURFACE"
+              placeholder="e.g. BlueDart, DTDC, Delhivery, Speed Post"
               className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-sans text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all shadow-xs"
             />
           </div>
