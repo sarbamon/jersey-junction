@@ -44,10 +44,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const handleStatusChange = (newStatus: OrderStatus) => {
-    const updated = orderService.updateOrderStatus(order.id, newStatus);
-    setOrder(updated);
-    setToastMsg(`Order status updated to ${newStatus}`);
+  const handleStatusChange = async (newStatus: OrderStatus) => {
+    setOrder((prev) => (prev ? { ...prev, orderStatus: newStatus } : null));
+    try {
+      const updated = await orderService.updateOrderStatusAsync(order.id, newStatus);
+      setOrder(updated);
+      setToastMsg(`Order status updated to ${newStatus}`);
+    } catch (err: any) {
+      setToastMsg(`Failed to update status: ${err.message || 'Error'}`);
+    }
   };
 
   const handlePaymentStatusChange = (newPaymentStatus: PaymentStatus) => {

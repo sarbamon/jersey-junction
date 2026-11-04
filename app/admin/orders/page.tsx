@@ -35,9 +35,18 @@ export default function AdminOrdersPage() {
     loadOrders();
   }, []);
 
-  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-    orderService.updateOrderStatus(orderId, newStatus);
-    setToastMsg(`Order ${orderId} status updated to ${newStatus}`);
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    // 1. Optimistic UI update so dropdown updates immediately without snapping back
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus } : o))
+    );
+
+    try {
+      await orderService.updateOrderStatusAsync(orderId, newStatus);
+      setToastMsg(`Order ${orderId} status updated to ${newStatus}`);
+    } catch (err: any) {
+      setToastMsg(`Failed to update status: ${err.message || 'Error'}`);
+    }
     loadOrders();
   };
 
@@ -83,9 +92,15 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const handleBulkStatusChange = (newStatus: OrderStatus) => {
+  const handleBulkStatusChange = async (newStatus: OrderStatus) => {
     if (selectedIds.length === 0) return;
-    selectedIds.forEach(id => orderService.updateOrderStatus(id, newStatus));
+    setOrders((prev) =>
+      prev.map((o) => (selectedIds.includes(o.id) ? { ...o, orderStatus: newStatus } : o))
+    );
+    setToastMsg(`Updating ${selectedIds.length} order(s) to ${newStatus}...`);
+    for (const id of selectedIds) {
+      await orderService.updateOrderStatusAsync(id, newStatus);
+    }
     setToastMsg(`Updated ${selectedIds.length} order(s) status to ${newStatus}`);
     loadOrders();
   };

@@ -252,6 +252,19 @@ export const orderService = {
     return updatedOrder;
   },
 
+  updateOrderStatusAsync: async (id: string, newStatus: OrderStatus): Promise<AdminOrder> => {
+    const updated = orderService.updateOrderStatus(id, newStatus);
+    try {
+      const res = await apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { orderStatus: newStatus });
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Failed to update status on backend API:', err);
+    }
+    return updated;
+  },
+
   updatePaymentStatus: (id: string, newStatus: PaymentStatus): AdminOrder => {
     const orders = orderService.getOrders();
     const index = orders.findIndex((o) => o.id === id || o.id === `#${id}`);
