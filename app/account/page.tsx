@@ -2,139 +2,170 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ShoppingBag, Clock, Heart, Ticket, ArrowRight, Eye, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { 
+  Package, 
+  Heart, 
+  MapPin, 
+  Lock, 
+  Ticket, 
+  Headphones, 
+  ArrowRight,
+  LogOut
+} from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
-import { orderService } from '../../lib/services/orderService';
-import { AdminOrder } from '../../lib/types/admin';
+import { productService } from '../../lib/services/productService';
+import { settingsService } from '../../lib/services/settingsService';
+import { JerseyProduct } from '../../types';
+import { OrderProductImage } from '../../components/OrderProductImage';
 
 export default function AccountOverviewPage() {
-  const { currentUser, wishlist } = useStore();
-  const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
+  const router = useRouter();
+  const { currentUser, logoutUser } = useStore();
+  const [recommended, setRecommended] = useState<JerseyProduct[]>([]);
 
   useEffect(() => {
     let isMounted = true;
-    if (currentUser) {
-      orderService.getUserOrdersAsync(currentUser.email, currentUser.phone).then((matched) => {
-        if (isMounted) {
-          setUserOrders(matched || []);
-        }
-      }).catch(() => {
-        if (isMounted) setUserOrders([]);
-      });
-    }
+    productService.getActiveProducts().then((prods) => {
+      if (isMounted && prods && prods.length > 0) {
+        setRecommended(prods.slice(0, 4));
+      }
+    }).catch(() => {
+      const cached = productService.getCachedProductsSync();
+      if (isMounted && cached && cached.length > 0) {
+        setRecommended(cached.slice(0, 4));
+      }
+    });
     return () => { isMounted = false; };
-  }, [currentUser]);
+  }, []);
 
   if (!currentUser) return null;
 
-  const pendingOrdersCount = userOrders.filter(o => 
-    o.orderStatus !== 'Delivered' && o.orderStatus !== 'Cancelled'
-  ).length;
+  const handleLogout = () => {
+    logoutUser();
+    router.push('/');
+  };
 
-  const recentOrders = userOrders.slice(0, 4);
+  const storeSettings = settingsService.getSettings();
+  const rawWa = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
+  const whatsappNumber = rawWa.replace(/[^0-9]/g, '') || '916001142358';
+
+  const actionTiles = [
+    { label: 'Orders', href: '/account/orders', icon: Package },
+    { label: 'Wishlist', href: '/account/wishlist', icon: Heart },
+    { label: 'Address', href: '/account/addresses', icon: MapPin },
+    { label: 'Set Password', href: '/account/profile', icon: Lock },
+    { label: 'Coupons', href: '/account/coupons', icon: Ticket },
+    { label: 'Help Center', href: `https://wa.me/${whatsappNumber}`, icon: Headphones, isExternal: true },
+  ];
 
   return (
-    <div className="space-y-8 font-sans">
+    <div className="space-y-10 font-sans max-w-5xl mx-auto">
       
-      {/* Welcome Banner */}
-      <div className="bg-[#0d0d0d] border border-[#242424] p-6 sm:p-8 rounded-2xl">
-        <h1 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-white">
-          WELCOME BACK, {currentUser.name.split(' ')[0]}
-        </h1>
-      </div>
-
-      {/* 3 Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        
-        <Link href="/account/orders" className="bg-[#0d0d0d] border border-[#242424] p-4 rounded-2xl hover:border-[#f4c84a]/50 transition-colors group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Total Orders</span>
-            <ShoppingBag className="w-4 h-4 text-[#f4c84a]" />
-          </div>
-          <div className="text-2xl font-black font-mono text-white">{userOrders.length}</div>
-        </Link>
-
-        <Link href="/account/orders" className="bg-[#0d0d0d] border border-[#242424] p-4 rounded-2xl hover:border-[#f4c84a]/50 transition-colors group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Pending Orders</span>
-            <Clock className="w-4 h-4 text-[#f4c84a]" />
-          </div>
-          <div className="text-2xl font-black font-mono text-amber-400">{pendingOrdersCount}</div>
-        </Link>
-
-        <Link href="/account/wishlist" className="bg-[#0d0d0d] border border-[#242424] p-4 rounded-2xl hover:border-[#f4c84a]/50 transition-colors group">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Wishlist Items</span>
-            <Heart className="w-4 h-4 text-[#f4c84a]" />
-          </div>
-          <div className="text-2xl font-black font-mono text-white">{wishlist.length}</div>
-        </Link>
-
-      </div>
-
-      {/* Recent Orders Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold font-serif uppercase tracking-wider text-white">
-            RECENT ORDERS
-          </h2>
-          <Link href="/account/orders" className="text-xs font-bold text-[#f4c84a] hover:underline flex items-center gap-1">
-            <span>View All Orders</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#242424] gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-white">
+            Hello, {currentUser.name}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-400 font-mono mt-1">
+            {currentUser.email}
+          </p>
         </div>
 
-        <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl overflow-hidden">
-          {recentOrders.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-400 space-y-3">
-              <ShoppingBag className="w-8 h-8 text-gray-600 mx-auto" />
-              <div>You haven&apos;t placed any orders yet.</div>
-              <Link href="/shop" className="inline-block px-4 py-2 bg-[#f4c84a] text-black font-bold uppercase rounded-lg text-xs">
-                Browse Shop
-              </Link>
+        <div>
+          <button
+            onClick={handleLogout}
+            className="text-red-400 hover:text-red-300 font-bold uppercase tracking-wider text-xs border border-red-500/30 px-4 py-2 rounded-xl hover:bg-red-500/10 transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>SIGN OUT</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 6 Action Tiles Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        {actionTiles.map((tile) => {
+          const Icon = tile.icon;
+          const content = (
+            <div className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/60 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 transition-all duration-200 group hover:-translate-y-0.5 shadow-sm min-h-[130px] sm:min-h-[150px]">
+              <div className="text-gray-300 group-hover:text-[#f4c84a] transition-colors">
+                <Icon className="w-7 h-7 sm:w-8 sm:h-8 group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-white transition-colors">
+                {tile.label}
+              </span>
             </div>
-          ) : (
-            <div className="divide-y divide-[#222]">
-              {recentOrders.map((o) => (
-                <div key={o.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs hover:bg-[#121212] transition-colors">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-extrabold text-[#f4c84a] text-sm">{o.id}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                        o.orderStatus === 'Delivered' 
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                      }`}>
-                        {o.orderStatus}
-                      </span>
-                    </div>
+          );
 
-                    <div className="text-white font-medium text-xs truncate max-w-md">
-                      {o.items.map(i => i.name).join(', ')}
-                    </div>
+          if (tile.isExternal) {
+            return (
+              <a
+                key={tile.label}
+                href={tile.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {content}
+              </a>
+            );
+          }
 
-                    <div className="text-[11px] text-gray-400 font-mono">
-                      Date: {o.date}
-                    </div>
+          return (
+            <Link key={tile.label} href={tile.href} className="block">
+              {content}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Recommended Jerseys */}
+      {recommended.length > 0 && (
+        <div className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg font-bold font-serif uppercase tracking-wider text-white">
+              Recommended Jerseys
+            </h2>
+            <Link
+              href="/shop"
+              className="text-xs font-bold text-[#f4c84a] hover:underline flex items-center gap-1"
+            >
+              <span>Explore All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {recommended.map((item) => (
+              <Link
+                key={item.id}
+                href={`/shop/${item.slug}`}
+                className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/60 rounded-2xl p-3 flex flex-col justify-between space-y-3 group transition-all"
+              >
+                <div className="aspect-[3/4] w-full rounded-xl bg-black border border-[#222] relative overflow-hidden flex items-center justify-center">
+                  <OrderProductImage
+                    src={item.image}
+                    name={item.name}
+                    productId={item.id}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs font-bold text-white uppercase truncate">
+                    {item.name}
                   </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                    <span className="font-mono font-extrabold text-white text-base">₹{o.totalAmount}</span>
-                    <Link
-                      href={`/account/orders/${o.id.replace('#', '')}`}
-                      className="px-4 py-2 bg-[#1a1a1a] hover:bg-[#f4c84a] hover:text-black text-gray-200 border border-[#333] rounded-lg font-bold transition-all text-xs flex items-center gap-1.5"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View Order</span>
-                    </Link>
+                  <div className="text-xs font-mono font-bold text-[#f4c84a]">
+                    ₹{item.price}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Edit, Trash2, Check, X, Save, Star, Loader2, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, Plus, Edit, Trash2, Check, X, Save, Star, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
 import { icarryService } from '../../../lib/services/icarryService';
 
@@ -160,11 +161,18 @@ export default function AddressesPage() {
   if (!currentUser) return null;
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans max-w-4xl mx-auto">
       
       {/* Header */}
       <div className="border-b border-[#242424] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-3">
+          <Link 
+            href="/account"
+            className="p-2 rounded-xl bg-[#0d0d0d] border border-[#242424] text-gray-300 hover:text-white hover:border-[#f4c84a]/50 transition-colors"
+            title="Back to My Account"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
           <h1 className="text-xl sm:text-2xl font-black font-serif uppercase tracking-tight text-white flex items-center gap-2">
             <MapPin className="w-6 h-6 text-[#f4c84a]" />
             <span>SAVED ADDRESSES ({addresses.length})</span>

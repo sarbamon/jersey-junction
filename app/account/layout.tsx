@@ -4,14 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  User, 
-  ShoppingBag, 
-  Heart, 
-  Ticket, 
-  MapPin, 
-  LogOut, 
   ChevronRight, 
-  LayoutDashboard, 
   UserCheck
 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
@@ -43,18 +36,6 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
-  const handleLogout = () => {
-    logoutUser();
-    router.push('/');
-  };
-
-  const navItems = [
-    { label: 'Overview', href: '/account', icon: LayoutDashboard },
-    { label: 'My Orders', href: '/account/orders', icon: ShoppingBag },
-    { label: 'Wishlist', href: '/account/wishlist', icon: Heart },
-    { label: 'Profile', href: '/account/profile', icon: User },
-    { label: 'Addresses', href: '/account/addresses', icon: MapPin },
-  ];
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-[#f4c84a] selection:text-black">
@@ -107,70 +88,8 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Navigation Sidebar */}
-            <div className="lg:col-span-3 space-y-4">
-              
-              {/* Customer Avatar & Name Badge */}
-              <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-4 flex items-center gap-3 shadow-md">
-                <div className="h-10 w-10 rounded-full bg-[#f4c84a]/10 border border-[#f4c84a]/30 text-[#f4c84a] font-serif font-black flex items-center justify-center text-base shrink-0">
-                  {currentUser.name.charAt(0)}
-                </div>
-                <div className="truncate">
-                  <div className="font-serif font-bold text-sm text-white truncate">{currentUser.name}</div>
-                  <div className="text-[11px] text-gray-400 truncate">{currentUser.email}</div>
-                </div>
-              </div>
-
-              {/* Static Grid / Vertical Navigation Menu (No sliding or scrolling bar) */}
-              <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-3 font-sans shadow-md space-y-2">
-                
-                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 pb-2 border-b border-[#1f1f1f]">
-                  MY ACCOUNT
-                </div>
-
-                <nav className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1.5">
-                  {navItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href || (item.href !== '/account' && pathname.startsWith(item.href));
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                          isActive
-                            ? 'bg-[#f4c84a] text-black font-extrabold shadow-sm'
-                            : 'text-gray-300 hover:text-[#f4c84a] hover:bg-[#161616]'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2.5 truncate">
-                          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-black' : 'text-[#f4c84a]'}`} />
-                          <span className="truncate">{item.label}</span>
-                        </span>
-                        {isActive && <ChevronRight className="w-4 h-4 text-black hidden lg:block shrink-0" />}
-                      </Link>
-                    );
-                  })}
-
-                  <button
-                    onClick={handleLogout}
-                    className="col-span-2 sm:col-span-3 lg:col-span-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer mt-1 border-t border-[#1f1f1f] pt-2"
-                  >
-                    <LogOut className="w-4 h-4 shrink-0" />
-                    <span>Logout</span>
-                  </button>
-                </nav>
-
-              </div>
-
-            </div>
-
-            {/* Right Main Content Panel */}
-            <div className="lg:col-span-9 min-w-0">
-              {children}
-            </div>
-
+          <div className="w-full min-w-0">
+            {children}
           </div>
         )}
 

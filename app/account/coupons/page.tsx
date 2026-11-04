@@ -2,16 +2,23 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Ticket, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Ticket, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useStore } from '../../../context/StoreContext';
 
 export default function CouponsPage() {
   const { appliedCouponCode, appliedCoupon } = useStore();
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans max-w-4xl mx-auto">
       {/* Header */}
-      <div className="border-b border-[#242424] pb-4">
+      <div className="border-b border-[#242424] pb-4 flex items-center gap-3">
+        <Link 
+          href="/account"
+          className="p-2 rounded-xl bg-[#0d0d0d] border border-[#242424] text-gray-300 hover:text-white hover:border-[#f4c84a]/50 transition-colors"
+          title="Back to My Account"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
         <h1 className="text-xl sm:text-2xl font-black font-serif uppercase tracking-tight text-white flex items-center gap-2">
           <Ticket className="w-6 h-6 text-[#f4c84a]" />
           <span>PROMO &amp; COUPON CODES</span>
