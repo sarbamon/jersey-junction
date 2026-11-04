@@ -47,8 +47,8 @@ export default function AccountOverviewPage() {
   };
 
   const storeSettings = settingsService.getSettings();
-  const rawWa = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
-  const whatsappNumber = rawWa.replace(/[^0-9]/g, '') || '916001142358';
+  const rawWa = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '917002740268';
+  const whatsappNumber = rawWa.replace(/[^0-9]/g, '') || '917002740268';
 
   const actionTiles = [
     { label: 'Orders', href: '/account/orders', icon: Package },
