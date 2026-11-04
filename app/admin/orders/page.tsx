@@ -82,9 +82,11 @@ export default function AdminOrdersPage() {
         prev.map((o) => (o.id === cancelTargetOrder.id ? { ...o, orderStatus: 'Cancelled', cancellationReason: reason } : o))
       );
       await orderService.updateOrderStatusAsync(cancelTargetOrder.id, 'Cancelled', reason);
-      setToastMsg(`Order ${cancelTargetOrder.id} cancelled & email sent to customer`);
+      setToastMsg(`Order ${cancelTargetOrder.id} cancelled & moved to Order Cancel section`);
       setIsCancelModalOpen(false);
       setCancelTargetOrder(null);
+      // Automatically move view to the Order Cancel section
+      setStatusFilter('cancelled');
     } catch (err: any) {
       setToastMsg(`Failed to cancel order: ${err.message || 'Error'}`);
     } finally {
@@ -93,12 +95,38 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const adminTabs: { label: string; value: string; isDanger?: boolean }[] = [
+    { label: 'All Orders', value: 'all' },
+    { label: 'Active', value: 'active' },
+    { label: 'In Transit', value: 'in transit' },
+    { label: 'Delivered', value: 'delivered' },
+    { label: 'Order Cancel', value: 'cancelled', isDanger: true },
+  ];
+
+  const getTabCount = (tabValue: string) => {
+    return orders.filter((o) => {
+      const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
+      const isPaid = o.paymentStatus === 'Paid';
+      const isCancelled = getCanonicalStatus(o.orderStatus) === 'Cancelled';
+      const isRefunded = o.paymentStatus === 'Refunded';
+      if (!isCOD && !isPaid && !isCancelled && !isRefunded) return false;
+
+      const s = getCanonicalStatus(o.orderStatus).toLowerCase();
+      if (tabValue === 'all') return true;
+      if (tabValue === 'active') return s !== 'delivered' && s !== 'cancelled';
+      if (tabValue === 'cancelled') return s === 'cancelled';
+      return s === tabValue.toLowerCase();
+    }).length;
+  };
+
   const filteredOrders = orders.filter((o) => {
-    // Only show confirmed orders: Paid online orders or Cash on Delivery
+    // Only show confirmed orders: Paid online orders, Cash on Delivery, or Cancelled/Refunded orders
     // Exclude any unpaid orders where payment portal was just opened
     const isCOD = o.paymentMethod === 'COD' || (o.paymentMethod as string) === 'Cash on Delivery';
     const isPaid = o.paymentStatus === 'Paid';
-    if (!isCOD && !isPaid) return false;
+    const isCancelled = getCanonicalStatus(o.orderStatus) === 'Cancelled';
+    const isRefunded = o.paymentStatus === 'Refunded';
+    if (!isCOD && !isPaid && !isCancelled && !isRefunded) return false;
 
     const q = searchQuery.toLowerCase();
     const matchesSearch = 
@@ -111,7 +139,14 @@ export default function AdminOrdersPage() {
       (o.shippingAddress?.pincode && o.shippingAddress.pincode.includes(q)) ||
       (o.items && o.items.some(i => i.name.toLowerCase().includes(q)));
 
-    const matchesStatus = statusFilter === 'all' || getCanonicalStatus(o.orderStatus).toLowerCase() === statusFilter.toLowerCase();
+    let matchesStatus = true;
+    if (statusFilter === 'active') {
+      const s = getCanonicalStatus(o.orderStatus).toLowerCase();
+      matchesStatus = s !== 'delivered' && s !== 'cancelled';
+    } else if (statusFilter !== 'all') {
+      matchesStatus = getCanonicalStatus(o.orderStatus).toLowerCase() === statusFilter.toLowerCase();
+    }
+
     const matchesPayment = paymentFilter === 'all' || o.paymentStatus.toLowerCase() === paymentFilter.toLowerCase();
 
     return matchesSearch && matchesStatus && matchesPayment;
@@ -161,6 +196,43 @@ export default function AdminOrdersPage() {
             Manage customer orders, view product details, check addresses &amp; dispatch courier shipments.
           </p>
         </div>
+      </div>
+
+      {/* Status Navigation Tabs (All Orders / Active / In Transit / Delivered / Order Cancel) */}
+      <div className="flex flex-wrap items-center gap-2">
+        {adminTabs.map((tab) => {
+          const isActive = statusFilter === tab.value;
+          const count = getTabCount(tab.value);
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setStatusFilter(tab.value)}
+              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                isActive
+                  ? tab.isDanger
+                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 font-black'
+                    : 'bg-[#f4c84a] text-black shadow-lg shadow-amber-500/20 font-black'
+                  : tab.isDanger
+                  ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
+                  : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                isActive
+                  ? tab.isDanger
+                    ? 'bg-black/30 text-white font-bold'
+                    : 'bg-black/20 text-black font-bold'
+                  : tab.isDanger
+                  ? 'bg-red-500/20 text-red-300'
+                  : 'bg-zinc-800 text-zinc-300'
+              }`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter & Search Bar */}
@@ -411,7 +483,11 @@ export default function AdminOrdersPage() {
                         <select
                           value={getCanonicalStatus(o.orderStatus)}
                           onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
-                          className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-400 cursor-pointer"
+                          className={`bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer ${
+                            getCanonicalStatus(o.orderStatus) === 'Cancelled'
+                              ? 'border-red-500/40 text-red-400 focus:border-red-400'
+                              : 'border-zinc-800 text-amber-400 focus:border-amber-400'
+                          }`}
                         >
                           <option value="Order Received">Order Received</option>
                           <option value="Order Processed">Order Processed</option>
@@ -420,6 +496,11 @@ export default function AdminOrdersPage() {
                           <option value="Delivered">Delivered</option>
                           <option value="Cancelled">Cancelled</option>
                         </select>
+                        {getCanonicalStatus(o.orderStatus) === 'Cancelled' && o.cancellationReason && (
+                          <div className="mt-1 text-[10px] text-red-400/90 font-mono max-w-[170px] truncate" title={o.cancellationReason}>
+                            Reason: {o.cancellationReason}
+                          </div>
+                        )}
                       </td>
 
                       {/* Date */}

@@ -38,11 +38,11 @@ export default function MyOrdersPage() {
 
   if (!currentUser) return null;
 
-  const filterTabs: { label: string; value: 'all' | 'active' | 'delivered' | 'cancelled' }[] = [
+  const filterTabs: { label: string; value: 'all' | 'active' | 'delivered' | 'cancelled'; isDanger?: boolean }[] = [
     { label: 'All', value: 'all' },
     { label: 'Active', value: 'active' },
     { label: 'Delivered', value: 'delivered' },
-    { label: 'Cancelled', value: 'cancelled' },
+    { label: 'Order Cancel', value: 'cancelled', isDanger: true },
   ];
 
   const filteredOrders = orders.filter((o) => {
@@ -74,7 +74,7 @@ export default function MyOrdersPage() {
     if (s.includes('cancel') || s.includes('fail') || s === 'returned') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/30">
-          Cancelled
+          Order Cancelled
         </span>
       );
     }
@@ -152,7 +152,11 @@ export default function MyOrdersPage() {
               onClick={() => setFilter(tab.value)}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[#f4c84a] text-black shadow-md font-extrabold'
+                  ? tab.isDanger
+                    ? 'bg-red-500 text-white shadow-md font-extrabold'
+                    : 'bg-[#f4c84a] text-black shadow-md font-extrabold'
+                  : tab.isDanger
+                  ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
                   : 'bg-[#0d0d0d] border border-[#242424] text-gray-400 hover:text-white hover:border-gray-700'
               }`}
             >
@@ -166,7 +170,11 @@ export default function MyOrdersPage() {
       {filteredOrders.length === 0 ? (
         <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-12 text-center text-xs text-gray-400 space-y-4">
           <ShoppingBag className="w-10 h-10 text-gray-600 mx-auto" />
-          <div className="font-medium">No orders found matching your criteria.</div>
+          <div className="font-medium">
+            {filter === 'cancelled' 
+              ? 'No cancelled orders found. All your orders are progressing normally!'
+              : 'No orders found matching your criteria.'}
+          </div>
           <Link 
             href="/shop" 
             className="inline-block px-5 py-2.5 bg-[#f4c84a] hover:bg-[#e0b438] text-black font-extrabold uppercase rounded-xl text-xs shadow-md transition-all"
@@ -179,6 +187,7 @@ export default function MyOrdersPage() {
           {filteredOrders.map((o) => {
             const firstItem = o.items && o.items.length > 0 ? o.items[0] : null;
             const extraCount = (o.items?.length || 0) - 1;
+            const isCancelled = String(o.orderStatus || '').toLowerCase().includes('cancel') || String(o.orderStatus || '').toLowerCase().includes('fail');
 
             return (
               <Link
@@ -223,8 +232,13 @@ export default function MyOrdersPage() {
                       #{o.id.replace('#', '')}
                     </p>
 
-                    <div className="pt-1">
+                    <div className="pt-1 flex flex-wrap items-center gap-2">
                       {getStatusBadge(o.orderStatus)}
+                      {isCancelled && o.cancellationReason && (
+                        <span className="text-[11px] text-red-400 font-mono truncate max-w-[240px]">
+                          Reason: {o.cancellationReason}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
