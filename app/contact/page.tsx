@@ -3,16 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   Send,
-  ChevronRight, 
-  MessageSquare, 
+  ChevronRight,
+  MessageSquare,
   CheckCircle2,
   HelpCircle,
   Truck,
   RotateCcw,
   AlertCircle,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { Footer } from '../../components/Footer';
@@ -29,12 +30,12 @@ import { AdminOrder } from '../../lib/types/admin';
 
 export default function ContactPage() {
   const router = useRouter();
-  const { 
+  const {
     currentUser,
-    wishlist, 
-    activeCurrency, 
-    cartItems, 
-    updateQuantity, 
+    wishlist,
+    activeCurrency,
+    cartItems,
+    updateQuantity,
     removeFromCart,
     isCartOpen,
     setIsCartOpen,
@@ -57,6 +58,7 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [waLink, setWaLink] = useState('');
 
   // User Account Orders
   const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
@@ -115,43 +117,56 @@ export default function ContactPage() {
   useEffect(() => {
     const cached = productService.getCachedProductsSync();
     if (cached.length > 0) setProducts(cached);
-    productService.getActiveProducts().then(setProducts).catch(() => {});
+    productService.getActiveProducts().then(setProducts).catch(() => { });
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !message.trim()) return;
 
-    setIsSubmitting(true);
-    setErrorMessage('');
+    // Exact direct WhatsApp message format requested:
+    // *New Inquiry - Jersey Junction*
+    // *Name:* {name}
+    // *Order ID:* {orderId}
+    // *Subject:* {subject}
+    // *Message:* {message}
+    const lines = [
+      '*New Inquiry - Jersey Junction*',
+      `*Name:* ${name.trim()}`,
+      orderNumber.trim() ? `*Order ID:* ${orderNumber.trim()}` : null,
+      `*Subject:* ${subject.trim()}`,
+      `*Message:* ${message.trim()}`
+    ].filter(Boolean).join('\n');
+
+    const rawNumber = process.env.NEXT_PUBLIC_WHATSAPP_NO || '916001142358';
+    const cleanNumber = rawNumber.replace(/\D/g, '') || '916001142358';
+    const waTarget = cleanNumber.startsWith('91') ? cleanNumber : (cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber);
+    const waUrl = `https://wa.me/${waTarget}?text=${encodeURIComponent(lines)}`;
+
+    setWaLink(waUrl);
+
+    // Synchronously open WhatsApp direct chat to avoid popup blockers
+    if (typeof window !== 'undefined') {
+      window.open(waUrl, '_blank');
+    }
+
+    // Also send to backend support in background for records
     try {
-      const res = await apiClient.post('/contact', {
+      apiClient.post('/contact', {
         name: name.trim(),
-        email: email.trim() || currentUser?.email || 'customer@jerseyjunction.shop',
+        email: currentUser?.email || 'customer@jerseyjunction.shop',
         orderNumber: orderNumber.trim(),
         subject: subject.trim(),
         message: message.trim(),
-      });
+      }).catch(() => {});
+    } catch (_) {}
 
-      if (res.success) {
-        setIsSubmitted(true);
-        setName('');
-        setEmail('');
-        setOrderNumber('');
-        setMessage('');
-      } else {
-        setErrorMessage(res.message || res.error || 'Failed to deliver message. Please try again or email support@jerseyjunction.shop directly.');
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Unable to connect to support server. Please try again later.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setIsSubmitted(true);
   };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-[#f4c84a] selection:text-black">
-      
+
       {/* Navigation Header */}
       <Navbar
         cartCount={cartItems.reduce((acc, i) => acc + i.quantity, 0)}
@@ -177,7 +192,7 @@ export default function ContactPage() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
-        
+
         {/* Header Hero Title */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <h1 className="text-3xl sm:text-5xl font-black font-serif uppercase tracking-tight text-white">
@@ -190,7 +205,7 @@ export default function ContactPage() {
 
         {/* Contact Form Section */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           <div className="lg:col-span-7 bg-[#0d0d0d] border border-[#242424] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
             <div className="border-b border-[#202020] pb-4 space-y-1">
               <h2 className="font-serif font-black text-xl sm:text-2xl uppercase tracking-tight text-white flex items-center gap-2">
@@ -205,20 +220,36 @@ export default function ContactPage() {
             {isSubmitted ? (
               <div className="bg-[#141414] border border-[#f4c84a]/30 rounded-2xl p-8 text-center space-y-4 animate-fade-in shadow-2xl">
                 <CheckCircle2 className="w-12 h-12 text-[#f4c84a] mx-auto animate-bounce" />
-                <h3 className="font-serif font-black text-xl text-white uppercase tracking-tight">Message Sent Successfully!</h3>
+                <h3 className="font-serif font-black text-xl text-white uppercase tracking-tight">Direct Message Opened!</h3>
                 <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
-                  Thank you for reaching out to Jersey Junction. Your message has been sent to our customer care team. We will review your inquiry and reply promptly.
+                  Your inquiry has been formatted and opened directly in WhatsApp. If the chat window did not open automatically, click the button below.
                 </p>
-                <button
-                  onClick={() => setIsSubmitted(false)}
-                  className="px-6 py-2.5 bg-[#f4c84a] hover:bg-amber-400 text-black font-extrabold uppercase rounded-xl text-xs transition-colors cursor-pointer"
-                >
-                  Send Another Message
-                </button>
+                {waLink && (
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-extrabold uppercase rounded-xl text-xs transition-transform hover:scale-105 inline-flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/60"
+                    >
+                      <span>Open WhatsApp Chat</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      onClick={() => {
+                        setIsSubmitted(false);
+                        setMessage('');
+                      }}
+                      className="px-6 py-2.5 bg-[#202020] hover:bg-[#282828] text-white border border-[#333] font-bold uppercase rounded-xl text-xs transition-colors cursor-pointer"
+                    >
+                      Send Another Message
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="font-bold text-gray-300 uppercase">Your Name *</label>
@@ -233,18 +264,21 @@ export default function ContactPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-gray-300 uppercase">Email Address (Optional)</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. you@domain.com"
-                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors font-mono"
-                    />
+                    <label className="font-bold text-gray-300 uppercase">Subject *</label>
+                    <select
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white focus:outline-none transition-colors cursor-pointer"
+                    >
+                      <option value="Order & Shipping Inquiry">Order & Shipping Inquiry</option>
+                      <option value="Size & Fit Assistance">Size & Fit Assistance</option>
+                      <option value="Custom Name & Number Request">Custom Name & Number Request</option>
+                      <option value="Returns & Exchange Request">Returns & Exchange Request</option>
+                      <option value="Wholesale & Bulk Teams">Wholesale & Bulk Teams</option>
+                      <option value="Other Questions">Other Questions</option>
+                    </select>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 {/* Order ID: auto-fetched from user account or entered manually */}
                 {userOrders.length > 0 ? (
@@ -307,11 +341,10 @@ export default function ContactPage() {
                             setOrderNumber(o.id);
                             setIsManualOrder(false);
                           }}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-mono border transition-all cursor-pointer ${
-                            orderNumber === o.id
-                              ? 'bg-[#f4c84a] text-black border-[#f4c84a] font-bold shadow-xs'
-                              : 'bg-[#181818] text-gray-300 border-[#2a2a2a] hover:border-[#f4c84a] hover:text-white'
-                          }`}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-mono border transition-all cursor-pointer ${orderNumber === o.id
+                            ? 'bg-[#f4c84a] text-black border-[#f4c84a] font-bold shadow-xs'
+                            : 'bg-[#181818] text-gray-300 border-[#2a2a2a] hover:border-[#f4c84a] hover:text-white'
+                            }`}
                           title={`Select order ${o.id}`}
                         >
                           {o.id}
@@ -332,23 +365,6 @@ export default function ContactPage() {
                   </div>
                 )}
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-gray-300 uppercase">Subject *</label>
-                    <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#f4c84a] rounded-xl px-4 py-3 text-white focus:outline-none transition-colors cursor-pointer"
-                    >
-                      <option value="Order & Shipping Inquiry">Order & Shipping Inquiry</option>
-                      <option value="Size & Fit Assistance">Size & Fit Assistance</option>
-                      <option value="Custom Name & Number Request">Custom Name & Number Request</option>
-                      <option value="Returns & Exchange Request">Returns & Exchange Request</option>
-                      <option value="Wholesale & Bulk Teams">Wholesale & Bulk Teams</option>
-                      <option value="Other Questions">Other Questions</option>
-                    </select>
-                  </div>
-                </div>
-
                 <div className="space-y-1">
                   <label className="font-bold text-gray-300 uppercase">Message *</label>
                   <textarea
@@ -361,21 +377,13 @@ export default function ContactPage() {
                   />
                 </div>
 
-                {errorMessage && (
-                  <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-start gap-2.5">
-                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="leading-snug">{errorMessage}</p>
-                  </div>
-                )}
-
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-600 text-black font-extrabold uppercase rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg hover:scale-105 disabled:opacity-50"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-[#f4c84a] to-amber-500 hover:from-amber-400 hover:to-amber-600 text-black font-extrabold uppercase rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg hover:scale-105 active:scale-[0.98]"
                   >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
-                    <span>{isSubmitting ? 'Sending Message...' : 'Send Message'}</span>
+                    <Send className="w-4 h-4" />
+                    <span>Send Message</span>
                   </button>
                 </div>
 
@@ -386,7 +394,7 @@ export default function ContactPage() {
 
           {/* Right Column: Quick FAQ */}
           <div className="lg:col-span-5 space-y-6">
-            
+
             <div className="bg-[#0d0d0d] border border-[#242424] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
               <div className="flex items-center gap-2 text-[#f4c84a]">
                 <HelpCircle className="w-5 h-5" />
@@ -410,7 +418,7 @@ export default function ContactPage() {
                     <span>How fast will I receive a reply?</span>
                   </h4>
                   <p className="text-gray-400 leading-relaxed pl-5">
-                    Our support team reviews customer inquiries daily and typically responds within 24 hours.
+                    Our support team reviews customer inquiries daily and typically responds within a few hours.
                   </p>
                 </div>
               </div>
@@ -440,27 +448,27 @@ export default function ContactPage() {
       />
 
       {/* Cart Drawer & Size Guide */}
-      <CartDrawer 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        items={cartItems} 
-        onUpdateQuantity={updateQuantity} 
-        onRemoveItem={removeFromCart} 
-        activeCurrency={activeCurrency} 
-        onOpenCheckout={() => router.push('/checkout')} 
-        discountPercentage={discountPercentage} 
-        onApplyCoupon={applyCoupon} 
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={removeFromCart}
+        activeCurrency={activeCurrency}
+        onOpenCheckout={() => router.push('/checkout')}
+        discountPercentage={discountPercentage}
+        onApplyCoupon={applyCoupon}
       />
 
-      <SizeGuideModal 
-        isOpen={isSizeGuideOpen} 
-        onClose={() => setIsSizeGuideOpen(false)} 
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
       />
 
       {isCustomStudioOpen && (
-        <CustomJerseyStudio 
-          isOpen={isCustomStudioOpen} 
-          onClose={() => setIsCustomStudioOpen(false)} 
+        <CustomJerseyStudio
+          isOpen={isCustomStudioOpen}
+          onClose={() => setIsCustomStudioOpen(false)}
           activeCurrency={activeCurrency}
           onAddToCart={addToCart}
         />
