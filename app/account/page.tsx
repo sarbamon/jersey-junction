@@ -47,7 +47,7 @@ export default function AccountOverviewPage() {
   };
 
   const storeSettings = settingsService.getSettings();
-  const rawWa = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
+  const rawWa = process.env.NEXT_PUBLIC_WHATSAPP_NO || storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
   const whatsappNumber = rawWa.replace(/[^0-9]/g, '') || '916001142358';
 
   const actionTiles = [

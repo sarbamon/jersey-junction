@@ -71,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>(INITIAL_CATEGORIES);
 
   const whatsappNumber = (() => {
-    const raw = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
+    const raw = process.env.NEXT_PUBLIC_WHATSAPP_NO || storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
     const clean = raw.replace(/\D/g, '');
     return clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean || '916001142358');
   })();
