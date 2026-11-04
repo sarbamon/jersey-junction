@@ -258,10 +258,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
                     <Tag className="w-3.5 h-3.5" />
                     <span>
-                      COUPON &ldquo;{appliedCouponCode}&rdquo; APPLIED
-                      {appliedCoupon?.maxDiscount && appliedCoupon.maxDiscount > 0
-                        ? ` (Capped at ₹${appliedCoupon.maxDiscount})`
-                        : ` (${activeDiscount}% OFF)`}
+                      COUPON &ldquo;{appliedCouponCode}&rdquo; APPLIED ({appliedCoupon?.discountValue || activeDiscount}% OFF)
                     </span>
                   </div>
                   <button

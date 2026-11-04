@@ -12,7 +12,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   freeShippingThreshold: 999,
   codEnabled: true,
   razorpayEnabled: true,
-  customJerseyPrice: 250,
+  customJerseyPrice: 299,
   icarryPickupLocations: [
     { id: 'sufi', name: 'SUFI', addressId: '103215', pincode: '400052', isDefault: true },
     { id: 'aahil', name: 'AAHIL', addressId: '103216', pincode: '400102' },

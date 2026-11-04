@@ -339,7 +339,14 @@ export const productService = {
     if (!res.success || !res.data) {
       throw new Error(res.error || 'Failed to create product on backend server');
     }
-    return mapBackendToAdminProduct(res.data);
+    const createdAdmin = mapBackendToAdminProduct(res.data);
+    const createdJersey = mapBackendToJerseyProduct(res.data);
+    saveStoredCache([createdJersey, ...getStoredCache()]);
+    saveStoredAdminCache([createdAdmin, ...getStoredAdminCache()]);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
+    }
+    return createdAdmin;
   },
 
   updateProduct: async (id: string, updates: Partial<AdminProduct>): Promise<AdminProduct> => {
@@ -355,7 +362,32 @@ export const productService = {
     if (!res.success || !res.data) {
       throw new Error(res.error || 'Failed to update product on backend server');
     }
-    return mapBackendToAdminProduct(res.data);
+    const updatedAdmin = mapBackendToAdminProduct(res.data);
+    const updatedJersey = mapBackendToJerseyProduct(res.data);
+
+    const lowerId = (id || '').toLowerCase();
+    const currentStore = getStoredCache();
+    const sIdx = currentStore.findIndex(p => (p.id || '').toLowerCase() === lowerId || (p.slug || '').toLowerCase() === lowerId);
+    if (sIdx !== -1) {
+      currentStore[sIdx] = updatedJersey;
+      saveStoredCache([...currentStore]);
+    } else {
+      saveStoredCache([updatedJersey, ...currentStore]);
+    }
+
+    const currentAdmin = getStoredAdminCache();
+    const aIdx = currentAdmin.findIndex(p => (p.id || '').toLowerCase() === lowerId || (p.slug || '').toLowerCase() === lowerId);
+    if (aIdx !== -1) {
+      currentAdmin[aIdx] = updatedAdmin;
+      saveStoredAdminCache([...currentAdmin]);
+    } else {
+      saveStoredAdminCache([updatedAdmin, ...currentAdmin]);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
+    }
+    return updatedAdmin;
   },
 
   deleteProduct: async (id: string): Promise<void> => {

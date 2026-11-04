@@ -193,13 +193,13 @@ export default function AdminSettingsPage() {
                   type="number"
                   min="0"
                   step="1"
-                  value={settings.customJerseyPrice ?? 150}
+                  value={settings.customJerseyPrice ?? 299}
                   onChange={(e) => setSettings({ ...settings, customJerseyPrice: Math.max(0, Number(e.target.value) || 0) })}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
               <span className="text-[10px] text-zinc-500 mt-1 block">
-                Standard charge applied when back printing is selected (e.g. ₹150).
+                Standard charge applied when back printing is selected (e.g. ₹299).
               </span>
             </div>
           </div>

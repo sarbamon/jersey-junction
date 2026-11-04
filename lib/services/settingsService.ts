@@ -26,6 +26,7 @@ function applyIncomingSettings(fresh: Partial<StoreSettings>): StoreSettings {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
       window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: merged }));
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
     } catch (_) {}
   }
   return merged;
@@ -151,6 +152,7 @@ export const settingsService = {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
         window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: updated }));
+        window.dispatchEvent(new CustomEvent('jj_products_updated'));
       } catch (err: any) {
         console.error('LocalStorage quota exceeded or failed to save settings:', err);
         // Attempt recovery by purging old bulky demo data
@@ -160,6 +162,7 @@ export const settingsService = {
           localStorage.removeItem('jj_admin_customers');
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
           window.dispatchEvent(new CustomEvent('jj_store_settings_updated', { detail: updated }));
+          window.dispatchEvent(new CustomEvent('jj_products_updated'));
         } catch (recoveryErr) {
           console.error('Critical quota error even after cleanup:', recoveryErr);
         }

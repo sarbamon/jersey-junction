@@ -239,9 +239,13 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   }
 
-  const customFee = (typeof product.customizationPrice === 'number' && product.customizationPrice >= 0 && product.customizationPrice !== 150)
-    ? product.customizationPrice
-    : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : (product.customizationPrice ?? 250));
+  const storeCustPrice = (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0)
+    ? storeSettings.customJerseyPrice
+    : 299;
+  const prodCustPrice = typeof product.customizationPrice === 'number' ? product.customizationPrice : null;
+  const customFee = (prodCustPrice === null || prodCustPrice === 150 || (prodCustPrice === 250 && storeCustPrice !== 250))
+    ? storeCustPrice
+    : Math.max(0, prodCustPrice);
   const customFeeConverted = Math.round(customFee * activeCurrency.rate);
 
   const patchesExtra = selectedPatches.reduce((acc, p) => acc + p.price, 0);

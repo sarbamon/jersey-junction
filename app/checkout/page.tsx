@@ -314,9 +314,13 @@ export default function CheckoutPage() {
     const baseUnit = (item.product?.price || 0) + versionExtra;
     
     const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
-    const customFee = (typeof item.product?.customizationPrice === 'number' && item.product.customizationPrice >= 0 && item.product.customizationPrice !== 150)
-      ? item.product.customizationPrice
-      : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : (item.product?.customizationPrice ?? 250));
+    const storePrice = (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0)
+      ? storeSettings.customJerseyPrice
+      : 299;
+    const prodPrice = typeof item.product?.customizationPrice === 'number' ? item.product.customizationPrice : null;
+    const customFee = (prodPrice === null || prodPrice === 150 || (prodPrice === 250 && storePrice !== 250))
+      ? storePrice
+      : Math.max(0, prodPrice);
     const itemPrintExtra = hasCustomPrint ? customFee : 0;
     if (hasCustomPrint) {
       customizedItemsCount += item.quantity;
@@ -1196,7 +1200,7 @@ export default function CheckoutPage() {
                           </div>
                           <div className="text-[10px] text-emerald-400/90 font-mono">
                             {discountAmountINR > 0
-                              ? `${appliedCoupon?.discountValue || discountPercentage}${appliedCoupon?.discountType === 'percentage' ? '%' : ' FLAT'} Discount Applied${appliedCoupon?.maxDiscount && appliedCoupon.maxDiscount > 0 ? ` (Capped at ₹${appliedCoupon.maxDiscount})` : ''} (-${activeCurrency.symbol}${discountAmountConverted})`
+                              ? `${appliedCoupon?.discountValue || discountPercentage}${appliedCoupon?.discountType === 'percentage' ? '%' : ' FLAT'} Discount Applied`
                               : appliedCouponMsg}
                           </div>
                         </div>

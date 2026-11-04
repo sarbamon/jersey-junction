@@ -221,9 +221,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const isPlayer = item.version?.includes('Player');
           const versionExtra = isPlayer ? 150 : 0;
           const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
-          const customFee = (typeof item.product?.customizationPrice === 'number' && item.product.customizationPrice >= 0 && item.product.customizationPrice !== 150)
-            ? item.product.customizationPrice
-            : (typeof freshSettings?.customJerseyPrice === 'number' && freshSettings.customJerseyPrice >= 0 ? freshSettings.customJerseyPrice : (item.product?.customizationPrice ?? 250));
+          const storePrice = (typeof freshSettings?.customJerseyPrice === 'number' && freshSettings.customJerseyPrice >= 0)
+            ? freshSettings.customJerseyPrice
+            : 299;
+          const prodPrice = typeof item.product?.customizationPrice === 'number' ? item.product.customizationPrice : null;
+          const customFee = (prodPrice === null || prodPrice === 150 || (prodPrice === 250 && storePrice !== 250))
+            ? storePrice
+            : Math.max(0, prodPrice);
           const printExtra = hasCustomPrint ? customFee : 0;
           const unitPrice = (item.product?.price || 0) + patchesPrice + versionExtra + printExtra;
           const totalPrice = unitPrice * item.quantity;
@@ -260,9 +264,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const versionExtra = version.includes('Player') ? 150 : 0;
     const hasCustomPrint = Boolean(customName?.trim() || customNumber?.trim());
     const storeSettings = settingsService.getSettings();
-    const customFee = (typeof product.customizationPrice === 'number' && product.customizationPrice >= 0 && product.customizationPrice !== 150)
-      ? product.customizationPrice
-      : (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0 ? storeSettings.customJerseyPrice : (product.customizationPrice ?? 250));
+    const storePrice = (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0)
+      ? storeSettings.customJerseyPrice
+      : 299;
+    const prodPrice = typeof product.customizationPrice === 'number' ? product.customizationPrice : null;
+    const customFee = (prodPrice === null || prodPrice === 150 || (prodPrice === 250 && storePrice !== 250))
+      ? storePrice
+      : Math.max(0, prodPrice);
     const printExtra = hasCustomPrint ? customFee : 0;
 
     const unitPrice = product.price + patchesPrice + versionExtra + printExtra;

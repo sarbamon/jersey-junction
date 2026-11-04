@@ -51,7 +51,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestseller, setIsBestseller] = useState(false);
   const [isCustomizable, setIsCustomizable] = useState(false);
-  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(() => settingsService.getSettings().customJerseyPrice ?? 250);
+  const [customizationPrice, setCustomizationPrice] = useState<number | ''>(() => settingsService.getSettings().customJerseyPrice ?? 299);
 
   const fetchProduct = async () => {
     setIsLoading(true);
@@ -124,8 +124,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         setIsFeatured(found.isFeatured);
         setIsBestseller(found.isBestseller);
         setIsCustomizable(Boolean(found.isCustomizable));
-        const storeCustPrice = settingsService.getSettings().customJerseyPrice ?? 250;
-        setCustomizationPrice(found.customizationPrice !== undefined && found.customizationPrice !== 150 ? found.customizationPrice : storeCustPrice);
+        const storeCustPrice = settingsService.getSettings().customJerseyPrice ?? 299;
+        const prodCust = typeof found.customizationPrice === 'number' ? found.customizationPrice : null;
+        const initialCust = (prodCust === null || prodCust === 150 || (prodCust === 250 && storeCustPrice !== 250))
+          ? storeCustPrice
+          : prodCust;
+        setCustomizationPrice(initialCust);
       }
     } catch (err: any) {
       setToastMsg(`Error loading product: ${err.message}`);
@@ -240,7 +244,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         return;
       }
 
-      const defaultCustomPrice = settingsService.getSettings().customJerseyPrice ?? 250;
+      const defaultCustomPrice = settingsService.getSettings().customJerseyPrice ?? 299;
       const updated = await productService.updateProduct(product.id, {
         name,
         price: Number(price),
@@ -260,10 +264,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         customizationPrice: customizationPrice === '' ? defaultCustomPrice : Number(customizationPrice),
       });
 
-      const storeDefaultPrice = settingsService.getSettings().customJerseyPrice ?? 250;
+      const storeDefaultPrice = settingsService.getSettings().customJerseyPrice ?? 299;
       setProduct(updated);
       setIsCustomizable(Boolean(updated.isCustomizable));
-      setCustomizationPrice(updated.customizationPrice !== undefined && updated.customizationPrice !== 150 ? updated.customizationPrice : storeDefaultPrice);
+      const updatedCust = typeof updated.customizationPrice === 'number' ? updated.customizationPrice : null;
+      setCustomizationPrice(
+        (updatedCust === null || updatedCust === 150 || (updatedCust === 250 && storeDefaultPrice !== 250))
+          ? storeDefaultPrice
+          : updatedCust
+      );
       setIsEditing(false);
       setToastMsg('Product updated successfully!');
     } catch (err: any) {
@@ -657,11 +666,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                         min="0"
                         value={customizationPrice}
                         onChange={(e) => setCustomizationPrice(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-                        placeholder={String(settingsService.getSettings().customJerseyPrice ?? 250)}
+                        placeholder={String(settingsService.getSettings().customJerseyPrice ?? 299)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-1.5 text-white font-mono text-xs font-bold focus:outline-none focus:border-amber-400"
                       />
                     </div>
-                    <span className="text-[9px] text-zinc-500 block">Default is ₹{settingsService.getSettings().customJerseyPrice ?? 250} (or store setting).</span>
+                    <span className="text-[9px] text-zinc-500 block">Default is ₹{settingsService.getSettings().customJerseyPrice ?? 299} (or store setting).</span>
                   </div>
                 )}
               </div>
