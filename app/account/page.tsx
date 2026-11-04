@@ -64,12 +64,12 @@ export default function AccountOverviewPage() {
     <div className="space-y-10 font-sans max-w-5xl mx-auto">
       
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#242424] gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-stone-200 dark:border-[#242424] gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-white">
+          <h1 className="text-2xl sm:text-3xl font-black font-serif uppercase tracking-tight text-slate-900 dark:text-white">
             Hello, {currentUser.name}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-400 font-mono mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 font-mono mt-1">
             {currentUser.email}
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function AccountOverviewPage() {
         <div>
           <button
             onClick={handleLogout}
-            className="text-red-400 hover:text-red-300 font-bold uppercase tracking-wider text-xs border border-red-500/30 px-4 py-2 rounded-xl hover:bg-red-500/10 transition-colors flex items-center gap-2 cursor-pointer"
+            className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-bold uppercase tracking-wider text-xs border border-red-500/30 px-4 py-2 rounded-xl hover:bg-red-500/10 transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>SIGN OUT</span>
@@ -90,11 +90,11 @@ export default function AccountOverviewPage() {
         {actionTiles.map((tile) => {
           const Icon = tile.icon;
           const content = (
-            <div className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/60 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 transition-all duration-200 group hover:-translate-y-0.5 shadow-sm min-h-[130px] sm:min-h-[150px]">
-              <div className="text-gray-300 group-hover:text-[#f4c84a] transition-colors">
+            <div className="bg-white dark:bg-[#0d0d0d] border border-stone-200 dark:border-[#242424] hover:border-amber-400 dark:hover:border-[#f4c84a]/60 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 transition-all duration-200 group hover:-translate-y-0.5 shadow-xs hover:shadow-md min-h-[130px] sm:min-h-[150px]">
+              <div className="text-slate-700 dark:text-gray-300 group-hover:text-amber-500 dark:group-hover:text-[#f4c84a] transition-colors">
                 <Icon className="w-7 h-7 sm:w-8 sm:h-8 group-hover:scale-110 transition-transform" />
               </div>
-              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-white transition-colors">
+              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-gray-200 group-hover:text-amber-600 dark:group-hover:text-white transition-colors">
                 {tile.label}
               </span>
             </div>
@@ -126,12 +126,12 @@ export default function AccountOverviewPage() {
       {recommended.length > 0 && (
         <div className="space-y-4 pt-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-bold font-serif uppercase tracking-wider text-white">
+            <h2 className="text-base sm:text-lg font-bold font-serif uppercase tracking-wider text-slate-900 dark:text-white">
               Recommended Jerseys
             </h2>
             <Link
               href="/shop"
-              className="text-xs font-bold text-[#f4c84a] hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-amber-500 hover:text-amber-600 dark:text-[#f4c84a] hover:underline flex items-center gap-1"
             >
               <span>Explore All</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -143,9 +143,9 @@ export default function AccountOverviewPage() {
               <Link
                 key={item.id}
                 href={`/shop/${item.slug}`}
-                className="bg-[#0d0d0d] border border-[#242424] hover:border-[#f4c84a]/60 rounded-2xl p-3 flex flex-col justify-between space-y-3 group transition-all"
+                className="bg-white dark:bg-[#0d0d0d] border border-stone-200 dark:border-[#242424] hover:border-amber-400 dark:hover:border-[#f4c84a]/60 rounded-2xl p-3 flex flex-col justify-between space-y-3 group transition-all shadow-xs hover:shadow-md"
               >
-                <div className="aspect-[3/4] w-full rounded-xl bg-black border border-[#222] relative overflow-hidden flex items-center justify-center">
+                <div className="aspect-[3/4] w-full rounded-xl bg-slate-100 dark:bg-black border border-stone-200 dark:border-[#222] relative overflow-hidden flex items-center justify-center">
                   <OrderProductImage
                     src={item.image}
                     name={item.name}
@@ -155,7 +155,7 @@ export default function AccountOverviewPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <div className="text-xs font-bold text-white uppercase truncate">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white uppercase truncate">
                     {item.name}
                   </div>
                   <div className="text-xs font-mono font-bold text-[#f4c84a]">
