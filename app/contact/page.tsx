@@ -179,9 +179,6 @@ export default function ContactPage() {
         
         {/* Header Hero Title */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <span className="inline-block rounded-full bg-[#f4c84a]/10 px-4 py-1 text-xs font-mono font-bold text-[#f4c84a] border border-[#f4c84a]/20 uppercase tracking-widest">
-            GET IN TOUCH
-          </span>
           <h1 className="text-3xl sm:text-5xl font-black font-serif uppercase tracking-tight text-white">
             WE ARE HERE TO HELP
           </h1>
