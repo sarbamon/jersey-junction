@@ -3,8 +3,8 @@ import { StoreSettings } from '../types/admin';
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: 'Jersey Junction',
   storeEmail: 'support@jerseyjunction.shop',
-  storePhone: process.env.NEXT_PUBLIC_WHATSAPP_NO || '6001142358',
-  storeWhatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NO || '6001142358',
+  storePhone: '',
+  storeWhatsapp: '',
   storeAddress: '',
   shippingCharge: 50,
   expressShippingCharge: 250,

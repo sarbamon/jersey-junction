@@ -59,6 +59,7 @@ export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [waLink, setWaLink] = useState('');
+  const [waTargetNumber, setWaTargetNumber] = useState<string>('');
 
   // User Account Orders
   const [userOrders, setUserOrders] = useState<AdminOrder[]>([]);
@@ -120,6 +121,34 @@ export default function ContactPage() {
     productService.getActiveProducts().then(setProducts).catch(() => { });
   }, []);
 
+  // Fetch WhatsApp number extracted directly from backend .env
+  useEffect(() => {
+    let isMounted = true;
+    const cached = settingsService.getSettings();
+    const initRaw = cached?.storeWhatsapp || cached?.storePhone;
+    if (initRaw) {
+      const c = initRaw.replace(/\D/g, '');
+      if (c && isMounted) setWaTargetNumber(c.startsWith('91') ? c : (c.length === 10 ? `91${c}` : c));
+    }
+
+    apiClient.get('/contact/whatsapp').then((res: any) => {
+      if (isMounted && res && res.whatsappNumber) {
+        setWaTargetNumber(res.whatsappNumber);
+      }
+    }).catch(() => {
+      settingsService.fetchSettingsAsync(true).then((fresh) => {
+        const freshRaw = fresh?.storeWhatsapp || fresh?.storePhone;
+        if (freshRaw && isMounted) {
+          const c = freshRaw.replace(/\D/g, '');
+          if (c) setWaTargetNumber(c.startsWith('91') ? c : (c.length === 10 ? `91${c}` : c));
+        }
+      }).catch(() => {});
+    });
+
+    return () => { isMounted = false; };
+  }, []);
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !message.trim()) return;
@@ -138,10 +167,18 @@ export default function ContactPage() {
       `*Message:* ${message.trim()}`
     ].filter(Boolean).join('\n');
 
-    const rawNumber = process.env.NEXT_PUBLIC_WHATSAPP_NO || '916001142358';
-    const cleanNumber = rawNumber.replace(/\D/g, '') || '916001142358';
-    const waTarget = cleanNumber.startsWith('91') ? cleanNumber : (cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber);
-    const waUrl = `https://wa.me/${waTarget}?text=${encodeURIComponent(lines)}`;
+    // WhatsApp number extracted from backend .env
+    let target = waTargetNumber;
+    if (!target) {
+      const s = settingsService.getSettings();
+      const raw = s?.storeWhatsapp || s?.storePhone || '';
+      const clean = raw.replace(/\D/g, '');
+      target = clean ? (clean.startsWith('91') ? clean : (clean.length === 10 ? `91${clean}` : clean)) : '';
+    }
+
+    const waUrl = target
+      ? `https://wa.me/${target}?text=${encodeURIComponent(lines)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(lines)}`;
 
     setWaLink(waUrl);
 

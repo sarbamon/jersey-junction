@@ -47,8 +47,9 @@ export default function AccountOverviewPage() {
   };
 
   const storeSettings = settingsService.getSettings();
-  const rawWa = process.env.NEXT_PUBLIC_WHATSAPP_NO || storeSettings?.storeWhatsapp || storeSettings?.storePhone || '916001142358';
-  const whatsappNumber = rawWa.replace(/[^0-9]/g, '') || '916001142358';
+  const rawWa = storeSettings?.storeWhatsapp || storeSettings?.storePhone || '';
+  const cleanWa = rawWa.replace(/\D/g, '');
+  const whatsappNumber = cleanWa ? (cleanWa.startsWith('91') ? cleanWa : (cleanWa.length === 10 ? `91${cleanWa}` : cleanWa)) : '';
 
   const actionTiles = [
     { label: 'Orders', href: '/account/orders', icon: Package },
