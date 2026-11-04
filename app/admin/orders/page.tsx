@@ -9,6 +9,7 @@ import { AdminOrder, OrderStatus, PaymentStatus } from '../../../lib/types/admin
 import { Toast } from '../../../components/admin/Toast';
 import { ICarryBookingModal } from '../../../components/admin/ICarryBookingModal';
 import { LiveTrackingModal } from '../../../components/admin/LiveTrackingModal';
+import { CancelOrderModal } from '../../../components/admin/CancelOrderModal';
 import { OrderProductImage } from '../../../components/OrderProductImage';
 
 const getCanonicalStatus = (status: string): OrderStatus => {
@@ -32,6 +33,9 @@ export default function AdminOrdersPage() {
   const [isICarryModalOpen, setIsICarryModalOpen] = useState(false);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<AdminOrder | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [cancelTargetOrder, setCancelTargetOrder] = useState<AdminOrder | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const loadOrders = () => {
     orderService.fetchOrdersAsync().then((fetched) => {
@@ -46,6 +50,16 @@ export default function AdminOrdersPage() {
   }, []);
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    // If cancelling, open the cancellation reason popup modal first
+    if (newStatus === 'Cancelled') {
+      const target = orders.find(o => o.id === orderId);
+      if (target) {
+        setCancelTargetOrder(target);
+        setIsCancelModalOpen(true);
+        return;
+      }
+    }
+
     // 1. Optimistic UI update so dropdown updates immediately without snapping back
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus } : o))
@@ -58,6 +72,25 @@ export default function AdminOrdersPage() {
       setToastMsg(`Failed to update status: ${err.message || 'Error'}`);
     }
     loadOrders();
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!cancelTargetOrder) return;
+    setIsCancelling(true);
+    try {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === cancelTargetOrder.id ? { ...o, orderStatus: 'Cancelled', cancellationReason: reason } : o))
+      );
+      await orderService.updateOrderStatusAsync(cancelTargetOrder.id, 'Cancelled', reason);
+      setToastMsg(`Order ${cancelTargetOrder.id} cancelled & email sent to customer`);
+      setIsCancelModalOpen(false);
+      setCancelTargetOrder(null);
+    } catch (err: any) {
+      setToastMsg(`Failed to cancel order: ${err.message || 'Error'}`);
+    } finally {
+      setIsCancelling(false);
+      loadOrders();
+    }
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -488,6 +521,20 @@ export default function AdminOrdersPage() {
           setIsTrackingModalOpen(false);
           setSelectedOrderForTracking(null);
         }}
+      />
+
+      {/* Cancel Order Reason Modal */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setCancelTargetOrder(null);
+        }}
+        onConfirm={handleConfirmCancel}
+        orderId={cancelTargetOrder?.id || ''}
+        customerEmail={cancelTargetOrder?.email || ''}
+        customerName={cancelTargetOrder?.customerName}
+        isLoading={isCancelling}
       />
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}

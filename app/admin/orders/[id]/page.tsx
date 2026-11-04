@@ -10,6 +10,7 @@ import { OrderTimeline } from '../../../../components/admin/OrderTimeline';
 import { Toast } from '../../../../components/admin/Toast';
 import { ICarryBookingModal } from '../../../../components/admin/ICarryBookingModal';
 import { LiveTrackingModal } from '../../../../components/admin/LiveTrackingModal';
+import { CancelOrderModal } from '../../../../components/admin/CancelOrderModal';
 import { OrderProductImage } from '../../../../components/OrderProductImage';
 
 const getCanonicalStatus = (status: string): OrderStatus => {
@@ -28,6 +29,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [toastMsg, setToastMsg] = useState('');
   const [isICarryModalOpen, setIsICarryModalOpen] = useState(false);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,6 +58,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const handleStatusChange = async (newStatus: OrderStatus) => {
+    if (newStatus === 'Cancelled') {
+      setIsCancelModalOpen(true);
+      return;
+    }
     setOrder((prev) => (prev ? { ...prev, orderStatus: newStatus } : null));
     try {
       const updated = await orderService.updateOrderStatusAsync(order.id, newStatus);
@@ -62,6 +69,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       setToastMsg(`Order status updated to ${newStatus}`);
     } catch (err: any) {
       setToastMsg(`Failed to update status: ${err.message || 'Error'}`);
+    }
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!order) return;
+    setIsCancelling(true);
+    try {
+      setOrder((prev) => (prev ? { ...prev, orderStatus: 'Cancelled', cancellationReason: reason } : null));
+      const updated = await orderService.updateOrderStatusAsync(order.id, 'Cancelled', reason);
+      setOrder(updated);
+      setToastMsg(`Order ${order.id} cancelled & email sent to customer`);
+      setIsCancelModalOpen(false);
+    } catch (err: any) {
+      setToastMsg(`Failed to cancel order: ${err.message || 'Error'}`);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -143,6 +166,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </div>
+
+      {/* Cancellation Notice Banner (if cancelled) */}
+      {getCanonicalStatus(order.orderStatus) === 'Cancelled' && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-red-400 font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+              <span>Order Cancelled</span>
+            </div>
+            <p className="text-zinc-300">
+              Reason: <span className="font-semibold text-white">{order.cancellationReason || 'No specific reason provided.'}</span>
+            </p>
+          </div>
+          <span className="text-[11px] font-mono text-red-300 bg-red-500/20 px-3 py-1.5 rounded-xl border border-red-500/30 w-fit">
+            Customer email notification sent
+          </span>
+        </div>
+      )}
 
       {/* Visual Order Lifecycle Stepper */}
       <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-3">
@@ -443,6 +484,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         order={order}
         isOpen={isTrackingModalOpen}
         onClose={() => setIsTrackingModalOpen(false)}
+      />
+
+      {/* Cancel Order Reason Modal */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirm={handleConfirmCancel}
+        orderId={order.id}
+        customerEmail={order.email}
+        customerName={order.customerName}
+        isLoading={isCancelling}
       />
 
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}

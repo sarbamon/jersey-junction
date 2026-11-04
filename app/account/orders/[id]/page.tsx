@@ -189,7 +189,7 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
               {currentStage.label}
             </h2>
             <p className="text-xs text-gray-300">
-              {currentStage.message}
+              {order.cancellationReason ? `Reason: ${order.cancellationReason}` : currentStage.message}
             </p>
           </div>
         </div>
@@ -356,7 +356,9 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
         )}
 
         <div className="p-3.5 rounded-xl border border-[#242424] bg-black/40 text-xs text-gray-400">
-          {currentStage.message}
+          {currentStage.key === 'CANCELLED' && order.cancellationReason
+            ? `Cancellation Reason: ${order.cancellationReason}`
+            : currentStage.message}
         </div>
       </div>
 

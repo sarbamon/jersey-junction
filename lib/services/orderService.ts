@@ -189,9 +189,9 @@ export const orderService = {
     return savedOrder;
   },
 
-  updateOrderStatus: (id: string, newStatus: OrderStatus): AdminOrder => {
+  updateOrderStatus: (id: string, newStatus: OrderStatus, cancellationReason?: string): AdminOrder => {
     const orders = orderService.getOrders();
-    const index = orders.findIndex((o) => o.id === id || o.id === `#${id}`);
+    const index = orders.findIndex((o) => o.id === id || o.id === `#${id}` || o.id.replace('#', '') === id);
 
     let updatedOrder: AdminOrder;
 
@@ -200,17 +200,20 @@ export const orderService = {
       const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
 
       const newTimeline = [...order.timeline];
-      if (!newTimeline.some((t) => t.status === newStatus)) {
-        newTimeline.push({
-          status: newStatus,
-          timestamp,
-          note: `Order status changed to ${newStatus}`,
-        });
-      }
+      const timelineNote = newStatus === 'Cancelled' && cancellationReason
+        ? `Order cancelled. Reason: ${cancellationReason}`
+        : `Order status changed to ${newStatus}`;
+
+      newTimeline.push({
+        status: newStatus,
+        timestamp,
+        note: timelineNote,
+      });
 
       updatedOrder = {
         ...order,
         orderStatus: newStatus,
+        cancellationReason: newStatus === 'Cancelled' ? (cancellationReason || order.cancellationReason) : order.cancellationReason,
         timeline: newTimeline,
       };
 
@@ -240,22 +243,29 @@ export const orderService = {
         paymentMethod: 'Credit Card',
         paymentStatus: 'Paid',
         orderStatus: newStatus,
+        cancellationReason: newStatus === 'Cancelled' ? cancellationReason : undefined,
         date: new Date().toISOString().split('T')[0],
         timeline: [],
       };
     }
 
-    apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { orderStatus: newStatus }).catch((err) => {
+    apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { 
+      orderStatus: newStatus,
+      cancellationReason: newStatus === 'Cancelled' ? cancellationReason : undefined
+    }).catch((err) => {
       console.error('Failed to update status on backend API:', err);
     });
 
     return updatedOrder;
   },
 
-  updateOrderStatusAsync: async (id: string, newStatus: OrderStatus): Promise<AdminOrder> => {
-    const updated = orderService.updateOrderStatus(id, newStatus);
+  updateOrderStatusAsync: async (id: string, newStatus: OrderStatus, cancellationReason?: string): Promise<AdminOrder> => {
+    const updated = orderService.updateOrderStatus(id, newStatus, cancellationReason);
     try {
-      const res = await apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { orderStatus: newStatus });
+      const res = await apiClient.patch(`/orders/${encodeURIComponent(id)}/status`, { 
+        orderStatus: newStatus,
+        cancellationReason: newStatus === 'Cancelled' ? cancellationReason : undefined
+      });
       if (res.success && res.data) {
         return res.data;
       }

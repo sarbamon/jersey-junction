@@ -101,6 +101,7 @@ export interface AdminOrder {
   packageDimensions?: string;
   shippingMethod?: 'standard' | 'express' | string;
   couponCode?: string;
+  cancellationReason?: string;
 }
 
 export interface AdminCustomer {
