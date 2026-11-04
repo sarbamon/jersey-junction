@@ -764,12 +764,12 @@ export default function CheckoutPage() {
                                 onClick={() => handleSelectAddress(addr)}
                                 className={`p-3.5 rounded-2xl border text-xs cursor-pointer transition-all ${
                                   isSelected
-                                    ? 'bg-[#f4c84a]/15 border-[#f4c84a] text-white shadow-md ring-1 ring-[#f4c84a]'
+                                    ? 'bg-[#f4c84a]/15 border-[#f4c84a] text-black dark:text-white shadow-md ring-1 ring-[#f4c84a]'
                                     : 'bg-[#111] border-[#333] text-gray-400 hover:border-gray-500'
                                 }`}
                               >
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="font-bold text-white text-xs">{addr.name}</span>
+                                  <span className="font-bold text-black dark:text-white text-xs">{addr.name}</span>
                                   {isSelected && (
                                     <span className="text-[9px] bg-[#f4c84a] text-black font-extrabold px-2 py-0.5 rounded-full uppercase font-mono">
                                       Deliver Here
@@ -918,7 +918,7 @@ export default function CheckoutPage() {
                           }`}
                         >
                           <div>
-                            <div className="font-bold text-white">Express</div>
+                            <div className="font-bold text-black dark:text-white">Express</div>
                             <div className="text-[10px] text-gray-400 font-mono">Faster Delivery</div>
                           </div>
                           <span suppressHydrationWarning className="font-mono font-bold text-[#f4c84a]">
@@ -935,7 +935,7 @@ export default function CheckoutPage() {
                           }`}
                         >
                           <div>
-                            <div className="font-bold text-white">Standard</div>
+                            <div className="font-bold text-black dark:text-white">Standard</div>
                             <div className="text-[10px] text-gray-400 font-mono">Standard Delivery</div>
                           </div>
                           <span suppressHydrationWarning className={`font-mono font-bold ${standardPrice === 0 ? 'text-emerald-400' : 'text-[#f4c84a]'}`}>
@@ -966,7 +966,7 @@ export default function CheckoutPage() {
                   <div className="bg-[#111] p-4 rounded-2xl border border-[#222] flex justify-between items-center text-xs">
                     <div>
                       <span className="text-gray-400 block">Delivering to:</span>
-                      <strong className="text-white">{formData.fullName} ({formData.city}, {formData.country})</strong>
+                      <strong className="text-black dark:text-white">{formData.fullName} ({formData.city}, {formData.country})</strong>
                     </div>
                     <button
                       type="button"
@@ -992,7 +992,7 @@ export default function CheckoutPage() {
                         onClick={() => setPaymentMethod('Razorpay')}
                         className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
                           paymentMethod === 'Razorpay'
-                            ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-white shadow-lg'
+                            ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-black dark:text-white shadow-lg'
                             : 'bg-[#111] border-[#242424] text-gray-400 hover:border-[#444]'
                         }`}
                       >
@@ -1004,7 +1004,7 @@ export default function CheckoutPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-white">
+                            <span className="font-bold text-sm text-black dark:text-white">
                               Razorpay Secure Checkout
                             </span>
                             <span className="text-[10px] font-mono bg-[#f4c84a] text-black font-extrabold px-2 py-0.5 rounded uppercase">
@@ -1020,7 +1020,7 @@ export default function CheckoutPage() {
                           onClick={() => setPaymentMethod('COD')}
                           className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
                             paymentMethod === 'COD'
-                              ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-white shadow-lg'
+                              ? 'bg-[#f4c84a]/10 border-[#f4c84a] text-black dark:text-white shadow-lg'
                               : 'bg-[#111] border-[#242424] text-gray-400 hover:border-[#444]'
                           }`}
                         >
@@ -1031,7 +1031,7 @@ export default function CheckoutPage() {
                               {paymentMethod === 'COD' && <div className="w-2 h-2 rounded-full bg-black" />}
                             </div>
 
-                            <span className="font-bold text-sm text-white">
+                            <span className="font-bold text-sm text-black dark:text-white">
                               Cash on Delivery (COD)
                             </span>
                           </div>
@@ -1049,7 +1049,7 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="px-6 py-3.5 bg-[#222] hover:bg-[#333] text-white font-bold text-xs rounded-xl cursor-pointer"
+                      className="px-6 py-3.5 bg-[#222] hover:bg-[#333] text-black dark:text-white font-bold text-xs rounded-xl cursor-pointer"
                     >
                       Back
                     </button>
@@ -1110,9 +1110,9 @@ export default function CheckoutPage() {
                           />
                         </div>
                         <div className="space-y-0.5">
-                          <div className="font-bold text-white text-xs line-clamp-1">{item.product.name}</div>
+                          <div className="font-bold text-black dark:text-white text-xs line-clamp-1">{item.product.name}</div>
                           <div className="text-[10px] text-gray-400 font-mono">
-                            Size: <strong className="text-white">{item.size}</strong> • Qty: <strong className="text-white">{item.quantity}</strong>
+                            Size: <strong className="text-black dark:text-white">{item.size}</strong> • Qty: <strong className="text-black dark:text-white">{item.quantity}</strong>
                           </div>
                           {item.customName && (
                             <div className="text-[10px] text-[#f4c84a] font-mono font-bold">
@@ -1144,7 +1144,7 @@ export default function CheckoutPage() {
                                 >
                                   <Minus className="w-2.5 h-2.5" />
                                 </button>
-                                <span className="text-[11px] font-bold font-mono min-w-[14px] text-center text-white">
+                                <span className="text-[11px] font-bold font-mono min-w-[14px] text-center text-black dark:text-white">
                                   {item.quantity}
                                 </span>
                                 <button
@@ -1191,7 +1191,7 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-2.5 text-emerald-400 font-bold">
                         <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
                         <div>
-                          <div className="font-mono text-white text-xs">
+                          <div className="font-mono text-black dark:text-white text-xs">
                             COUPON &ldquo;<span className="text-emerald-400 font-bold">{appliedCouponCode}</span>&rdquo; APPLIED
                           </div>
                           <div className="text-[10px] text-emerald-400/90 font-mono">
@@ -1250,7 +1250,7 @@ export default function CheckoutPage() {
               <div className="space-y-2.5 text-xs font-mono border-t border-[#222] pt-4 text-gray-300">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Jerseys Base Total</span>
-                  <span className="text-white font-bold">{activeCurrency.symbol}{baseJerseysConverted}</span>
+                  <span className="text-black dark:text-white font-bold">{activeCurrency.symbol}{baseJerseysConverted}</span>
                 </div>
 
                 {customPrintingTotalINR > 0 && (
@@ -1271,8 +1271,8 @@ export default function CheckoutPage() {
                 )}
 
                 <div className="flex justify-between border-t border-[#1a1a1a] pt-2">
-                  <span className="font-bold text-white">Subtotal</span>
-                  <span className="text-white font-bold">{activeCurrency.symbol}{rawSubtotalConverted}</span>
+                  <span className="font-bold text-black dark:text-white">Subtotal</span>
+                  <span className="text-black dark:text-white font-bold">{activeCurrency.symbol}{rawSubtotalConverted}</span>
                 </div>
 
                 {discountAmountINR > 0 && (
@@ -1291,12 +1291,12 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between">
                   <span className="text-gray-400">Shipping ({formData.shippingMethod.toUpperCase()})</span>
-                  <span className={`font-bold ${shippingCostINR === 0 ? 'text-emerald-400' : 'text-white'}`}>
+                  <span className={`font-bold ${shippingCostINR === 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-black dark:text-white'}`}>
                     {shippingCostINR === 0 ? 'FREE' : `${activeCurrency.symbol}${shippingCostConverted}`}
                   </span>
                 </div>
 
-                <div className="flex justify-between text-sm font-black text-white pt-3 border-t border-[#222]">
+                <div className="flex justify-between text-sm font-black text-black dark:text-white pt-3 border-t border-[#222]">
                   <span className="uppercase tracking-wider">Total Amount</span>
                   <span className="text-[#f4c84a] font-mono text-lg font-black">{activeCurrency.symbol}{grandTotalConverted}</span>
                 </div>

@@ -508,12 +508,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl my-8 flex flex-col font-sans text-white">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl my-8 flex flex-col font-sans text-black dark:text-white">
         
         {/* Header */}
         <div className="px-6 py-4 bg-zinc-950 border-b border-zinc-800 flex justify-between items-center">
           <div>
-            <span className="text-sm font-bold text-white font-mono uppercase">
+            <span className="text-sm font-bold text-black dark:text-white font-mono uppercase">
               CHECKOUT
             </span>
           </div>
@@ -601,12 +601,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             onClick={() => handleSelectAddress(addr)}
                             className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
                               isSelected
-                                ? 'bg-amber-400/10 border-amber-400 text-white shadow ring-1 ring-amber-400'
+                                ? 'bg-amber-400/10 border-amber-400 text-black dark:text-white shadow ring-1 ring-amber-400'
                                 : 'bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:border-zinc-500'
                             }`}
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <span className="font-bold text-white text-xs">{addr.name}</span>
+                              <span className="font-bold text-black dark:text-white text-xs">{addr.name}</span>
                               {isSelected && (
                                 <span className="text-[9px] bg-amber-400 text-black font-extrabold px-1.5 py-0.5 rounded uppercase font-mono">
                                   Deliver Here
@@ -747,7 +747,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       }`}
                     >
                       <div>
-                        <div className="font-bold text-white">Express Delivery</div>
+                        <div className="font-bold text-black dark:text-white">Express Delivery</div>
                         <div className="text-[10px] text-zinc-400 font-mono">Tracked Courier</div>
                       </div>
                       <span className="font-black text-amber-400 font-mono">
@@ -764,7 +764,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       }`}
                     >
                       <div>
-                        <div className="font-bold text-white">Standard Delivery</div>
+                        <div className="font-bold text-black dark:text-white">Standard Delivery</div>
                         <div className="text-[10px] text-zinc-400 font-mono">Postal Service</div>
                       </div>
                       <span className={`font-black font-mono ${standardPrice === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -791,7 +791,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex justify-between items-center text-xs">
                   <div>
                     <span className="text-zinc-400 block">Deliver to:</span>
-                    <strong className="text-white">{formData.fullName} ({formData.city}, {formData.country})</strong>
+                    <strong className="text-black dark:text-white">{formData.fullName} ({formData.city}, {formData.country})</strong>
                   </div>
                   <button
                     type="button"
@@ -807,7 +807,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onClick={() => setPaymentMethod('Razorpay')}
                     className={`p-3.5 rounded-xl border cursor-pointer flex items-center justify-between gap-3 transition-all ${
                       paymentMethod === 'Razorpay'
-                        ? 'bg-amber-500/10 border-amber-400 text-white'
+                        ? 'bg-amber-500/10 border-amber-400 text-black dark:text-white'
                         : 'bg-zinc-800 border-zinc-700 text-zinc-400'
                     }`}
                   >
@@ -817,7 +817,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       }`}>
                         {paymentMethod === 'Razorpay' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-950" />}
                       </div>
-                      <span className="font-bold text-xs text-white">Online Payment (Razorpay)</span>
+                      <span className="font-bold text-xs text-black dark:text-white">Online Payment (Razorpay)</span>
                     </div>
                     <span className="text-[10px] font-mono bg-amber-400 text-black font-extrabold px-2 py-0.5 rounded uppercase">
                       Recommended
@@ -829,7 +829,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       onClick={() => setPaymentMethod('COD')}
                       className={`p-3.5 rounded-xl border cursor-pointer flex items-center justify-between gap-3 transition-all ${
                         paymentMethod === 'COD'
-                          ? 'bg-amber-500/10 border-amber-400 text-white shadow-lg'
+                          ? 'bg-amber-500/10 border-amber-400 text-black dark:text-white shadow-lg'
                           : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
                       }`}
                     >
@@ -839,7 +839,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         }`}>
                           {paymentMethod === 'COD' && <div className="w-1.5 h-1.5 rounded-full bg-zinc-950" />}
                         </div>
-                        <span className="font-bold text-xs text-white">Cash on Delivery (COD)</span>
+                        <span className="font-bold text-xs text-black dark:text-white">Cash on Delivery (COD)</span>
                       </div>
                       <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                         AVAILABLE
