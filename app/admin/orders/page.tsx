@@ -270,7 +270,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800/80 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-zinc-900/90 p-4 rounded-2xl border border-zinc-800 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3" />
           <input
@@ -278,31 +278,16 @@ export default function AdminOrdersPage() {
             placeholder="Search by Order ID (#JJ1001), Customer Name, Email, Phone, Address, or Item..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Order Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-zinc-300 focus:outline-none focus:border-amber-400 cursor-pointer"
-          >
-            <option value="all">All Order Statuses</option>
-            <option value="order received">Order Received</option>
-            <option value="order processed">Order Processed</option>
-            <option value="in transit">In Transit</option>
-            <option value="out for delivery">Out for Delivery</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-
           {/* Payment Status Filter */}
           <select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-zinc-300 focus:outline-none focus:border-amber-400 cursor-pointer"
+            className="bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs font-bold text-zinc-300 focus:outline-none focus:border-amber-400 cursor-pointer"
           >
             <option value="all">All Payment Statuses</option>
             <option value="paid">Paid</option>
@@ -349,35 +334,33 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* Orders Table */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl overflow-hidden shadow-xl">
+      {/* Orders Table (Clean High-Contrast Card Table) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xl overflow-hidden text-slate-800">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] tracking-wider border-b border-zinc-800">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8fafc] text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
               <tr>
-                <th className="py-4 px-3 w-10">
+                <th className="py-4 px-3 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
                     onChange={handleSelectAll}
                     title="Select All Orders"
-                    className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 accent-amber-500 cursor-pointer"
                   />
                 </th>
-                <th className="py-4 px-3 font-bold">Order ID</th>
-                <th className="py-4 px-3 font-bold">Customer &amp; Address</th>
-                <th className="py-4 px-4 font-bold min-w-[220px]">Product Details</th>
-                <th className="py-4 px-4 font-bold min-w-[130px]">Total &amp; Coupon</th>
-                <th className="py-4 px-3 font-bold">Payment</th>
-                <th className="py-4 px-4 font-bold min-w-[190px]">Courier / Tracking</th>
-                <th className="py-4 px-4 font-bold min-w-[160px]">Fulfillment Status</th>
-                <th className="py-4 px-3 font-bold">Date</th>
+                <th className="py-4 px-4 font-bold min-w-[200px]">Order &amp; Customer</th>
+                <th className="py-4 px-4 font-bold min-w-[250px]">Product Details</th>
+                <th className="py-4 px-4 font-bold min-w-[140px]">Total &amp; Coupon</th>
+                <th className="py-4 px-4 font-bold min-w-[100px]">Payment</th>
+                <th className="py-4 px-4 font-bold min-w-[210px]">Courier / Tracking</th>
+                <th className="py-4 px-4 font-bold min-w-[170px]">Fulfillment Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 font-medium">
+            <tbody className="divide-y divide-slate-100 font-medium">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-zinc-500 text-xs">
+                  <td colSpan={7} className="py-16 text-center text-slate-400 text-xs">
                     No orders found matching search criteria.
                   </td>
                 </tr>
@@ -391,38 +374,36 @@ export default function AdminOrdersPage() {
                     <tr
                       key={o.id}
                       className={`transition-colors ${
-                        isSelected ? 'bg-amber-400/5' : 'hover:bg-zinc-800/40'
+                        isSelected ? 'bg-amber-50/60' : 'hover:bg-slate-50/80'
                       }`}
                     >
                       {/* Checkbox */}
-                      <td className="py-4 px-3 align-top">
+                      <td className="py-4 px-3 align-top text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectOne(o.id)}
-                          className="w-4 h-4 rounded accent-amber-400 cursor-pointer mt-1"
+                          className="w-4 h-4 rounded border-slate-300 accent-amber-500 cursor-pointer mt-1"
                         />
                       </td>
 
-                      {/* Order ID */}
-                      <td className="py-4 px-3 font-mono font-extrabold text-amber-400 whitespace-nowrap align-top">
-                        <Link 
-                          href={`/admin/orders/${o.id.replace('#', '')}`}
-                          className="hover:underline hover:text-amber-300 flex items-center gap-1 group"
-                          title="Open Order Details"
-                        >
-                          <span>{o.id}</span>
-                          <Eye className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </Link>
-                      </td>
-
-                      {/* Customer Details & Address */}
-                      <td className="py-4 px-3 min-w-[180px] max-w-[240px] align-top">
+                      {/* Order & Customer Column */}
+                      <td className="py-4 px-4 align-top">
                         <div className="space-y-1">
-                          <div className="font-bold text-white text-xs">{o.customerName}</div>
-                          <div className="text-[11px] text-zinc-400 font-mono">{o.phone || o.shippingAddress?.phone}</div>
-                          <div className="text-[10px] text-zinc-400 truncate max-w-[200px]" title={o.shippingAddress?.addressLine || ''}>
+                          <Link 
+                            href={`/admin/orders/${o.id.replace('#', '')}`}
+                            className="font-mono font-extrabold text-slate-900 text-sm hover:text-amber-600 transition-colors inline-block"
+                            title="Open Order Details"
+                          >
+                            {o.id}
+                          </Link>
+                          <div className="font-bold text-slate-800 text-xs">{o.customerName}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">{o.phone || o.shippingAddress?.phone}</div>
+                          <div className="text-[11px] text-slate-500 truncate max-w-[200px]" title={o.shippingAddress?.addressLine || ''}>
                             📍 {o.shippingAddress?.city ? `${o.shippingAddress.city}, ${o.shippingAddress?.state || ''}` : 'Address recorded'}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono pt-0.5">
+                            Placed: {o.date}
                           </div>
                         </div>
                       </td>
@@ -433,7 +414,7 @@ export default function AdminOrdersPage() {
                           {o.items.slice(0, 2).map((item, idx) => (
                             <div key={idx} className="flex items-center gap-2.5">
                               {/* Square image thumbnail */}
-                              <div className="h-9 w-9 rounded-md bg-zinc-950 border border-zinc-800 shrink-0 overflow-hidden flex items-center justify-center">
+                              <div className="h-10 w-10 rounded-md bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
                                 <OrderProductImage
                                   src={item.image}
                                   name={item.name}
@@ -444,13 +425,13 @@ export default function AdminOrdersPage() {
                               </div>
 
                               <div className="min-w-0 flex-1 space-y-0.5">
-                                <div className="text-xs font-bold text-white truncate max-w-[170px]" title={item.name}>
+                                <div className="text-xs font-bold text-slate-900 truncate max-w-[180px]" title={item.name}>
                                   {item.name}
                                 </div>
-                                <div className="text-[10px] text-zinc-400 font-mono">
-                                  <span>Size: <strong className="text-zinc-200">{item.size}</strong></span>
+                                <div className="text-[11px] text-slate-500 font-medium font-mono">
+                                  <span>Size: <strong className="text-slate-800">{item.size}</strong></span>
                                   <span className="mx-1">•</span>
-                                  <span>Qty: <strong className="text-zinc-200">{item.quantity}</strong></span>
+                                  <span>Qty: <strong className="text-slate-800">{item.quantity}</strong></span>
                                 </div>
                               </div>
                             </div>
@@ -460,9 +441,9 @@ export default function AdminOrdersPage() {
                           <button
                             type="button"
                             onClick={() => setViewingProductsOrder(o)}
-                            className="mt-1 px-2.5 py-1 rounded-lg border border-zinc-700 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm hover:border-zinc-500"
+                            className="mt-1 px-3 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs hover:border-slate-400"
                           >
-                            <Eye className="w-3.5 h-3.5 text-zinc-400" />
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
                             <span>View Products ({o.items.length})</span>
                           </button>
                         </div>
@@ -471,18 +452,18 @@ export default function AdminOrdersPage() {
                       {/* Total & Coupon Column */}
                       <td className="py-4 px-4 whitespace-nowrap align-top">
                         <div className="space-y-1.5">
-                          <div className="font-mono font-extrabold text-white text-sm">
+                          <div className="font-mono font-extrabold text-slate-900 text-sm sm:text-base">
                             ₹{o.totalAmount?.toLocaleString('en-IN')}
                           </div>
 
                           {/* Coupon Tag */}
                           {o.discountAmount > 0 || o.couponCode ? (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold font-mono">
+                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#ecfdf5] border border-[#a7f3d0] text-[#059669] text-xs font-bold font-mono shadow-xs">
                               <span>🏷</span>
                               <span>{o.couponCode || '100@OFF'} (-₹{o.discountAmount || 100})</span>
                             </div>
                           ) : (
-                            <div className="text-[10px] text-zinc-500 font-mono">
+                            <div className="text-[11px] text-slate-400 font-mono">
                               No coupon
                             </div>
                           )}
@@ -490,16 +471,16 @@ export default function AdminOrdersPage() {
                       </td>
 
                       {/* Payment Status Column */}
-                      <td className="py-4 px-3 whitespace-nowrap align-top">
+                      <td className="py-4 px-4 whitespace-nowrap align-top">
                         <div className="flex flex-col items-start gap-1">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase font-mono tracking-wider ${
+                          <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider shadow-xs ${
                             o.paymentStatus === 'Paid'
-                              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                              ? 'bg-[#dcfce7] border border-[#bbf7d0] text-[#15803d]'
                               : o.paymentStatus === 'Pending'
-                              ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
+                              ? 'bg-[#fef3c7] border border-[#fde68a] text-[#b45309]'
                               : o.paymentStatus === 'Failed'
-                              ? 'bg-red-500/15 border border-red-500/30 text-red-400'
-                              : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                              ? 'bg-[#fee2e2] border border-[#fecaca] text-[#b91c1c]'
+                              : 'bg-slate-100 text-slate-700 border border-slate-300'
                           }`}>
                             {o.paymentStatus === 'Paid' ? 'PAID' : o.paymentStatus}
                           </span>
@@ -511,60 +492,60 @@ export default function AdminOrdersPage() {
                         {isBooked ? (
                           <div className="space-y-1">
                             {/* Tracking Number */}
-                            <div className="font-mono font-bold text-white text-xs sm:text-sm tracking-wide">
+                            <div className="font-mono font-bold text-slate-900 text-sm tracking-wide">
                               {o.trackingNumber}
                             </div>
 
                             {/* Courier Service Name */}
-                            <div className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">
+                            <div className="text-[11px] text-slate-400 font-mono uppercase tracking-wider font-semibold">
                               {o.courierName || 'DELHIVERY SURFACE'}
                             </div>
 
                             {/* Checkpoint / Destination Location */}
-                            <div className="text-[10px] text-zinc-300 font-medium flex items-center gap-1 max-w-[190px] truncate" title={o.shippingAddress?.city ? `Mumbai / ${o.shippingAddress.city}` : 'In Transit'}>
+                            <div className="text-xs text-slate-600 font-medium flex items-center gap-1 max-w-[210px] truncate" title={o.shippingAddress?.city ? `Mumbai / ${o.shippingAddress.city}` : 'In Transit'}>
                               <span>📍</span>
                               <span className="truncate">{o.shippingAddress?.city ? `Mumbai_${o.shippingAddress.city}...` : 'Mumbai_MahimJunction...'}</span>
                             </div>
 
                             {/* Action Links: VIEW | SYNC | EDIT | DELETE */}
-                            <div className="pt-1 flex items-center gap-1.5 text-[10px] font-mono font-bold">
+                            <div className="pt-1 flex items-center gap-1.5 text-xs font-mono font-bold">
                               <button
                                 type="button"
                                 onClick={() => {
                                   setSelectedOrderForTracking(o);
                                   setIsTrackingModalOpen(true);
                                 }}
-                                className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                                className="text-[#2563eb] hover:text-[#1d4ed8] hover:underline cursor-pointer"
                               >
                                 VIEW
                               </button>
-                              <span className="text-zinc-600">|</span>
+                              <span className="text-slate-300 font-normal">|</span>
                               <button
                                 type="button"
                                 onClick={() => handleSyncTracking(o)}
-                                className="text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer flex items-center gap-0.5"
+                                className="text-[#059669] hover:text-[#047857] hover:underline cursor-pointer flex items-center gap-1"
                                 title="Sync latest status from iCarry courier"
                               >
                                 {isSyncingAwb === o.trackingNumber && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
                                 <span>SYNC</span>
                               </button>
-                              <span className="text-zinc-600">|</span>
+                              <span className="text-slate-300 font-normal">|</span>
                               <button
                                 type="button"
                                 onClick={() => {
                                   setSelectedOrderForICarry(o);
                                   setIsICarryModalOpen(true);
                                 }}
-                                className="text-amber-400 hover:text-amber-300 hover:underline cursor-pointer"
+                                className="text-[#d97706] hover:text-[#b45309] hover:underline cursor-pointer"
                                 title="Modify weight, dimensions or courier"
                               >
                                 EDIT
                               </button>
-                              <span className="text-zinc-600">|</span>
+                              <span className="text-slate-300 font-normal">|</span>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteShipment(o)}
-                                className="text-red-400 hover:text-red-300 hover:underline cursor-pointer"
+                                className="text-[#dc2626] hover:text-[#b91c1c] hover:underline cursor-pointer"
                                 title="Cancel courier shipment"
                               >
                                 DELETE
@@ -572,15 +553,15 @@ export default function AdminOrdersPage() {
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-mono text-zinc-500 block">Not Booked</span>
+                          <div className="space-y-1.5">
+                            <span className="text-xs font-mono text-slate-400 block font-medium">Not Booked</span>
                             <button
                               type="button"
                               onClick={() => {
                                 setSelectedOrderForICarry(o);
                                 setIsICarryModalOpen(true);
                               }}
-                              className="px-2.5 py-1.5 bg-gradient-to-r from-[#f4c84a]/20 to-amber-500/20 hover:from-[#f4c84a] hover:to-amber-500 text-amber-300 hover:text-black border border-amber-400/40 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
+                              className="px-3 py-1.5 bg-[#f4c84a] hover:bg-[#e0b438] text-slate-950 font-bold text-xs rounded-lg transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
                             >
                               <Truck className="w-3.5 h-3.5" />
                               <span>Book Shipment</span>
@@ -591,14 +572,14 @@ export default function AdminOrdersPage() {
 
                       {/* Fulfillment Status & iCarry Badge */}
                       <td className="py-4 px-4 whitespace-nowrap align-top">
-                        <div className="space-y-1.5 min-w-[145px]">
+                        <div className="space-y-1.5 flex flex-col items-start min-w-[150px]">
                           <select
                             value={isSoftdataOrNotPicked ? 'Not Picked' : getCanonicalStatus(o.orderStatus)}
                             onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
-                            className={`bg-zinc-950 border rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none cursor-pointer w-full ${
+                            className={`bg-white border rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-none cursor-pointer w-full shadow-sm ${
                               getCanonicalStatus(o.orderStatus) === 'Cancelled'
-                                ? 'border-red-500/40 text-red-400 focus:border-red-400'
-                                : 'border-zinc-800 text-zinc-200 focus:border-amber-400'
+                                ? 'border-red-400 text-red-600 focus:ring-2 focus:ring-red-200'
+                                : 'border-slate-300 text-slate-800 focus:ring-2 focus:ring-amber-400'
                             }`}
                           >
                             <option value="Not Picked">Not Picked</option>
@@ -612,27 +593,22 @@ export default function AdminOrdersPage() {
 
                           {/* ⚡ Auto-Synced iCarry badge */}
                           {isBooked ? (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/30 text-amber-300 text-[10px] font-bold font-mono">
-                              <Zap className="w-3 h-3 text-amber-400 shrink-0 fill-amber-400" />
+                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#fffbeb] border border-[#fef08a] text-[#b45309] text-[11px] font-bold font-mono shadow-xs">
+                              <Zap className="w-3 h-3 text-[#d97706] fill-[#d97706]" />
                               <span>Auto-Synced iCarry</span>
                             </div>
                           ) : (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/40 text-zinc-500 text-[10px] font-mono">
+                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-mono">
                               <span>Not Synced</span>
                             </div>
                           )}
 
                           {getCanonicalStatus(o.orderStatus) === 'Cancelled' && o.cancellationReason && (
-                            <div className="mt-1 text-[10px] text-red-400/90 font-mono max-w-[160px] truncate" title={o.cancellationReason}>
+                            <div className="mt-1.5 text-xs text-red-600 font-semibold max-w-[170px] leading-tight">
                               Reason: {o.cancellationReason}
                             </div>
                           )}
                         </div>
-                      </td>
-
-                      {/* Date */}
-                      <td className="py-4 px-3 font-mono text-[10px] text-zinc-400 whitespace-nowrap align-top">
-                        {o.date}
                       </td>
                     </tr>
                   );

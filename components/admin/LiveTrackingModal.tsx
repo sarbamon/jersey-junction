@@ -1,26 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Truck,
-  RefreshCw,
-  Copy,
-  Check,
-  MapPin,
-  Clock,
-  CheckCircle2,
-  Package,
-  Calendar,
-  AlertCircle,
-} from 'lucide-react';
+import { RefreshCw, Copy, Check, AlertCircle } from 'lucide-react';
 import { icarryService, TrackingResult } from '@/lib/services/icarryService';
 import { AdminOrder } from '@/lib/types/admin';
 
 const formatShippingStatusText = (status?: string): string => {
-  if (!status) return 'Shipping getting ready';
+  if (!status) return 'Pending Pickup';
   if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
-    return 'Shipping getting ready';
+    return 'Pending Pickup';
   }
   return status;
 };
@@ -71,14 +59,10 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
 
   if (!isOpen || !order) return null;
 
-  const awb = trackingData?.trackingNumber || order.trackingNumber || 'PENDING';
-  const courier = trackingData?.courier || order.courierName || 'Assigned Courier';
-  const status = formatShippingStatusText(trackingData?.shippingStatus || order.shippingStatus || 'Booked');
-  const externalUrl =
-    trackingData?.externalTrackingUrl ||
-    (order.trackingNumber
-      ? `https://www.icarry.in/track-shipment?awb=${encodeURIComponent(order.trackingNumber)}`
-      : 'https://www.icarry.in/track-shipment');
+  const awb = trackingData?.trackingNumber || order.trackingNumber || '';
+  const courier = (trackingData?.courier || order.courierName || 'DELHIVERY SURFACE').toUpperCase();
+  const rawStatus = trackingData?.shippingStatus || order.shippingStatus || 'Pending Pickup';
+  const status = formatShippingStatusText(rawStatus);
 
   const copyAwb = () => {
     if (awb && awb !== 'PENDING') {
@@ -89,103 +73,102 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans"
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-md bg-[#0d0d0d] border border-[#242424] rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden text-white font-sans"
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden text-slate-900 border border-slate-200/90 flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#242424] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold font-serif text-white">
+        {/* Modal Header matching reference Image 2 */}
+        <div className="pt-6 px-6 pb-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold font-serif text-slate-900 tracking-tight">
               Live Tracking
             </h2>
-            <button
-              onClick={fetchTracking}
-              disabled={isLoading}
-              title="Refresh tracking data"
-              className="p-1 rounded-lg text-gray-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchTracking}
+                disabled={isLoading}
+                title="Refresh tracking data"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-500' : ''}`} />
+              </button>
+              <button
+                onClick={onClose}
+                className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
-          >
-            Close
-          </button>
+          {/* Solid horizontal divider line right below header */}
+          <div className="w-full h-[1.5px] bg-slate-900 mt-3" />
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Status Box */}
-          <div className="p-4 rounded-xl border border-[#242424] bg-black/50 space-y-1">
-            <div className="text-sm font-bold text-white">
+        <div className="px-6 pb-6 overflow-y-auto space-y-5 flex-1">
+          {/* Status Box matching reference Image 2 */}
+          <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-1 shadow-xs">
+            <div className="text-sm font-bold text-slate-900">
               Status:{' '}
-              <span className="text-[#3b82f6] font-bold">
+              <span className="text-[#2563eb] font-bold">
                 {status}
               </span>
             </div>
-            <div className="text-xs text-gray-400">
-              Courier:{' '}
-              <span className="uppercase text-gray-300 font-mono">
-                {courier}
-              </span>
+            <div className="text-xs text-slate-500 font-mono">
+              Courier: <span className="uppercase font-semibold text-slate-700">{courier}</span>
             </div>
             {awb && awb !== 'PENDING' && (
-              <div className="text-[11px] text-gray-500 font-mono pt-1 flex items-center justify-between">
-                <span>AWB: <strong className="text-gray-300">{awb}</strong></span>
+              <div className="text-[11px] text-slate-400 font-mono pt-1.5 flex items-center justify-between border-t border-slate-100 mt-2">
+                <span>AWB: <strong className="text-slate-800">{awb}</strong></span>
                 <button
                   onClick={copyAwb}
-                  className="hover:text-white transition-colors cursor-pointer"
+                  className="hover:text-slate-900 transition-colors cursor-pointer text-slate-500 flex items-center gap-1"
                   title="Copy AWB"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
             )}
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p>{error}</p>
             </div>
           )}
 
-          {/* Vertical Scan Timeline */}
+          {/* Vertical Scan Timeline matching reference Image 2 */}
           {trackingData?.history && trackingData.history.length > 0 ? (
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#242424]">
+            <div className="relative pl-6 space-y-6 before:absolute before:left-[4px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200">
               {trackingData.history.map((step, idx) => (
                 <div key={idx} className="relative">
-                  {/* Milestone Dot */}
+                  {/* Milestone Dot: Solid black dot matching reference Image 2 */}
                   <div
-                    className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full ${
-                      idx === 0
-                        ? 'bg-[#3b82f6] ring-4 ring-[#3b82f6]/20'
-                        : 'bg-white'
-                    }`}
+                    className="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-slate-900 ring-4 ring-white"
                   />
 
                   {/* Scan Info */}
                   <div className="space-y-0.5 text-xs">
-                    <div className="text-gray-400 font-mono text-[11px]">
+                    <div className="text-slate-500 font-sans text-xs">
                       {step.timestamp}
                     </div>
-                    <div className="font-bold text-white text-xs sm:text-sm">
+                    <div className="font-bold text-slate-900 text-sm">
                       {step.location || step.details || 'In Transit'}
                     </div>
-                    <div className="text-gray-400 text-xs">
-                      {formatShippingStatusText(step.status)}
+                    <div className="text-slate-500 text-xs font-medium">
+                      {step.status || step.details}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-6 text-gray-400 text-xs space-y-2">
+            <div className="text-center py-6 text-slate-400 text-xs space-y-2">
               <p>
                 {isLoading
                   ? 'Fetching live courier tracking scans...'
