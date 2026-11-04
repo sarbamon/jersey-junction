@@ -206,7 +206,7 @@ export default function ContactPage() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
                 <h3 className="font-serif font-black text-xl text-white uppercase tracking-tight">WhatsApp Chat Initiated!</h3>
                 <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
-                  We opened WhatsApp with your inquiry details. You can now chat directly with our team at <strong className="text-emerald-400 font-mono">+91 70027 40268</strong>.
+                  We opened WhatsApp with your inquiry details. You can now chat directly with our support team.
                 </p>
                 {whatsappSentUrl && (
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -415,7 +415,7 @@ export default function ContactPage() {
                     <span>How fast is WhatsApp support?</span>
                   </h4>
                   <p className="text-gray-400 leading-relaxed pl-5">
-                    Our team is active from 10:00 AM to 9:00 PM IST daily on <strong className="text-emerald-400 font-mono">+91 70027 40268</strong> for tracking, sizing, and order assistance.
+                    Our team is active from 10:00 AM to 9:00 PM IST daily on WhatsApp for tracking, sizing, and order assistance.
                   </p>
                 </div>
               </div>
