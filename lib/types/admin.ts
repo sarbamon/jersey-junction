@@ -30,14 +30,17 @@ export interface AdminProduct {
 }
 
 export type OrderStatus = 
+  | 'Order Received'
+  | 'Order Processed'
+  | 'In Transit'
+  | 'Out for Delivery' 
+  | 'Delivered' 
+  | 'Cancelled' 
   | 'Pending' 
   | 'Confirmed' 
   | 'Processing' 
   | 'Packed' 
   | 'Shipped' 
-  | 'Out for Delivery' 
-  | 'Delivered' 
-  | 'Cancelled' 
   | 'Returned';
 
 export type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'COD' | 'Refunded';

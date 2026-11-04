@@ -11,11 +11,9 @@ interface OrderTimelineProps {
 
 export const OrderTimeline: React.FC<OrderTimelineProps> = ({ currentStatus, timeline }) => {
   const steps: { status: OrderStatus; label: string; icon: any }[] = [
-    { status: 'Pending', label: 'Order Placed', icon: Clock },
-    { status: 'Confirmed', label: 'Confirmed', icon: Check },
-    { status: 'Processing', label: 'Processing', icon: PackageCheck },
-    { status: 'Packed', label: 'Packed', icon: PackageCheck },
-    { status: 'Shipped', label: 'Shipped', icon: Truck },
+    { status: 'Order Received', label: 'Order Received', icon: Clock },
+    { status: 'Order Processed', label: 'Order Processed', icon: PackageCheck },
+    { status: 'In Transit', label: 'In Transit', icon: Truck },
     { status: 'Out for Delivery', label: 'Out for Delivery', icon: MapPin },
     { status: 'Delivered', label: 'Delivered', icon: CheckCircle2 }
   ];
@@ -29,11 +27,22 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ currentStatus, tim
     );
   }
 
-  const currentIndex = steps.findIndex(s => s.status === currentStatus);
+  const normalizeStatus = (st: string) => {
+    const s = String(st || '').toLowerCase().trim();
+    if (s.includes('cancel') || s.includes('fail') || s === 'returned') return 'Cancelled';
+    if (s === 'delivered') return 'Delivered';
+    if (s.includes('out for delivery')) return 'Out for Delivery';
+    if (s.includes('ship') || s.includes('transit')) return 'In Transit';
+    if (s.includes('pack') || s.includes('process')) return 'Order Processed';
+    return 'Order Received';
+  };
+
+  const normalizedCurrent = normalizeStatus(currentStatus);
+  const currentIndex = steps.findIndex(s => s.status === normalizedCurrent);
 
   return (
     <div className="py-4 font-sans">
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {steps.map((step, index) => {
           const Icon = step.icon;
           const isDone = index <= currentIndex;

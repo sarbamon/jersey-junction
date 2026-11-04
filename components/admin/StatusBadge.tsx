@@ -11,12 +11,12 @@ interface StatusBadgeProps {
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'general' }) => {
   let style = 'bg-zinc-800 text-zinc-300 border-zinc-700';
 
-  // Order statuses: Pending, Confirmed, Processing, Packed, Shipped, Out for Delivery, Delivered, Cancelled, Returned
+  // Order statuses: Order Received, Order Processed, In Transit, Out for Delivery, Delivered, Cancelled
   if (status === 'Delivered' || status === 'Paid' || status === 'Active' || status === 'Approved') {
     style = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-  } else if (status === 'Shipped' || status === 'Out for Delivery' || status === 'Confirmed') {
+  } else if (status === 'Out for Delivery' || status === 'In Transit' || status === 'Shipped') {
     style = 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-  } else if (status === 'Processing' || status === 'Packed' || status === 'Pending') {
+  } else if (status === 'Order Processed' || status === 'Order Received' || status === 'Processing' || status === 'Packed' || status === 'Pending' || status === 'Confirmed') {
     style = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
   } else if (status === 'Cancelled' || status === 'Failed' || status === 'Out of Stock' || status === 'Rejected') {
     style = 'bg-red-500/10 text-red-400 border-red-500/30';

@@ -12,6 +12,16 @@ import { ICarryBookingModal } from '../../../../components/admin/ICarryBookingMo
 import { LiveTrackingModal } from '../../../../components/admin/LiveTrackingModal';
 import { OrderProductImage } from '../../../../components/OrderProductImage';
 
+const getCanonicalStatus = (status: string): OrderStatus => {
+  const s = String(status || '').toLowerCase().trim();
+  if (s.includes('cancel') || s.includes('fail') || s === 'returned') return 'Cancelled';
+  if (s === 'delivered') return 'Delivered';
+  if (s.includes('out for delivery')) return 'Out for Delivery';
+  if (s.includes('ship') || s.includes('transit')) return 'In Transit';
+  if (s.includes('pack') || s.includes('process')) return 'Order Processed';
+  return 'Order Received';
+};
+
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [order, setOrder] = useState<AdminOrder | null>(null);
@@ -119,15 +129,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <div className="space-y-0.5 text-right">
             <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold block">Change Order Status</span>
             <select
-              value={order.orderStatus}
+              value={getCanonicalStatus(order.orderStatus)}
               onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
               className="bg-zinc-950 border border-amber-400/40 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 focus:outline-none cursor-pointer"
             >
-              <option value="Pending">Pending</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Processing">Processing</option>
-              <option value="Packed">Packed</option>
-              <option value="Shipped">Shipped</option>
+              <option value="Order Received">Order Received</option>
+              <option value="Order Processed">Order Processed</option>
+              <option value="In Transit">In Transit</option>
               <option value="Out for Delivery">Out for Delivery</option>
               <option value="Delivered">Delivered</option>
               <option value="Cancelled">Cancelled</option>
