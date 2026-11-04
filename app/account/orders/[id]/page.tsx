@@ -85,15 +85,65 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  const getTrackingStatus = (status: string) => {
+  const getTrackingStage = (status: string) => {
     const s = String(status || '').toLowerCase().trim();
-    if (s.includes('cancel')) return 'CANCELLED';
-    if (s.includes('out for delivery') || s.includes('ship') || s.includes('transit')) return 'IN TRANSIT';
-    if (s.includes('deliver')) return 'DELIVERED';
-    return 'PROCESSING';
+    if (s.includes('cancel') || s.includes('fail') || s === 'returned') {
+      return {
+        key: 'CANCELLED',
+        label: 'Order Cancelled',
+        step: -1,
+        message: 'This order has been cancelled by store administration.'
+      };
+    }
+    if (s === 'delivered') {
+      return {
+        key: 'DELIVERED',
+        label: 'Delivered',
+        step: 5,
+        message: 'Your jersey has been successfully delivered. Enjoy the match!'
+      };
+    }
+    if (s.includes('out for delivery')) {
+      return {
+        key: 'OUT_FOR_DELIVERY',
+        label: 'Out for Delivery',
+        step: 4,
+        message: 'Your package is out for delivery with the local courier today.'
+      };
+    }
+    if (s.includes('ship') || s.includes('transit')) {
+      return {
+        key: 'IN_TRANSIT',
+        label: 'In Transit',
+        step: 3,
+        message: 'Your package is in transit with the courier.'
+      };
+    }
+    if (s.includes('pack') || s.includes('process')) {
+      return {
+        key: 'ORDER_PROCESSED',
+        label: 'Order Processed',
+        step: 2,
+        message: 'Your order has been processed and packed for dispatch.'
+      };
+    }
+    return {
+      key: 'ORDER_RECEIVED',
+      label: 'Order Received',
+      step: 1,
+      message: 'Your order has been received and confirmed.'
+    };
   };
 
-  const trackingStatus = getTrackingStatus(order.orderStatus);
+  const TRACKING_STEPS = [
+    { step: 1, label: 'Order Received' },
+    { step: 2, label: 'Order Processed' },
+    { step: 3, label: 'In Transit' },
+    { step: 4, label: 'Out for Delivery' },
+    { step: 5, label: 'Delivered' },
+  ];
+
+  const currentStage = getTrackingStage(order.orderStatus);
 
   const awb = trackingData?.trackingNumber || order.trackingNumber || '';
   const courier = trackingData?.courier || order.courierName || 'Assigned Courier';
@@ -131,39 +181,39 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Top Status Alert Banner */}
-      {trackingStatus === 'CANCELLED' ? (
+      {currentStage.key === 'CANCELLED' ? (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <h2 className="text-sm font-bold text-red-400 uppercase tracking-wide">
-              Order Cancelled
+              {currentStage.label}
             </h2>
             <p className="text-xs text-gray-300">
-              This order has been cancelled.
+              {currentStage.message}
             </p>
           </div>
         </div>
-      ) : trackingStatus === 'DELIVERED' ? (
+      ) : currentStage.key === 'DELIVERED' ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <h2 className="text-sm font-bold text-emerald-400 uppercase tracking-wide">
-              Order Delivered
+              {currentStage.label}
             </h2>
             <p className="text-xs text-gray-300">
-              Your jersey has been successfully delivered. Enjoy the match!
+              {currentStage.message}
             </p>
           </div>
         </div>
-      ) : trackingStatus === 'IN TRANSIT' ? (
+      ) : currentStage.key === 'OUT_FOR_DELIVERY' || currentStage.key === 'IN_TRANSIT' ? (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
           <Truck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wide">
-              Order In Transit
+              {currentStage.label}
             </h2>
             <p className="text-xs text-gray-300">
-              Your package is dispatched and on its way to your destination.
+              {currentStage.message}
             </p>
           </div>
         </div>
@@ -172,10 +222,10 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
           <Package className="w-5 h-5 text-[#f4c84a] shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <h2 className="text-sm font-bold text-[#f4c84a] uppercase tracking-wide">
-              Order Processing
+              {currentStage.label}
             </h2>
             <p className="text-xs text-gray-300">
-              Your order is confirmed and our kit team is currently preparing your jersey.
+              {currentStage.message}
             </p>
           </div>
         </div>
@@ -245,38 +295,68 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Status Box */}
-      <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-5 space-y-3">
+      <div className="bg-[#0d0d0d] border border-[#242424] rounded-2xl p-5 sm:p-6 space-y-5">
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold text-white uppercase tracking-wide">
-            {trackingStatus === 'CANCELLED'
-              ? 'Cancelled'
-              : trackingStatus === 'DELIVERED'
-              ? 'Delivered'
-              : trackingStatus === 'IN TRANSIT'
-              ? 'In Transit'
-              : 'Processing'}
+            {currentStage.label}
           </span>
           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-            trackingStatus === 'CANCELLED'
+            currentStage.key === 'CANCELLED'
               ? 'bg-red-500/10 text-red-400 border-red-500/30'
-              : trackingStatus === 'DELIVERED'
+              : currentStage.key === 'DELIVERED'
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-              : trackingStatus === 'IN TRANSIT'
-              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
               : 'bg-[#f4c84a]/10 text-[#f4c84a] border border-[#f4c84a]/30'
           }`}>
-            {trackingStatus}
+            {currentStage.label}
           </span>
         </div>
 
+        {/* 5-Step Visual Progress Stepper (Order Received -> Order Processed -> In Transit -> Out for Delivery -> Delivered) */}
+        {currentStage.step > 0 && (
+          <div className="pt-2 pb-1">
+            <div className="relative">
+              {/* Background Line */}
+              <div className="absolute top-2.5 left-4 right-4 h-0.5 bg-[#222] -translate-y-1/2 z-0" />
+              {/* Active Gold Line */}
+              <div 
+                className="absolute top-2.5 left-4 h-0.5 bg-[#f4c84a] -translate-y-1/2 z-0 transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, ((currentStage.step - 1) / 4) * 100))}%` }}
+              />
+
+              <div className="relative z-10 grid grid-cols-5 text-center">
+                {TRACKING_STEPS.map((s) => {
+                  const isDone = s.step <= currentStage.step;
+                  const isCurrent = s.step === currentStage.step;
+                  return (
+                    <div key={s.step} className="flex flex-col items-center">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                        isCurrent
+                          ? 'bg-[#f4c84a] text-black ring-4 ring-[#f4c84a]/20 scale-110 font-black'
+                          : isDone
+                          ? 'bg-[#f4c84a] text-black font-bold'
+                          : 'bg-[#1a1a1a] border border-[#333] text-gray-500'
+                      }`}>
+                        {s.step}
+                      </div>
+                      <span className={`text-[10px] sm:text-[11px] mt-2 font-medium leading-tight ${
+                        isCurrent
+                          ? 'text-[#f4c84a] font-bold'
+                          : isDone
+                          ? 'text-white'
+                          : 'text-gray-500'
+                      }`}>
+                        {s.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="p-3.5 rounded-xl border border-[#242424] bg-black/40 text-xs text-gray-400">
-          {trackingStatus === 'CANCELLED'
-            ? 'Order status: Cancelled by store administration.'
-            : trackingStatus === 'DELIVERED'
-            ? 'Order status: Completed and delivered.'
-            : trackingStatus === 'IN TRANSIT'
-            ? 'Order status: Dispatched via courier.'
-            : 'Order status: Being processed at warehouse.'}
+          {currentStage.message}
         </div>
       </div>
 

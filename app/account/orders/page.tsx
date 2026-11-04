@@ -71,7 +71,7 @@ export default function MyOrdersPage() {
 
   const getStatusBadge = (status: string) => {
     const s = String(status || '').toLowerCase().trim();
-    if (s.includes('cancel') || s.includes('fail')) {
+    if (s.includes('cancel') || s.includes('fail') || s === 'returned') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/30">
           Cancelled
@@ -85,16 +85,30 @@ export default function MyOrdersPage() {
         </span>
       );
     }
-    if (s === 'shipped' || s === 'out for delivery' || s === 'in transit') {
+    if (s.includes('out for delivery')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          Out for Delivery
+        </span>
+      );
+    }
+    if (s.includes('ship') || s.includes('transit')) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
           In Transit
         </span>
       );
     }
+    if (s.includes('pack') || s.includes('process')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f4c84a]/10 text-[#f4c84a] border border-[#f4c84a]/30">
+          Order Processed
+        </span>
+      );
+    }
     return (
       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f4c84a]/10 text-[#f4c84a] border border-[#f4c84a]/30">
-        Processing
+        Order Received
       </span>
     );
   };
