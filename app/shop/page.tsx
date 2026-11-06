@@ -128,7 +128,7 @@ function ShopContent() {
 
   // Filter products by category & search term
   let filteredProducts = products.filter((p) => {
-    if (!matchesCategory(p, activeCategory)) return false;
+    if (!matchesCategory(p, activeCategory, adminCategories)) return false;
     if (searchTerm) {
       const term = searchTerm.toLowerCase().trim();
       const matchName = (p.name || '').toLowerCase().includes(term);

@@ -1,4 +1,5 @@
 import { JerseyProduct } from '../../types';
+import { categoryService } from '../services/categoryService';
 
 function toSlug(str: string): string {
   return (str || '')
@@ -10,13 +11,54 @@ function toSlug(str: string): string {
 
 /**
  * Dynamically matches a product against any category key, slug, or name.
- * Supports standard categories and any custom category created by the Admin.
+ * Resolves category definitions (slug <-> name) to ensure custom categories
+ * work seamlessly when filtering by slug (e.g. ?category=full-sleeve-set) or name.
  */
-export function matchesCategory(p: JerseyProduct, catKey: string): boolean {
+export function matchesCategory(
+  p: JerseyProduct,
+  catKey: string,
+  categoryList?: Array<{ name: string; slug?: string; id?: string }>
+): boolean {
   if (!catKey || catKey === 'all') return true;
 
   const keyLower = catKey.toLowerCase().trim();
   const keySlug = toSlug(keyLower);
+
+  // 0. Resolve the category definition from categoryList or live cache
+  const cats = categoryList && categoryList.length > 0 
+    ? categoryList 
+    : categoryService.getCategoriesSync();
+
+  const matchedCatDef = cats.find(
+    (c) =>
+      (c.slug && c.slug.toLowerCase() === keyLower) ||
+      (c.id && c.id.toLowerCase() === keyLower) ||
+      (c.slug && toSlug(c.slug) === keySlug) ||
+      toSlug(c.name) === keySlug ||
+      c.name.toLowerCase() === keyLower ||
+      (keySlug.replace(/-/g, '') === toSlug(c.name).replace(/-/g, ''))
+  );
+
+  const targetNames = new Set<string>();
+  const targetSlugs = new Set<string>();
+
+  targetNames.add(keyLower);
+  targetSlugs.add(keySlug);
+
+  if (matchedCatDef) {
+    if (matchedCatDef.name) {
+      targetNames.add(matchedCatDef.name.toLowerCase().trim());
+      targetSlugs.add(toSlug(matchedCatDef.name));
+    }
+    if (matchedCatDef.slug) {
+      targetNames.add(matchedCatDef.slug.toLowerCase().trim());
+      targetSlugs.add(toSlug(matchedCatDef.slug));
+    }
+    if (matchedCatDef.id) {
+      targetNames.add(matchedCatDef.id.toLowerCase().trim());
+      targetSlugs.add(toSlug(matchedCatDef.id));
+    }
+  }
 
   const catRaw = String((p as any).category || '').trim();
   const catLower = catRaw.toLowerCase();
@@ -34,20 +76,32 @@ export function matchesCategory(p: JerseyProduct, catKey: string): boolean {
   const nameLower = String(p.name || '').toLowerCase();
   const tagsLower = Array.isArray(p.tags) ? p.tags.map((t: string) => String(t || '').toLowerCase()) : [];
 
-  // 1. Direct exact or slug match on the product's category, sport, or subcategory
-  if (
-    catLower === keyLower ||
-    (catSlug && catSlug === keySlug) ||
-    sportLower === keyLower ||
-    (sportSlug && sportSlug === keySlug) ||
-    subcatLower === keyLower ||
-    (subcatSlug && subcatSlug === keySlug)
-  ) {
-    return true;
+  // 1. Direct exact or slug match on the product's category, sport, or subcategory against resolved targets
+  for (const tName of targetNames) {
+    if (catLower === tName || sportLower === tName || subcatLower === tName) {
+      return true;
+    }
   }
 
-  // 2. If the product explicitly belongs to a custom category (e.g. 'fulsleave', 'Jackets', etc.)
-  // and does not match the requested category, NEVER let title/tag keyword heuristics hijack it.
+  for (const tSlug of targetSlugs) {
+    if (
+      (catSlug && catSlug === tSlug) ||
+      (sportSlug && sportSlug === tSlug) ||
+      (subcatSlug && subcatSlug === tSlug)
+    ) {
+      return true;
+    }
+  }
+
+  // 2. Check if product category and target share names (e.g. 'FS Fan Version' with 'FS Fan Version')
+  for (const tName of targetNames) {
+    if (tName && (catLower.includes(tName) || (tName.length >= 3 && tName.includes(catLower)))) {
+      return true;
+    }
+  }
+
+  // 3. If the product explicitly belongs to a known category that doesn't match targets,
+  // do not let generic keyword heuristics steal it into another category.
   const hasDistinctCategory = Boolean(
     catLower &&
     catLower !== 'soccer' &&
@@ -56,15 +110,10 @@ export function matchesCategory(p: JerseyProduct, catKey: string): boolean {
   );
 
   if (hasDistinctCategory) {
-    // If one contains the other (e.g. 'Fan' in 'Fan Version')
-    if (catLower.includes(keyLower) || (keyLower.length > 2 && keyLower.includes(catLower))) {
-      return true;
-    }
-    // Explicitly assigned to a different category
     return false;
   }
 
-  // 3. Fallback for legacy products without an explicit category set
+  // 4. Fallback for legacy products without an explicit category set
   if (keySlug === 'player-version' || keyLower.includes('player')) {
     return nameLower.includes('player') || subcatLower.includes('player') || sportLower.includes('player');
   }

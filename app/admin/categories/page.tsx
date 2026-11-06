@@ -51,7 +51,7 @@ export default function AdminCategoriesPage() {
     try {
       const prods = await productService.getActiveProducts();
       const updatedCats = rawCats.map((cat) => {
-        const count = prods.filter((p) => matchesCategory(p, cat.slug || cat.id || cat.name)).length;
+        const count = prods.filter((p) => matchesCategory(p, cat.slug || cat.id || cat.name, rawCats)).length;
         return { ...cat, productsCount: count };
       });
       setCategories(updatedCats);
@@ -160,8 +160,10 @@ export default function AdminCategoriesPage() {
       return;
     }
 
+    const derivedSlug = editTarget.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     await categoryService.updateCategory(editTarget.id, {
       name: editTarget.name.trim(),
+      slug: editTarget.slug || derivedSlug,
       image: editTarget.image.trim(),
       tag: editTarget.tag || 'Collection',
       status: 'Active'
