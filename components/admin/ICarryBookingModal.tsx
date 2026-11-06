@@ -245,6 +245,12 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
       return;
     }
 
+    const numericAddressId = String(effectiveAddressId || '').trim();
+    if (!numericAddressId || !/^\d+$/.test(numericAddressId) || Number(numericAddressId) <= 0) {
+      setErrorMessage('Please select a valid Pickup Address. The Address ID must be a positive number from your iCarry dashboard (e.g. 103215 or 34272).');
+      return;
+    }
+
     setIsBooking(true);
     setErrorMessage('');
 
@@ -453,7 +459,7 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
                       <option value="">Select Pickup Address</option>
                       {pickupLocations.map((loc) => (
                         <option key={loc.id || loc.addressId} value={loc.addressId}>
-                          {loc.name} {loc.pincode ? `(${loc.pincode})` : ''}
+                          {loc.name || 'Warehouse'} (ID: {loc.addressId || 'N/A'}{loc.pincode ? ` • ${loc.pincode}` : ''})
                         </option>
                       ))}
                     </select>
@@ -747,6 +753,11 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
                     {errorMessage.includes('Invalid username and key combination') && (
                       <p className="text-zinc-400 text-[10px] pt-1">
                         👉 Tip: Check your <strong>ICARRY_API_KEY</strong> and <strong>ICARRY_API_USERNAME</strong> in your backend <code className="text-amber-400">.env</code>. Make sure the API key doesn't have accidental extra characters like &lt; or ?.
+                      </p>
+                    )}
+                    {/pickup\s*address\s*id/i.test(errorMessage) && (
+                      <p className="text-zinc-400 text-[10px] pt-1">
+                        👉 Tip: Make sure the <strong>Pickup Address</strong> you selected has a valid numeric ID from your iCarry account. You can find your exact Address ID in your iCarry dashboard under <strong>My Account &rarr; Pick up address</strong>.
                       </p>
                     )}
                   </div>

@@ -10,6 +10,7 @@ import { Toast } from '../../../components/admin/Toast';
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [toastMsg, setToastMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingSizeChart, setIsUploadingSizeChart] = useState(false);
 
@@ -57,7 +58,6 @@ export default function AdminSettingsPage() {
       icarryPickupAddressId: next[index]?.addressId || '',
       icarryPickupPincode: next[index]?.pincode || '',
     });
-    setToastMsg(`Set "${next[index]?.name || `Warehouse #${index + 1}`}" as default pickup warehouse.`);
   };
 
   const handleAddLocation = () => {
@@ -91,8 +91,9 @@ export default function AdminSettingsPage() {
     });
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const updated = settingsService.updateSettings(settings);
       setSettings(updated);
@@ -100,6 +101,8 @@ export default function AdminSettingsPage() {
     } catch (err: any) {
       console.error('Save failed:', err);
       setToastMsg(`Could not save settings: ${err.message || 'Storage error'}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -167,7 +170,15 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Settings Form */}
-      <form onSubmit={handleSave} className="space-y-8">
+      <form
+        onSubmit={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+            e.preventDefault();
+          }
+        }}
+        className="space-y-8"
+      >
 
         {/* Custom Jersey Printing Fee Card */}
         <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 shadow-xl space-y-4 text-xs">
@@ -227,6 +238,9 @@ export default function AdminSettingsPage() {
 
           <p className="text-zinc-400 text-xs">
             Set up your iCarry pickup warehouses with <strong>Name</strong>, <strong>Address ID</strong>, and <strong>Origin Pincode</strong> (found in your iCarry account under <em>My Account &rarr; Pick up address</em>). When booking orders, selecting the warehouse will automatically prefill this origin pincode.
+          </p>
+          <p className="text-[11px] text-amber-400/90 font-mono">
+            ℹ️ Changes to warehouse IDs are applied only when you click &ldquo;Save Store Configuration&rdquo; at the bottom.
           </p>
 
           <div className="space-y-3 pt-1">
@@ -792,10 +806,20 @@ export default function AdminSettingsPage() {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-8 py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-xl transition-all flex items-center gap-2 cursor-pointer"
+            disabled={isSaving}
+            className="px-8 py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-xl transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <Save className="w-5 h-5" />
-            <span>Save Store Configuration</span>
+            {isSaving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Saving Store Configuration...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                <span>Save Store Configuration</span>
+              </>
+            )}
           </button>
         </div>
 
