@@ -93,14 +93,7 @@ export function matchesCategory(
     }
   }
 
-  // 2. Check if product category and target share names (e.g. 'FS Fan Version' with 'FS Fan Version')
-  for (const tName of targetNames) {
-    if (tName && (catLower.includes(tName) || (tName.length >= 3 && tName.includes(catLower)))) {
-      return true;
-    }
-  }
-
-  // 3. If the product explicitly belongs to a known category that doesn't match targets,
+  // 2. If the product explicitly belongs to a known category that doesn't match targets,
   // do not let generic keyword heuristics steal it into another category.
   const hasDistinctCategory = Boolean(
     catLower &&
