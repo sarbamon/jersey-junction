@@ -79,9 +79,7 @@ export default function AdminProductsPage() {
 
     const matchesCategory = 
       categoryFilter === 'all' ||
-      p.category.toLowerCase() === categoryFilter.toLowerCase() ||
-      (categoryFilter.toLowerCase().includes('fan') && p.category.toLowerCase().includes('fan')) ||
-      (categoryFilter.toLowerCase().includes('player') && p.category.toLowerCase().includes('player') && !p.category.toLowerCase().includes('fan'));
+      p.category.toLowerCase().trim() === categoryFilter.toLowerCase().trim();
 
     return matchesSearch && matchesCategory;
   });
@@ -433,7 +431,7 @@ export default function AdminProductsPage() {
 
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] font-bold">
-                          {p.category.toLowerCase().includes('fan') ? 'Fan Version' : 'Player Version'}
+                          {p.category || 'Standard'}
                         </span>
                       </td>
 

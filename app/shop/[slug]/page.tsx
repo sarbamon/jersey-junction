@@ -67,7 +67,15 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [storeSettings, setStoreSettings] = useState(() => settingsService.getSettings());
 
   const [selectedSize, setSelectedSize] = useState('L');
-  const selectedVersion: VersionType = 'Fan Version (Standard Fit)';
+  const selectedVersion: VersionType = (() => {
+    if (!product?.category) return 'Fan Version (Standard Fit)';
+    const catLower = product.category.toLowerCase();
+    if (catLower.includes('player')) return 'Player Edition (Slim Fit)';
+    if (catLower.includes('retro')) return 'Retro Vintage';
+    if (catLower.includes('kit') || catLower.includes('kid')) return 'Kids Full Kit';
+    if (catLower.includes('fan')) return 'Fan Version (Standard Fit)';
+    return product.category;
+  })();
   const [wantCustomPrint, setWantCustomPrint] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customNumber, setCustomNumber] = useState('');

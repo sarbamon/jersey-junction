@@ -73,7 +73,17 @@ export default function AccountWishlistPage() {
 
               <div className="flex items-center gap-2 pt-2 border-t border-[#222]">
                 <button
-                  onClick={() => addToCart(item, item.availableSizes[0] || 'L', 'Fan Version (Standard Fit)', '', '', [])}
+                  onClick={() => {
+                    const catLower = (item.category || '').toLowerCase();
+                    const version = catLower.includes('player')
+                      ? 'Player Edition (Slim Fit)'
+                      : catLower.includes('retro')
+                      ? 'Retro Vintage'
+                      : catLower.includes('kit') || catLower.includes('kid')
+                      ? 'Kids Full Kit'
+                      : item.category || 'Fan Version (Standard Fit)';
+                    addToCart(item, item.availableSizes[0] || 'L', version as any, '', '', []);
+                  }}
                   className="flex-1 py-2 bg-[#f4c84a] hover:bg-[#e0b438] text-black font-extrabold uppercase rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2, UploadCloud, Image as ImageIcon, Trash2, Plus, Star } from 'lucide-react';
 import { productService } from '../../../../lib/services/productService';
@@ -11,8 +11,10 @@ import { AdminCategory } from '../../../../lib/types/admin';
 import { Toast } from '../../../../components/admin/Toast';
 import { settingsService } from '../../../../lib/services/settingsService';
 
-export default function AddProductPage() {
+function AddProductContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category') || '';
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -22,6 +24,10 @@ export default function AddProductPage() {
       setCategories(cats);
       if (cats && cats.length > 0) {
         setCategory((prev) => {
+          if (categoryParam) {
+            const matched = cats.find(c => c.name.toLowerCase() === categoryParam.toLowerCase() || c.slug?.toLowerCase() === categoryParam.toLowerCase());
+            if (matched) return matched.name;
+          }
           if (!prev || !cats.some((c) => c.name.toLowerCase() === prev.toLowerCase())) {
             return cats[0].name;
           }
@@ -29,11 +35,11 @@ export default function AddProductPage() {
         });
       }
     });
-  }, []);
+  }, [categoryParam]);
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(categoryParam || '');
   const [description, setDescription] = useState('Official high-performance match jersey with moisture-wicking technology and official crest.');
   const [shortDescription, setShortDescription] = useState('Authentic master-quality match kit');
   const [price, setPrice] = useState(799);
@@ -606,5 +612,13 @@ export default function AddProductPage() {
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg('')} />}
 
     </div>
+  );
+}
+
+export default function AddProductPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-zinc-400 font-mono text-xs">Loading product editor...</div>}>
+      <AddProductContent />
+    </Suspense>
   );
 }

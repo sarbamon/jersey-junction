@@ -155,9 +155,7 @@ export default function BulkEditProductsPage() {
 
   const displayedProducts = products.filter((p) => {
     if (categoryFilter === 'all') return true;
-    if (categoryFilter.toLowerCase().includes('fan')) return (p.category || '').toLowerCase().includes('fan');
-    if (categoryFilter.toLowerCase().includes('player')) return (p.category || '').toLowerCase().includes('player') && !(p.category || '').toLowerCase().includes('fan');
-    return (p.category || '').toLowerCase() === categoryFilter.toLowerCase();
+    return (p.category || '').toLowerCase().trim() === categoryFilter.toLowerCase().trim();
   });
 
   const handleApplyToAll = () => {
@@ -387,9 +385,7 @@ export default function BulkEditProductsPage() {
               <option value="all" className="bg-zinc-900 text-white">All Categories ({products.length})</option>
               {categories.map((c) => {
                 const count = products.filter(p =>
-                  c.name.toLowerCase().includes('fan') ? (p.category || '').toLowerCase().includes('fan') :
-                  c.name.toLowerCase().includes('player') ? ((p.category || '').toLowerCase().includes('player') && !(p.category || '').toLowerCase().includes('fan')) :
-                  (p.category || '').toLowerCase() === c.name.toLowerCase()
+                  (p.category || '').toLowerCase().trim() === c.name.toLowerCase().trim()
                 ).length;
                 return (
                   <option key={c.id} value={c.name} className="bg-zinc-900 text-white">

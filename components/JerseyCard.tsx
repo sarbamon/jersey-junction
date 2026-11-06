@@ -46,10 +46,19 @@ export const JerseyCard: React.FC<JerseyCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
     if (isOutOfStock || isAllStockInCart) return;
+    const catLower = (product.category || '').toLowerCase();
+    const version = catLower.includes('player')
+      ? 'Player Edition (Slim Fit)'
+      : catLower.includes('retro')
+      ? 'Retro Vintage'
+      : catLower.includes('kit') || catLower.includes('kid')
+      ? 'Kids Full Kit'
+      : product.category || 'Fan Version (Standard Fit)';
+
     addToCart(
       product,
       product.availableSizes[0] || 'L',
-      'Fan Version (Standard Fit)',
+      version as any,
       '',
       '',
       []

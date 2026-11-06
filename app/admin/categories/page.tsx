@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   FolderTree, 
   Plus, 
@@ -562,6 +563,15 @@ export default function AdminCategoriesPage() {
 
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          href={`/admin/products/add?category=${encodeURIComponent(c.name)}`}
+                          className="px-2.5 py-1.5 bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold border border-amber-400/30"
+                          title={`Add Product into ${c.name}`}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Add Product</span>
+                        </Link>
+
                         <button
                           onClick={() => setEditTarget(c)}
                           className="p-2 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded-lg transition-all cursor-pointer"

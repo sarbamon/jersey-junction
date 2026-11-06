@@ -134,28 +134,39 @@ export default function BulkAddProductsPage() {
   const [toastMsg, setToastMsg] = useState('');
 
   // Batch Presets
-  const [presetCategory, setPresetCategory] = useState('Player Version');
+  const [presetCategory, setPresetCategory] = useState('');
   const [presetPrice, setPresetPrice] = useState('1499');
   const [presetRegPrice, setPresetRegPrice] = useState('1999');
   const [presetSizesStock, setPresetSizesStock] = useState('S5, M5, L5, XL5');
 
   // Rows state
   const [rows, setRows] = useState<BulkRow[]>([
-    { id: '1', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, sizes: 'S5, M5, L5, XL5', images: [] },
-    { id: '2', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, sizes: 'S5, M5, L5, XL5', images: [] },
-    { id: '3', name: '', category: 'Player Version', price: 1499, originalPrice: 1999, sizes: 'S5, M5, L5, XL5', images: [] },
+    { id: '1', name: '', category: '', price: 1499, originalPrice: 1999, sizes: 'S5, M5, L5, XL5', images: [] },
+    { id: '2', name: '', category: '', price: 1499, originalPrice: 1999, sizes: 'S5, M5, L5, XL5', images: [] },
+    { id: '3', name: '', category: '', price: 1499, originalPrice: 1999, sizes: 'S5, M5, L5, XL5', images: [] },
   ]);
 
   useEffect(() => {
     categoryService.getCategories().then((cats) => {
       setCategories(cats);
+      if (cats && cats.length > 0) {
+        setPresetCategory(cats[0].name);
+        setRows((prev) =>
+          prev.map((r) => ({
+            ...r,
+            category: r.category && cats.some((c) => c.name.toLowerCase() === r.category.toLowerCase())
+              ? r.category
+              : cats[0].name,
+          }))
+        );
+      }
     });
   }, []);
 
   const createNewRow = (index: number): BulkRow => ({
     id: Math.random().toString(36).substring(2, 9),
     name: '',
-    category: presetCategory || 'Player Version',
+    category: presetCategory || categories[0]?.name || 'General',
     price: presetPrice ? Number(presetPrice) : 1499,
     originalPrice: presetRegPrice ? Number(presetRegPrice) : 1999,
     sizes: presetSizesStock || 'S5, M5, L5, XL5',
@@ -307,7 +318,7 @@ export default function BulkAddProductsPage() {
         await productService.addProduct({
           name: r.name,
           slug: generatedSlug,
-          category: r.category || 'Player Version',
+          category: r.category || presetCategory || categories[0]?.name || 'General',
           subcategory: 'Featured',
           description: 'Official match jersey with premium breathable fabric and high durability.',
           shortDescription: 'Master quality match jersey',

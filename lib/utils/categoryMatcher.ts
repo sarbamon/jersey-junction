@@ -1,143 +1,94 @@
 import { JerseyProduct } from '../../types';
 
+function toSlug(str: string): string {
+  return (str || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+/**
+ * Dynamically matches a product against any category key, slug, or name.
+ * Supports standard categories and any custom category created by the Admin.
+ */
 export function matchesCategory(p: JerseyProduct, catKey: string): boolean {
   if (!catKey || catKey === 'all') return true;
 
   const keyLower = catKey.toLowerCase().trim();
-  const nameLower = (p.name || '').toLowerCase();
-  const sportLower = (p.sport || '').toLowerCase();
-  const catLower = ((p as any).category || '').toLowerCase();
-  const subcatLower = ((p as any).subcategory || '').toLowerCase();
-  const leagueLower = (p.league || '').toLowerCase();
-  const tagsLower = Array.isArray(p.tags) ? p.tags.map((t: string) => t.toLowerCase()) : [];
+  const keySlug = toSlug(keyLower);
 
-  // Direct exact match
+  const catRaw = String((p as any).category || '').trim();
+  const catLower = catRaw.toLowerCase();
+  const catSlug = toSlug(catLower);
+
+  const sportRaw = String(p.sport || '').trim();
+  const sportLower = sportRaw.toLowerCase();
+  const sportSlug = toSlug(sportLower);
+
+  const subcatRaw = String((p as any).subcategory || '').trim();
+  const subcatLower = subcatRaw.toLowerCase();
+  const subcatSlug = toSlug(subcatLower);
+
+  const leagueLower = String(p.league || '').toLowerCase().trim();
+  const nameLower = String(p.name || '').toLowerCase();
+  const tagsLower = Array.isArray(p.tags) ? p.tags.map((t: string) => String(t || '').toLowerCase()) : [];
+
+  // 1. Direct exact or slug match on the product's category, sport, or subcategory
   if (
-    sportLower === keyLower ||
     catLower === keyLower ||
-    subcatLower === keyLower
+    (catSlug && catSlug === keySlug) ||
+    sportLower === keyLower ||
+    (sportSlug && sportSlug === keySlug) ||
+    subcatLower === keyLower ||
+    (subcatSlug && subcatSlug === keySlug)
   ) {
     return true;
   }
 
-  // Handle category IDs / slugs / names:
-  if (keyLower === 'player-version' || keyLower.includes('player')) {
-    if (catLower.includes('fan') || sportLower === 'fan version' || sportLower === 'fan-version') {
-      return false;
+  // 2. If the product explicitly belongs to a custom category (e.g. 'fulsleave', 'Jackets', etc.)
+  // and does not match the requested category, NEVER let title/tag keyword heuristics hijack it.
+  const hasDistinctCategory = Boolean(
+    catLower &&
+    catLower !== 'soccer' &&
+    catLower !== 'general' &&
+    catLower !== 'uncategorized'
+  );
+
+  if (hasDistinctCategory) {
+    // If one contains the other (e.g. 'Fan' in 'Fan Version')
+    if (catLower.includes(keyLower) || (keyLower.length > 2 && keyLower.includes(catLower))) {
+      return true;
     }
-    return (
-      sportLower === 'player-version' ||
-      sportLower === 'player version' ||
-      catLower.includes('player') ||
-      nameLower.includes('player') ||
-      subcatLower.includes('player')
-    );
+    // Explicitly assigned to a different category
+    return false;
   }
 
-  if (keyLower === 'fan-version' || keyLower.includes('fan')) {
-    if (catLower.includes('player') || sportLower === 'player version' || sportLower === 'player-version') {
-      return false;
-    }
-    return (
-      sportLower === 'fan-version' ||
-      sportLower === 'fan version' ||
-      catLower.includes('fan') ||
-      nameLower.includes('fan') ||
-      subcatLower.includes('fan')
-    );
+  // 3. Fallback for legacy products without an explicit category set
+  if (keySlug === 'player-version' || keyLower.includes('player')) {
+    return nameLower.includes('player') || subcatLower.includes('player') || sportLower.includes('player');
   }
 
-  if (keyLower === 'set' || keyLower.includes('full set') || keyLower.includes('shorts')) {
-    return (
-      sportLower === 'set' ||
-      catLower.includes('set') ||
-      catLower.includes('kit') ||
-      subcatLower.includes('set') ||
-      subcatLower.includes('shorts') ||
-      nameLower.includes('set') ||
-      nameLower.includes('shorts') ||
-      nameLower.includes('kit + shorts')
-    );
+  if (keySlug === 'fan-version' || keyLower.includes('fan')) {
+    return nameLower.includes('fan') || subcatLower.includes('fan') || sportLower.includes('fan');
   }
 
-  if (keyLower === 'retro' || keyLower.includes('retro') || keyLower.includes('vintage')) {
-    return (
-      sportLower === 'retro' ||
-      catLower.includes('retro') ||
-      nameLower.includes('retro') ||
-      subcatLower.includes('retro') ||
-      tagsLower.includes('retro')
-    );
+  if (keySlug === 'retro' || keyLower.includes('retro') || keyLower.includes('vintage')) {
+    return nameLower.includes('retro') || tagsLower.includes('retro') || subcatLower.includes('retro');
   }
 
-  if (keyLower === 'clearance' || keyLower.includes('clearance') || keyLower.includes('sale')) {
-    return (
-      sportLower === 'clearance' ||
-      catLower.includes('clearance') ||
-      catLower.includes('sale') ||
-      nameLower.includes('clearance') ||
-      Boolean(p.originalPrice && p.originalPrice > p.price)
-    );
+  if (keySlug === 'clearance' || keyLower.includes('clearance') || keyLower.includes('sale')) {
+    return nameLower.includes('clearance') || Boolean(p.originalPrice && p.originalPrice > p.price);
   }
 
-  if (keyLower === 'formula-1' || keyLower === 'f1' || keyLower.includes('formula')) {
-    return (
-      sportLower === 'formula-1' ||
-      leagueLower.includes('formula 1') ||
-      leagueLower.includes('f1') ||
-      catLower.includes('formula') ||
-      catLower.includes('f1') ||
-      nameLower.includes('f1') ||
-      nameLower.includes('formula')
-    );
+  if (keySlug === 'formula-1' || keySlug === 'f1') {
+    return leagueLower.includes('f1') || leagueLower.includes('formula') || nameLower.includes('f1');
   }
 
-  if (keyLower === 'cricket' || keyLower.includes('cricket')) {
-    return (
-      sportLower === 'cricket' ||
-      catLower.includes('cricket') ||
-      nameLower.includes('cricket') ||
-      leagueLower.includes('ipl')
-    );
-  }
-
-  if (keyLower === 'nba' || keyLower.includes('nba') || keyLower.includes('basketball')) {
-    return (
-      sportLower === 'nba' ||
-      sportLower === 'basketball' ||
-      catLower.includes('nba') ||
-      catLower.includes('basketball') ||
-      leagueLower.includes('nba') ||
-      nameLower.includes('nba') ||
-      nameLower.includes('basketball')
-    );
-  }
-
-  if (keyLower === 'jackets' || keyLower.includes('jacket') || keyLower.includes('windbreaker') || keyLower.includes('outerwear')) {
-    return (
-      sportLower === 'jackets' ||
-      catLower.includes('jacket') ||
-      catLower.includes('windbreaker') ||
-      subcatLower.includes('jacket') ||
-      nameLower.includes('jacket') ||
-      nameLower.includes('windbreaker')
-    );
-  }
-
-  if (keyLower === 'polo' || keyLower.includes('polo')) {
-    return (
-      sportLower === 'polo' ||
-      catLower.includes('polo') ||
-      subcatLower.includes('polo') ||
-      nameLower.includes('polo')
-    );
-  }
-
-  // General fallback search in category, sport, subcategory, league, or name
+  // General fallback for legacy data: tags, league, or title
   return (
-    catLower.includes(keyLower) ||
-    sportLower.includes(keyLower) ||
-    subcatLower.includes(keyLower) ||
+    tagsLower.includes(keyLower) ||
+    tagsLower.includes(keySlug) ||
     leagueLower.includes(keyLower) ||
     nameLower.includes(keyLower)
   );

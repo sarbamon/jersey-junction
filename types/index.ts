@@ -13,9 +13,10 @@ export type SportCategory =
   | 'set' 
   | 'formula-1' 
   | 'player-version' 
-  | 'fan-version';
+  | 'fan-version'
+  | (string & {});
 
-export type VersionType = 'Player Edition (Slim Fit)' | 'Fan Version (Standard Fit)' | 'Retro Vintage' | 'Kids Full Kit';
+export type VersionType = 'Player Edition (Slim Fit)' | 'Fan Version (Standard Fit)' | 'Retro Vintage' | 'Kids Full Kit' | (string & {});
 
 export interface PatchOption {
   id: string;
