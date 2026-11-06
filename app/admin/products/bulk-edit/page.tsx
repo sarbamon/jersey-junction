@@ -149,6 +149,7 @@ export default function BulkEditProductsPage() {
   // Apply to All controls
   const [applyPrice, setApplyPrice] = useState('');
   const [applyRegPrice, setApplyRegPrice] = useState('');
+  const [applyCategory, setApplyCategory] = useState('');
   const [applySizesStock, setApplySizesStock] = useState('');
   const [applyBestseller, setApplyBestseller] = useState<'keep' | 'yes' | 'no'>('keep');
   const [applyCustom, setApplyCustom] = useState<'keep' | 'yes' | 'no'>('keep');
@@ -164,9 +165,10 @@ export default function BulkEditProductsPage() {
       applyRegPrice === '' &&
       !applySizesStock.trim() &&
       applyBestseller === 'keep' &&
-      applyCustom === 'keep'
+      applyCustom === 'keep' &&
+      !applyCategory
     ) {
-      setToastMsg('Please enter price, size stock, or select best seller / custom status to apply');
+      setToastMsg('Please enter price, size stock, or select category / status to apply');
       return;
     }
 
@@ -177,6 +179,7 @@ export default function BulkEditProductsPage() {
         const updated = { ...p };
         if (applyPrice !== '') updated.price = Number(applyPrice);
         if (applyRegPrice !== '') updated.originalPrice = Number(applyRegPrice);
+        if (applyCategory) updated.category = applyCategory;
         if (applySizesStock.trim()) updated.sizesText = applySizesStock.trim();
         if (applyBestseller === 'yes') updated.isBestseller = true;
         if (applyBestseller === 'no') updated.isBestseller = false;
@@ -421,7 +424,7 @@ export default function BulkEditProductsPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <div>
             <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">PRICE (₹)</label>
             <input
@@ -442,6 +445,22 @@ export default function BulkEditProductsPage() {
               onChange={(e) => setApplyRegPrice(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-400 font-mono font-bold focus:outline-none focus:border-amber-400"
             />
+          </div>
+
+          <div>
+            <label className="font-bold text-zinc-400 block mb-1 uppercase text-[10px]">CHANGE CATEGORY</label>
+            <select
+              value={applyCategory}
+              onChange={(e) => setApplyCategory(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-amber-400 font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+            >
+              <option value="" className="bg-zinc-900 text-zinc-400">Keep Existing</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name} className="bg-zinc-900 text-white">
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -496,6 +515,7 @@ export default function BulkEditProductsPage() {
               <tr>
                 <th className="py-4 px-3 w-10 text-center font-bold">#</th>
                 <th className="py-4 px-4 font-bold min-w-[220px]">PRODUCT TITLE &amp; SKU</th>
+                <th className="py-4 px-3 font-bold min-w-[150px]">CATEGORY</th>
                 <th className="py-4 px-3 font-bold min-w-[100px]">PRICE (₹)</th>
                 <th className="py-4 px-3 font-bold min-w-[100px]">REG. PRICE (₹)</th>
                 <th className="py-4 px-3 font-bold text-center min-w-[130px]">BEST SELLER</th>
@@ -507,7 +527,7 @@ export default function BulkEditProductsPage() {
             <tbody className="divide-y divide-zinc-800/60 font-medium">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-zinc-400 text-xs font-mono">
+                  <td colSpan={9} className="py-16 text-center text-zinc-400 text-xs font-mono">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
@@ -515,7 +535,7 @@ export default function BulkEditProductsPage() {
                 </tr>
               ) : displayedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs font-mono">
+                  <td colSpan={9} className="py-12 text-center text-zinc-500 text-xs font-mono">
                     No products found in this category filter.
                   </td>
                 </tr>
@@ -549,6 +569,25 @@ export default function BulkEditProductsPage() {
                             className="w-full bg-zinc-950/80 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-[11px] font-mono text-zinc-400 focus:outline-none focus:border-amber-400"
                           />
                         </div>
+                      </td>
+
+                      {/* Category Dropdown */}
+                      <td className="py-3 px-3">
+                        <select
+                          value={categories.find(c => c.name.toLowerCase() === (p.category || '').toLowerCase())?.name || p.category || ''}
+                          onChange={(e) => updateProductRow(p.id, 'category', e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-2 text-white font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+                        >
+                          {categories.length === 0 ? (
+                            <option value={p.category}>{p.category || 'General'}</option>
+                          ) : (
+                            categories.map((c) => (
+                              <option key={c.id} value={c.name} className="bg-zinc-900 text-white">
+                                {c.name}
+                              </option>
+                            ))
+                          )}
+                        </select>
                       </td>
 
                       {/* Sale Price */}

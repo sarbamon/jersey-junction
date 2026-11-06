@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type, FolderTree } from 'lucide-react';
 import { ConfirmModal } from '../../../components/admin/ConfirmModal';
 import { Toast } from '../../../components/admin/Toast';
 import { productService } from '../../../lib/services/productService';
@@ -202,6 +202,29 @@ export default function AdminProductsPage() {
     router.push(`/admin/products/bulk-edit?ids=${selectedIds.join(',')}`);
   };
 
+  const handleBulkChangeCategory = async (newCat: string) => {
+    if (!newCat || selectedIds.length === 0) return;
+    setIsUpdatingStatus(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          productService.updateProduct(id, { category: newCat })
+        )
+      );
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedIds.includes(p.id) ? { ...p, category: newCat } : p
+        )
+      );
+      setToastMessage(`Moved ${selectedIds.length} product(s) to "${newCat}"!`);
+      setSelectedIds([]);
+    } catch (err: any) {
+      setToastMessage(`Failed to update category: ${err.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
       
@@ -304,6 +327,28 @@ export default function AdminProductsPage() {
               <Edit className="w-3.5 h-3.5" />
               <span>Edit Selected ({selectedIds.length})</span>
             </button>
+
+            <div className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-zinc-300">
+              <FolderTree className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleBulkChangeCategory(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                defaultValue=""
+                disabled={isUpdatingStatus}
+                className="bg-transparent text-amber-400 font-extrabold text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="" disabled className="bg-zinc-900 text-zinc-400">Move to Category...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name} className="bg-zinc-900 text-white">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               onClick={() => handleBulkSetBestseller(true)}
