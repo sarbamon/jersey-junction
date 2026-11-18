@@ -166,7 +166,7 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
     }).catch(() => {});
   }, [isOpen, order]);
 
-  if (!isOpen) return null;
+  if (!isOpen || order.orderStatus === 'Cancelled') return null;
 
   // Calculate live courier rates
   const handleGetRatesAndCouriers = async () => {
@@ -230,6 +230,11 @@ export const ICarryBookingModal: React.FC<ICarryBookingModalProps> = ({
 
   // Confirm and book shipment
   const handleConfirmBooking = async () => {
+    if (order.orderStatus === 'Cancelled') {
+      setErrorMessage('This order is cancelled. Shipment booking is disabled.');
+      return;
+    }
+
     if (!selectedCourier) {
       setErrorMessage('Please select a Courier Partner from the dropdown.');
       return;

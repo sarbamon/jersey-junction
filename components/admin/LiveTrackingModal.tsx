@@ -8,6 +8,9 @@ import { AdminOrder, OrderStatus } from '@/lib/types/admin';
 const formatShippingStatusText = (status?: string): string => {
   if (!status) return 'Pending Pickup';
   if (/cancel|seller\s*cancelled/i.test(status)) return 'Cancelled';
+  if (/deliver/i.test(status)) return 'Delivered';
+  if (/out\s*for\s*delivery/i.test(status)) return 'Out for Delivery';
+  if (/transit|dispatched/i.test(status)) return 'In Transit';
   if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
     return 'Pending Pickup';
   }
@@ -90,7 +93,19 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
     /cancel/i.test(order.orderStatus || '') ||
     /cancel/i.test(order.shippingStatus || '');
 
-  const displayStatus = isOrderCancelled ? 'Cancelled' : formatShippingStatusText(rawStatus);
+  const isDelivered =
+    !isOrderCancelled && (
+      /deliver/i.test(rawStatus) ||
+      /deliver/i.test(order.orderStatus || '') ||
+      /deliver/i.test(trackingData?.orderStatus || '') ||
+      /deliver/i.test(trackingData?.shippingStatus || '')
+    );
+
+  const displayStatus = isOrderCancelled
+    ? 'Cancelled'
+    : isDelivered
+    ? 'Delivered'
+    : formatShippingStatusText(rawStatus);
 
   const copyAwb = () => {
     if (awb && awb !== 'PENDING') {
@@ -142,7 +157,7 @@ export const LiveTrackingModal: React.FC<LiveTrackingModalProps> = ({
           <div className="p-4 rounded-xl border border-slate-200/90 bg-white space-y-1 shadow-xs">
             <div className="text-sm font-bold text-slate-900">
               Status:{' '}
-              <span className={`font-bold ${isOrderCancelled ? 'text-red-600' : 'text-[#2563eb]'}`}>
+              <span className={`font-bold ${isOrderCancelled ? 'text-red-600' : isDelivered ? 'text-emerald-600' : 'text-[#2563eb]'}`}>
                 {displayStatus}
               </span>
             </div>

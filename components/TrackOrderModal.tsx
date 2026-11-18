@@ -6,6 +6,10 @@ import { icarryService, TrackingResult } from '@/lib/services/icarryService';
 
 const formatShippingStatusText = (status?: string): string => {
   if (!status) return 'Shipping getting ready';
+  if (/cancel|seller\s*cancelled/i.test(status)) return 'Cancelled';
+  if (/deliver/i.test(status)) return 'Delivered';
+  if (/out\s*for\s*delivery/i.test(status)) return 'Out for Delivery';
+  if (/transit|dispatched/i.test(status)) return 'In Transit';
   if (/label\s*generated|manifest\s*generated|softdata\s*upload|shipment\s*created/i.test(status)) {
     return 'Shipping getting ready';
   }

@@ -90,11 +90,16 @@ export default function AdminOrdersPage() {
   };
 
   const handleDeleteShipment = async (order: AdminOrder) => {
-    if (!confirm(`Are you sure you want to delete and unlink the courier shipment (AWB: ${order.trackingNumber || 'N/A'}) from order ${order.id}?\n\nThis removes the iCarry shipment only. The order will remain active so you can book again.`)) {
+    const isAlreadyCancelled = order.orderStatus === 'Cancelled' || order.shippingStatus === 'Cancelled';
+    const confirmPrompt = isAlreadyCancelled
+      ? `Are you sure you want to delete and unlink the courier shipment (AWB: ${order.trackingNumber || 'N/A'}) from cancelled order ${order.id}?`
+      : `Are you sure you want to delete and unlink the courier shipment (AWB: ${order.trackingNumber || 'N/A'}) from order ${order.id}?\n\nThis removes the iCarry shipment only. The order will remain active so you can book again.`;
+
+    if (!confirm(confirmPrompt)) {
       return;
     }
 
-    // Optimistically unlink the courier shipment immediately so UI shows 'Not Booked' and keeps order active
+    // Optimistically unlink courier shipment
     setOrders((prev) =>
       prev.map((o) =>
         o.id === order.id
@@ -104,9 +109,9 @@ export default function AdminOrdersPage() {
               icarryShipmentId: '',
               courierName: '',
               labelUrl: '',
-              shippingStatus: 'Not Booked',
-              orderStatus: o.orderStatus === 'Shipped' || o.orderStatus === 'Cancelled' ? 'Order Processed' : o.orderStatus,
-              cancellationReason: '',
+              shippingStatus: isAlreadyCancelled ? 'Cancelled' : 'Not Booked',
+              orderStatus: isAlreadyCancelled ? 'Cancelled' : (o.orderStatus === 'Shipped' ? 'Order Processed' : o.orderStatus),
+              cancellationReason: o.cancellationReason,
             }
           : o
       )
@@ -114,7 +119,11 @@ export default function AdminOrdersPage() {
 
     try {
       await icarryService.cancelShipment(order.id);
-      setToastMsg(`iCarry shipment deleted from order ${order.id}. Order is active and ready to re-book.`);
+      setToastMsg(
+        isAlreadyCancelled
+          ? `iCarry shipment removed from cancelled order ${order.id}.`
+          : `iCarry shipment deleted from order ${order.id}. Order is active and ready to re-book.`
+      );
       loadOrders();
     } catch (err: any) {
       setToastMsg(`Failed to remove shipment: ${err.message || 'Error'}`);
@@ -455,9 +464,9 @@ export default function AdminOrdersPage() {
               ) : (
                 filteredOrders.map((o) => {
                   const isSelected = selectedIds.includes(o.id);
-                  const isBooked = Boolean(o.trackingNumber || (o.shippingStatus && o.shippingStatus !== 'Not Booked' && o.shippingStatus !== 'Cancelled'));
                   const canonical = getCanonicalStatus(o.orderStatus, o.cancellationReason);
-                  const isOrderCancelled = canonical === 'Cancelled';
+                  const isOrderCancelled = canonical === 'Cancelled' || o.orderStatus === 'Cancelled' || o.shippingStatus === 'Cancelled';
+                  const isBooked = !isOrderCancelled && Boolean(o.trackingNumber || (o.shippingStatus && o.shippingStatus !== 'Not Booked' && o.shippingStatus !== 'Cancelled'));
                   const isSoftdataOrNotPicked = (o.shippingStatus?.toLowerCase().includes('softdata') || o.shippingStatus?.toLowerCase().includes('not picked')) && !isOrderCancelled;
 
                   return (
@@ -579,7 +588,57 @@ export default function AdminOrdersPage() {
 
                       {/* Courier / Live Tracking Column */}
                       <td className="py-4 px-4 whitespace-nowrap align-top">
-                        {isBooked ? (
+                        {isOrderCancelled ? (
+                          <div className="space-y-1">
+                            {o.trackingNumber ? (
+                              <>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-mono font-bold text-slate-500 text-xs line-through" title="Cancelled Tracking Number">
+                                    {o.trackingNumber}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 font-mono">
+                                    Cancelled
+                                  </span>
+                                </div>
+                                {o.courierName && (
+                                  <div className="text-[11px] text-slate-400 font-mono uppercase tracking-wider">
+                                    {o.courierName}
+                                  </div>
+                                )}
+                                <div className="pt-0.5 flex items-center gap-1.5 text-xs font-mono font-bold">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedOrderForTracking(o);
+                                      setIsTrackingModalOpen(true);
+                                    }}
+                                    className="text-[#2563eb] hover:text-[#1d4ed8] hover:underline cursor-pointer"
+                                  >
+                                    VIEW SCANS
+                                  </button>
+                                  <span className="text-slate-300 font-normal">|</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteShipment(o)}
+                                    className="text-[#dc2626] hover:text-[#b91c1c] hover:underline cursor-pointer"
+                                    title="Delete courier record"
+                                  >
+                                    DELETE
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="space-y-0.5">
+                                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-50 border border-rose-200 text-rose-700 font-mono inline-block">
+                                  Order Cancelled
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-mono block">
+                                  No shipment required
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : isBooked ? (
                           <div className="space-y-1">
                             {/* Tracking Number */}
                             <div className="font-mono font-bold text-slate-900 text-sm tracking-wide">
