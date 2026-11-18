@@ -21,6 +21,7 @@ export interface AdminProduct {
   images?: string[];
   isFeatured: boolean;
   isBestseller: boolean;
+  displayOrder?: number;
   isCustomizable?: boolean;
   customizationPrice?: number;
   status: ProductStatus;

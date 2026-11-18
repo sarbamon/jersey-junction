@@ -41,6 +41,7 @@ export interface JerseyProduct {
   reviewCount: number;
   isNew?: boolean;
   isBestseller?: boolean;
+  displayOrder?: number;
   isHot?: boolean;
   isCustomizable?: boolean;
   customizationPrice?: number;

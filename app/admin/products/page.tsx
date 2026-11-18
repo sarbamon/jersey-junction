@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type, FolderTree } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type, FolderTree, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, ArrowUpDown } from 'lucide-react';
 import { ConfirmModal } from '../../../components/admin/ConfirmModal';
 import { Toast } from '../../../components/admin/Toast';
 import { productService } from '../../../lib/services/productService';
@@ -13,7 +13,10 @@ import { AdminProduct, AdminCategory } from '../../../lib/types/admin';
 
 export default function AdminProductsPage() {
   const router = useRouter();
-  const [products, setProducts] = useState<AdminProduct[]>(() => productService.getAdminProductsSync());
+  const [products, setProducts] = useState<AdminProduct[]>(() => {
+    const cached = productService.getAdminProductsSync();
+    return [...cached].sort((a, b) => (a.displayOrder ?? 999999) - (b.displayOrder ?? 999999));
+  });
   const [categories, setCategories] = useState<AdminCategory[]>(() => categoryService.getCategoriesSync());
   const [isLoading, setIsLoading] = useState<boolean>(() => productService.getAdminProductsSync().length === 0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -44,7 +47,10 @@ export default function AdminProductsPage() {
         productService.getAdminProducts(),
         Promise.resolve(categoryService.getCategories()),
       ]);
-      if (Array.isArray(prods)) setProducts(prods);
+      if (Array.isArray(prods)) {
+        const sorted = [...prods].sort((a, b) => (a.displayOrder ?? 999999) - (b.displayOrder ?? 999999));
+        setProducts(sorted);
+      }
       if (Array.isArray(cats) && cats.length > 0) setCategories(cats);
     } catch (err: any) {
       if (products.length === 0) {
@@ -61,7 +67,9 @@ export default function AdminProductsPage() {
 
     const handleProductsUpdated = () => {
       const fresh = productService.getAdminProductsSync();
-      if (Array.isArray(fresh)) setProducts(fresh);
+      if (Array.isArray(fresh)) {
+        setProducts([...fresh].sort((a, b) => (a.displayOrder ?? 999999) - (b.displayOrder ?? 999999)));
+      }
       loadData(false);
     };
     window.addEventListener('jj_products_updated', handleProductsUpdated);
@@ -222,6 +230,65 @@ export default function AdminProductsPage() {
       setToastMessage(`Failed to update category: ${err.message}`);
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  // Product reordering (Move to Top, Move Up, Move Down, Move to Bottom, or Jump to specific position)
+  const handleMoveProduct = async (
+    productId: string,
+    action: 'top' | 'up' | 'down' | 'bottom' | number
+  ) => {
+    const currentIndex = products.findIndex((p) => p.id === productId);
+    if (currentIndex === -1) return;
+
+    let targetIndex = currentIndex;
+    if (action === 'top') {
+      targetIndex = 0;
+    } else if (action === 'bottom') {
+      targetIndex = products.length - 1;
+    } else if (action === 'up') {
+      targetIndex = Math.max(0, currentIndex - 1);
+    } else if (action === 'down') {
+      targetIndex = Math.min(products.length - 1, currentIndex + 1);
+    } else if (typeof action === 'number') {
+      targetIndex = Math.max(0, Math.min(products.length - 1, action - 1));
+    }
+
+    if (targetIndex === currentIndex) return;
+
+    const reordered = [...products];
+    const [movedItem] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    // Update displayOrder numbers
+    const updatedWithOrder = reordered.map((p, idx) => ({ ...p, displayOrder: idx }));
+    setProducts(updatedWithOrder);
+
+    const desc =
+      action === 'top'
+        ? 'to first position (#1)'
+        : action === 'bottom'
+        ? `to bottom position (#${products.length})`
+        : `to position #${targetIndex + 1}`;
+    setToastMessage(`Moved "${movedItem.name}" ${desc}.`);
+
+    setIsUpdatingStatus(true);
+    try {
+      const productIds = updatedWithOrder.map((p) => p.id);
+      await productService.reorderProducts(productIds);
+    } catch (err: any) {
+      setToastMessage(`Failed to save order to server: ${err.message || 'Error'}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleDirectRankChange = (productId: string, currentRank: number) => {
+    const input = window.prompt(`Enter new position for this product (1 to ${products.length}):`, currentRank.toString());
+    if (!input) return;
+    const num = parseInt(input.trim(), 10);
+    if (!isNaN(num) && num >= 1 && num <= products.length) {
+      handleMoveProduct(productId, num);
     }
   };
 
@@ -404,6 +471,12 @@ export default function AdminProductsPage() {
                     className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
                   />
                 </th>
+                <th className="py-4 px-3 font-bold text-center w-36" title="Storefront display priority (Re-order products to show first or at bottom)">
+                  <div className="flex items-center justify-center gap-1 text-amber-400">
+                    <ArrowUpDown className="w-3.5 h-3.5" />
+                    <span>Display Order</span>
+                  </div>
+                </th>
                 <th className="py-4 px-4 font-bold">Image</th>
                 <th className="py-4 px-4 font-bold">Product Name</th>
                 <th className="py-4 px-4 font-bold">Category</th>
@@ -416,7 +489,7 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-zinc-800/60 font-medium">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-zinc-400 text-xs">
+                  <td colSpan={9} className="py-16 text-center text-zinc-400 text-xs">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
                     </div>
@@ -424,13 +497,18 @@ export default function AdminProductsPage() {
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-zinc-500 text-xs">
+                  <td colSpan={9} className="py-12 text-center text-zinc-500 text-xs">
                     No products found in backend database matching filter criteria.
                   </td>
                 </tr>
               ) : (
                 filteredProducts.map((p) => {
                   const isSelected = selectedIds.includes(p.id);
+                  const masterIndex = products.findIndex((prod) => prod.id === p.id);
+                  const displayRank = masterIndex !== -1 ? masterIndex + 1 : 1;
+                  const isFirst = masterIndex <= 0;
+                  const isLast = masterIndex === -1 || masterIndex >= products.length - 1;
+
                   return (
                     <tr
                       key={p.id}
@@ -445,6 +523,57 @@ export default function AdminProductsPage() {
                           onChange={() => toggleSelectOne(p.id)}
                           className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
                         />
+                      </td>
+
+                      <td className="py-3 px-2">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleDirectRankChange(p.id, displayRank)}
+                            title="Click to jump to custom rank number"
+                            className="font-mono text-[11px] font-black text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 px-2 py-0.5 rounded-md min-w-[34px] text-center transition-all cursor-pointer"
+                          >
+                            #{displayRank}
+                          </button>
+                          <div className="flex items-center gap-0.5 bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveProduct(p.id, 'top')}
+                              disabled={isFirst}
+                              title="Show First / Move to Very Top (#1)"
+                              className="p-1 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
+                            >
+                              <ChevronsUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveProduct(p.id, 'up')}
+                              disabled={isFirst}
+                              title="Move Up 1"
+                              className="p-1 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveProduct(p.id, 'down')}
+                              disabled={isLast}
+                              title="Move Down 1"
+                              className="p-1 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveProduct(p.id, 'bottom')}
+                              disabled={isLast}
+                              title={`Show at Bottom / Move to Very Last (#${products.length})`}
+                              className="p-1 text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded disabled:opacity-20 disabled:hover:text-zinc-400 disabled:hover:bg-transparent transition-all cursor-pointer disabled:cursor-not-allowed"
+                            >
+                              <ChevronsDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </td>
 
                       <td className="py-3 px-4">

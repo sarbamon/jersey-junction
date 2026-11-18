@@ -43,6 +43,7 @@ export function mapBackendToAdminProduct(item: any): AdminProduct {
     images: rawImages.length > 0 ? rawImages : (primaryImage ? [primaryImage] : ['/placeholder-jersey.svg']),
     isFeatured: Boolean(item.isFeatured),
     isBestseller: Boolean(item.isBestseller),
+    displayOrder: typeof item.displayOrder === 'number' ? item.displayOrder : 0,
     isCustomizable: Boolean(item.isCustomizable),
     customizationPrice: item.customizationPrice !== undefined ? Number(item.customizationPrice) : undefined,
     status: item.status || 'Active',
@@ -70,6 +71,7 @@ export function mapBackendToJerseyProduct(item: any): JerseyProduct {
     reviewCount: item.reviewCount || 0,
     isNew: Boolean(item.isNewProduct || item.isNew),
     isBestseller: Boolean(item.isBestseller),
+    displayOrder: typeof item.displayOrder === 'number' ? item.displayOrder : 0,
     isHot: Boolean(item.isHot),
     isCustomizable: Boolean(item.isCustomizable),
     customizationPrice: item.customizationPrice !== undefined ? Number(item.customizationPrice) : undefined,
@@ -515,6 +517,54 @@ export const productService = {
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('jj_products_updated'));
+    }
+  },
+
+  // Custom product display ordering (Drag/drop or move up/down/top/bottom in Admin)
+  reorderProducts: async (productIds: string[]): Promise<boolean> => {
+    if (!productIds || productIds.length === 0) return false;
+
+    // 1. Optimistically update local cache displayOrder
+    const orderMap = new Map<string, number>();
+    productIds.forEach((id, index) => {
+      orderMap.set(id.toLowerCase(), index);
+    });
+
+    const adminCache = getStoredAdminCache();
+    if (adminCache.length > 0) {
+      const updatedAdmin = adminCache.map(p => {
+        const idLower = (p.id || '').toLowerCase();
+        const slugLower = (p.slug || '').toLowerCase();
+        const order = orderMap.has(idLower) ? orderMap.get(idLower) : (orderMap.has(slugLower) ? orderMap.get(slugLower) : p.displayOrder);
+        return order !== undefined ? { ...p, displayOrder: order } : p;
+      });
+      updatedAdmin.sort((a, b) => (a.displayOrder ?? 999999) - (b.displayOrder ?? 999999));
+      saveStoredAdminCache(updatedAdmin);
+    }
+
+    const storeCache = getStoredCache();
+    if (storeCache.length > 0) {
+      const updatedStore = storeCache.map(p => {
+        const idLower = (p.id || '').toLowerCase();
+        const slugLower = (p.slug || '').toLowerCase();
+        const order = orderMap.has(idLower) ? orderMap.get(idLower) : (orderMap.has(slugLower) ? orderMap.get(slugLower) : p.displayOrder);
+        return order !== undefined ? { ...p, displayOrder: order } : p;
+      });
+      updatedStore.sort((a, b) => (a.displayOrder ?? 999999) - (b.displayOrder ?? 999999));
+      saveStoredCache(updatedStore);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('jj_products_updated'));
+    }
+
+    // 2. Call backend API
+    try {
+      const res = await apiClient.put('/products/reorder', { productIds });
+      return Boolean(res.success);
+    } catch (err) {
+      console.error('Failed to reorder products via API:', err);
+      return false;
     }
   }
 };

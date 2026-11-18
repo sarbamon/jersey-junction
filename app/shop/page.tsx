@@ -146,14 +146,36 @@ function ShopContent() {
     return true;
   });
 
-  // Sort
-  if (sortBy === 'bestseller') {
-    filteredProducts = [...filteredProducts].sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0));
-  } else if (sortBy === 'price-low') {
-    filteredProducts = [...filteredProducts].sort((a, b) => a.price - b.price);
-  } else if (sortBy === 'price-high') {
-    filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
-  }
+  // Helper to determine if a product is out of stock
+  const isOutOfStock = (p: JerseyProduct) => {
+    if (p.status === 'Out of Stock') return true;
+    if (typeof p.stock === 'number' && p.stock <= 0) return true;
+    if (p.sizeStock && typeof p.sizeStock === 'object') {
+      const vals = Object.values(p.sizeStock).map(Number).filter(n => !isNaN(n));
+      if (vals.length > 0 && vals.reduce((a, b) => a + b, 0) <= 0) return true;
+    }
+    return false;
+  };
+
+  // Sort: In-stock products always appear first, all Out-of-Stock products sink to the bottom
+  filteredProducts = [...filteredProducts].sort((a, b) => {
+    const aOut = isOutOfStock(a) ? 1 : 0;
+    const bOut = isOutOfStock(b) ? 1 : 0;
+    if (aOut !== bOut) return aOut - bOut;
+
+    if (sortBy === 'bestseller') {
+      return (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0);
+    } else if (sortBy === 'price-low') {
+      return a.price - b.price;
+    } else if (sortBy === 'price-high') {
+      return b.price - a.price;
+    } else {
+      // Default / Featured: Respect custom admin displayOrder (ascending: 0, 1, 2...)
+      const orderA = typeof a.displayOrder === 'number' ? a.displayOrder : 999999;
+      const orderB = typeof b.displayOrder === 'number' ? b.displayOrder : 999999;
+      return orderA - orderB;
+    }
+  });
 
   // Pagination: Max 70 products per page
   const totalProducts = filteredProducts.length;

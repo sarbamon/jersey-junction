@@ -98,16 +98,37 @@ export default function Home() {
     setStoreSettings(settingsService.getSettings());
   }, []);
 
+  // Helper to determine if a product is out of stock
+  const isOutOfStock = (p: JerseyProduct) => {
+    if (p.status === 'Out of Stock') return true;
+    if (typeof p.stock === 'number' && p.stock <= 0) return true;
+    if (p.sizeStock && typeof p.sizeStock === 'object') {
+      const vals = Object.values(p.sizeStock).map(Number).filter(n => !isNaN(n));
+      if (vals.length > 0 && vals.reduce((a, b) => a + b, 0) <= 0) return true;
+    }
+    return false;
+  };
+
   // Homepage: Show only bestseller jerseys (capped at maximum 10 products)
   const bestsellerJerseys = products.filter((p) => p.isBestseller);
   let displayProducts = bestsellerJerseys.length > 0 ? [...bestsellerJerseys] : [...products];
 
-  // Sort
-  if (sortBy === 'price-low') {
-    displayProducts.sort((a, b) => a.price - b.price);
-  } else if (sortBy === 'price-high') {
-    displayProducts.sort((a, b) => b.price - a.price);
-  }
+  // Sort: In-stock first, out-of-stock bottom
+  displayProducts.sort((a, b) => {
+    const aOut = isOutOfStock(a) ? 1 : 0;
+    const bOut = isOutOfStock(b) ? 1 : 0;
+    if (aOut !== bOut) return aOut - bOut;
+
+    if (sortBy === 'price-low') {
+      return a.price - b.price;
+    } else if (sortBy === 'price-high') {
+      return b.price - a.price;
+    } else {
+      const orderA = typeof a.displayOrder === 'number' ? a.displayOrder : 999999;
+      const orderB = typeof b.displayOrder === 'number' ? b.displayOrder : 999999;
+      return orderA - orderB;
+    }
+  });
 
   const finalDisplayProducts = displayProducts.slice(0, 10);
 
