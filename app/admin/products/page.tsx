@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type, FolderTree, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, RefreshCw, CheckSquare, Trash, PackageX, Type, FolderTree, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, ArrowUpDown, GripVertical } from 'lucide-react';
 import { ConfirmModal } from '../../../components/admin/ConfirmModal';
 import { Toast } from '../../../components/admin/Toast';
 import { productService } from '../../../lib/services/productService';
@@ -28,6 +28,10 @@ export default function AdminProductsPage() {
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Drag and drop state
+  const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
+  const [dragOverProductId, setDragOverProductId] = useState<string | null>(null);
 
   // Modal & Toast states
   const [deleteTarget, setDeleteTarget] = useState<AdminProduct | null>(null);
@@ -292,6 +296,59 @@ export default function AdminProductsPage() {
     }
   };
 
+  // HTML5 Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, productId: string) => {
+    e.dataTransfer.setData('text/plain', productId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedProductId(productId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, productId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverProductId !== productId) {
+      setDragOverProductId(productId);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedProductId(null);
+    setDragOverProductId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = draggedProductId || e.dataTransfer.getData('text/plain');
+    setDraggedProductId(null);
+    setDragOverProductId(null);
+
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = products.findIndex((p) => p.id === sourceId);
+    const targetIndex = products.findIndex((p) => p.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+    const reordered = [...products];
+    const [movedItem] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+
+    const updatedWithOrder = reordered.map((p, idx) => ({ ...p, displayOrder: idx }));
+    setProducts(updatedWithOrder);
+
+    setToastMessage(`Moved "${movedItem.name}" to position #${targetIndex + 1}.`);
+
+    setIsUpdatingStatus(true);
+    try {
+      const ids = updatedWithOrder.map((p) => p.id);
+      await productService.reorderProducts(ids);
+    } catch (err: any) {
+      setToastMessage(`Failed to save order to server: ${err.message || 'Error'}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
       
@@ -471,9 +528,9 @@ export default function AdminProductsPage() {
                     className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
                   />
                 </th>
-                <th className="py-4 px-3 font-bold text-center w-36" title="Storefront display priority (Re-order products to show first or at bottom)">
-                  <div className="flex items-center justify-center gap-1 text-amber-400">
-                    <ArrowUpDown className="w-3.5 h-3.5" />
+                <th className="py-4 px-3 font-bold text-center w-40" title="Drag & drop rows to reorder, or use quick action buttons">
+                  <div className="flex items-center justify-center gap-1.5 text-amber-400">
+                    <GripVertical className="w-3.5 h-3.5 opacity-70" />
                     <span>Display Order</span>
                   </div>
                 </th>
@@ -508,12 +565,25 @@ export default function AdminProductsPage() {
                   const displayRank = masterIndex !== -1 ? masterIndex + 1 : 1;
                   const isFirst = masterIndex <= 0;
                   const isLast = masterIndex === -1 || masterIndex >= products.length - 1;
+                  const isDragged = draggedProductId === p.id;
+                  const isDragOver = dragOverProductId === p.id && !isDragged;
 
                   return (
                     <tr
                       key={p.id}
-                      className={`transition-colors ${
-                        isSelected ? 'bg-amber-400/5' : 'hover:bg-zinc-800/40'
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, p.id)}
+                      onDragOver={(e) => handleDragOver(e, p.id)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, p.id)}
+                      className={`transition-all duration-150 ${
+                        isDragged
+                          ? 'opacity-30 bg-amber-400/10 border-2 border-dashed border-amber-400/60'
+                          : isDragOver
+                          ? 'border-t-2 border-amber-400 bg-amber-400/15'
+                          : isSelected
+                          ? 'bg-amber-400/5'
+                          : 'hover:bg-zinc-800/40'
                       }`}
                     >
                       <td className="py-3 px-4">
@@ -526,7 +596,17 @@ export default function AdminProductsPage() {
                       </td>
 
                       <td className="py-3 px-2">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Drag & Drop Handle */}
+                          <div
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, p.id)}
+                            className="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-amber-400 p-1 rounded hover:bg-zinc-800 transition-colors shrink-0"
+                            title="Drag and drop to rearrange order"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+
                           <button
                             type="button"
                             onClick={() => handleDirectRankChange(p.id, displayRank)}
@@ -535,6 +615,7 @@ export default function AdminProductsPage() {
                           >
                             #{displayRank}
                           </button>
+
                           <div className="flex items-center gap-0.5 bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 shrink-0">
                             <button
                               type="button"
