@@ -218,8 +218,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const patchesPrice = Array.isArray(item.selectedPatches)
             ? item.selectedPatches.reduce((sum, p) => sum + (Number(p.price) || 0), 0)
             : 0;
-          const isPlayer = item.version?.includes('Player');
-          const versionExtra = isPlayer ? 150 : 0;
+          const versionExtra = 0; // Base price from database product already reflects edition
           const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
           const storePrice = (typeof freshSettings?.customJerseyPrice === 'number' && freshSettings.customJerseyPrice >= 0)
             ? freshSettings.customJerseyPrice
@@ -261,7 +260,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     patches: PatchOption[]
   ) => {
     const patchesPrice = patches.reduce((sum, p) => sum + p.price, 0);
-    const versionExtra = version.includes('Player') ? 150 : 0;
+    const versionExtra = 0; // Base price from database product already reflects edition
     const hasCustomPrint = Boolean(customName?.trim() || customNumber?.trim());
     const storeSettings = settingsService.getSettings();
     const storePrice = (typeof storeSettings?.customJerseyPrice === 'number' && storeSettings.customJerseyPrice >= 0)
