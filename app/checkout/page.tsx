@@ -309,8 +309,7 @@ export default function CheckoutPage() {
   let customizedItemsCount = 0;
 
   for (const item of cartItems) {
-    const isPlayer = item.version?.includes('Player');
-    const versionExtra = isPlayer ? 150 : 0;
+    const versionExtra = 0; // Base price from database product already reflects edition
     const baseUnit = (item.product?.price || 0) + versionExtra;
     
     const hasCustomPrint = Boolean(item.customName?.trim() || item.customNumber?.trim());
